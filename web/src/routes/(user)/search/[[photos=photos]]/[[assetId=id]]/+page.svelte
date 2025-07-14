@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { shortcut } from '$lib/actions/shortcut';
   import AlbumCardGroup from '$lib/components/album-page/album-card-group.svelte';
+  import CircleIconButton from '$lib/components/elements/buttons/circle-icon-button.svelte';
   import Icon from '$lib/components/elements/icon.svelte';
   import AddToAlbum from '$lib/components/photos-page/actions/add-to-album.svelte';
   import ArchiveAction from '$lib/components/photos-page/actions/archive-action.svelte';
@@ -23,10 +24,9 @@
   import LoadingSpinner from '$lib/components/shared-components/loading-spinner.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
   import { AppRoute, QueryParameter } from '$lib/constants';
-  import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
-  import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { AssetStore, type TimelineAsset, type Viewport } from '$lib/stores/assets-store.svelte';
   import { lang, locale } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { preferences } from '$lib/stores/user.store';
@@ -36,6 +36,7 @@
   import { handleError } from '$lib/utils/handle-error';
   import { isAlbumsRoute, isPeopleRoute } from '$lib/utils/navigation';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import {
     type AlbumResponseDto,
     getPerson,
@@ -45,7 +46,6 @@
     searchSmart,
     type SmartSearchDto,
   } from '@immich/sdk';
-  import { IconButton } from '@immich/ui';
   import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
   import { tick } from 'svelte';
   import { t } from 'svelte-i18n';
@@ -81,7 +81,7 @@
     });
   });
 
-  let timelineManager = new TimelineManager();
+  let assetStore = new AssetStore();
 
   const onEscape = () => {
     if ($showAssetViewer) {
@@ -131,7 +131,7 @@
   };
 
   const handleSetVisibility = (assetIds: string[]) => {
-    timelineManager.removeAssets(assetIds);
+    assetStore.removeAssets(assetIds);
     assetInteraction.clearMultiselect();
     onAssetDelete(assetIds);
   };
@@ -233,10 +233,7 @@
     return personNames.join(', ');
   }
 
-  async function getTagNames(tagIds: string[] | null) {
-    if (tagIds === null) {
-      return $t('untagged');
-    }
+  async function getTagNames(tagIds: string[]) {
     const tagNames = await Promise.all(
       tagIds.map(async (tagId) => {
         const tag = await getTagById({ id: tagId });
@@ -273,14 +270,7 @@
         clearSelect={() => cancelMultiselect(assetInteraction)}
       >
         <CreateSharedLink />
-        <IconButton
-          shape="round"
-          color="secondary"
-          variant="ghost"
-          aria-label={$t('select_all')}
-          icon={mdiSelectAll}
-          onclick={handleSelectAll}
-        />
+        <CircleIconButton title={$t('select_all')} icon={mdiSelectAll} onclick={handleSelectAll} />
         <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
           <AddToAlbum {onAddToAlbum} />
           <AddToAlbum shared {onAddToAlbum} />
@@ -305,7 +295,7 @@
           {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
             <TagAction menuItem />
           {/if}
-          <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
+          <DeleteAssets menuItem {onAssetDelete} />
           <hr />
           <AssetJobActions />
         </ButtonContextMenu>
@@ -346,7 +336,7 @@
               {#await getPersonName(value) then personName}
                 {personName}
               {/await}
-            {:else if searchKey === 'tagIds' && (Array.isArray(value) || value === null)}
+            {:else if searchKey === 'tagIds' && Array.isArray(value)}
               {#await getTagNames(value) then tagNames}
                 {tagNames}
               {/await}
@@ -379,14 +369,14 @@
   {/if}
   <section id="search-content">
     {#if searchResultAssets.length > 0}
+      <!-- Gavin changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling. -->
       <GalleryViewer
         assets={searchResultAssets}
         {assetInteraction}
         onIntersected={loadNextPage}
         showArchiveIcon={true}
         {viewport}
-        pageHeaderOffset={54}
-        onReload={onSearchQueryUpdate}
+        pageHeaderOffset={mobileDevice.pointerCoarse ? 86 : 54}
       />
     {:else if !isLoading}
       <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
@@ -413,14 +403,7 @@
           clearSelect={() => cancelMultiselect(assetInteraction)}
         >
           <CreateSharedLink />
-          <IconButton
-            shape="round"
-            color="secondary"
-            variant="ghost"
-            aria-label={$t('select_all')}
-            icon={mdiSelectAll}
-            onclick={handleSelectAll}
-          />
+          <CircleIconButton title={$t('select_all')} icon={mdiSelectAll} onclick={handleSelectAll} />
           <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
             <AddToAlbum {onAddToAlbum} />
             <AddToAlbum shared {onAddToAlbum} />
@@ -449,7 +432,7 @@
             {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
               <TagAction menuItem />
             {/if}
-            <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
+            <DeleteAssets menuItem {onAssetDelete} />
             <hr />
             <AssetJobActions />
           </ButtonContextMenu>

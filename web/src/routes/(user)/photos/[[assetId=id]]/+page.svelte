@@ -22,9 +22,9 @@
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
   import EmptyPlaceholder from '$lib/components/shared-components/empty-placeholder.svelte';
   import { AssetAction } from '$lib/constants';
-  import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { AssetStore } from '$lib/stores/assets-store.svelte';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
   import { preferences, user } from '$lib/stores/user.store';
   import {
@@ -41,9 +41,9 @@
   import { t } from 'svelte-i18n';
 
   let { isViewing: showAssetViewer } = assetViewingStore;
-  const timelineManager = new TimelineManager();
-  void timelineManager.updateOptions({ visibility: AssetVisibility.Timeline, withStacked: true, withPartners: true });
-  onDestroy(() => timelineManager.destroy());
+  const assetStore = new AssetStore();
+  void assetStore.updateOptions({ visibility: AssetVisibility.Timeline, withStacked: true, withPartners: true });
+  onDestroy(() => assetStore.destroy());
 
   const assetInteraction = new AssetInteraction();
 
@@ -69,17 +69,17 @@
   };
 
   const handleLink: OnLink = ({ still, motion }) => {
-    timelineManager.removeAssets([motion.id]);
-    timelineManager.updateAssets([still]);
+    assetStore.removeAssets([motion.id]);
+    assetStore.updateAssets([still]);
   };
 
   const handleUnlink: OnUnlink = ({ still, motion }) => {
-    timelineManager.addAssets([motion]);
-    timelineManager.updateAssets([still]);
+    assetStore.addAssets([motion]);
+    assetStore.updateAssets([still]);
   };
 
   const handleSetVisibility = (assetIds: string[]) => {
-    timelineManager.removeAssets(assetIds);
+    assetStore.removeAssets(assetIds);
     assetInteraction.clearMultiselect();
   };
 
@@ -88,10 +88,11 @@
   });
 </script>
 
-<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton scrollbar={false}>
+<!-- Gavin changed this to ensure the Upload Button is never visible (as we only want uploads to come from the PKC app). -->
+<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={false} scrollbar={false}>
   <AssetGrid
     enableRouting={true}
-    {timelineManager}
+    {assetStore}
     {assetInteraction}
     removeAction={AssetAction.ARCHIVE}
     onEscape={handleEscape}
@@ -113,7 +114,7 @@
     clearSelect={() => assetInteraction.clearMultiselect()}
   >
     <CreateSharedLink />
-    <SelectAllAssets {timelineManager} {assetInteraction} />
+    <SelectAllAssets {assetStore} {assetInteraction} />
     <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
       <AddToAlbum />
       <AddToAlbum shared />
@@ -121,7 +122,7 @@
     <FavoriteAction
       removeFavorite={assetInteraction.isAllFavorite}
       onFavorite={(ids, isFavorite) =>
-        timelineManager.updateAssetOperation(ids, (asset) => {
+        assetStore.updateAssetOperation(ids, (asset) => {
           asset.isFavorite = isFavorite;
           return { remove: false };
         })}
@@ -131,8 +132,8 @@
       {#if assetInteraction.selectedAssets.length > 1 || isAssetStackSelected}
         <StackAction
           unstack={isAssetStackSelected}
-          onStack={(result) => updateStackedAssetInTimeline(timelineManager, result)}
-          onUnstack={(assets) => updateUnstackedAssetInTimeline(timelineManager, assets)}
+          onStack={(result) => updateStackedAssetInTimeline(assetStore, result)}
+          onUnstack={(assets) => updateUnstackedAssetInTimeline(assetStore, assets)}
         />
       {/if}
       {#if isLinkActionAvailable}
@@ -146,15 +147,11 @@
       <ChangeDate menuItem />
       <ChangeDescription menuItem />
       <ChangeLocation menuItem />
-      <ArchiveAction menuItem onArchive={(assetIds) => timelineManager.removeAssets(assetIds)} />
+      <ArchiveAction menuItem onArchive={(assetIds) => assetStore.removeAssets(assetIds)} />
       {#if $preferences.tags.enabled}
         <TagAction menuItem />
       {/if}
-      <DeleteAssets
-        menuItem
-        onAssetDelete={(assetIds) => timelineManager.removeAssets(assetIds)}
-        onUndoDelete={(assets) => timelineManager.addAssets(assets)}
-      />
+      <DeleteAssets menuItem onAssetDelete={(assetIds) => assetStore.removeAssets(assetIds)} />
       <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
       <hr />
       <AssetJobActions />

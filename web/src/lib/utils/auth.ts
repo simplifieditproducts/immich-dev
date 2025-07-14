@@ -18,8 +18,9 @@ export const loadUser = async () => {
     let user = get(user$);
     let preferences = get(preferences$);
     let serverInfo;
+    const hasAuthorizationCookie = hasAuthCookie();
 
-    if ((!user || !preferences) && hasAuthCookie()) {
+    if ((!user || !preferences) && hasAuthorizationCookie) {
       [user, preferences, serverInfo] = await Promise.all([getMyUser(), getMyPreferences(), getAboutInfo()]);
       user$.set(user);
       preferences$.set(preferences);
@@ -29,8 +30,10 @@ export const loadUser = async () => {
         purchaseStore.setPurchaseStatus(true);
       }
     }
+    console.log(`Calling 'loadUser()' in 'web/src/lib/utils/auth.ts' with: user: ${user.email}, preferences: ${preferences}, hasAuthorizationCookie: ${hasAuthorizationCookie} `);
     return user;
-  } catch {
+  } catch(error) {
+    console.log(`Caught error in 'loadUser() with error: ${error}`);
     return null;
   }
 };
@@ -50,15 +53,19 @@ const hasAuthCookie = (): boolean => {
   return false;
 };
 
+// This gets called on most page loads to ensure that the user is still authorized to access the content.
 export const authenticate = async (url: URL, options?: AuthOptions) => {
   const { public: publicRoute, admin: adminRoute } = options || {};
   const user = await loadUser();
+
+  console.log(`Calling 'authenticate()' in 'auth.ts' with user: ${user?.email}, public route: ${publicRoute}, and admin route: ${adminRoute}`)
 
   if (publicRoute) {
     return;
   }
 
   if (!user) {
+    console.log(`Redirecting to LOGIN page from 'authenticate()' in 'web/src/lib/utils/auth.ts', as 'user == null'`)
     redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
   }
 
