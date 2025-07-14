@@ -11,18 +11,33 @@ import type { PageLoad } from './$types';
 export const ssr = false;
 export const csr = true;
 
-export const load = (async ({ fetch }) => {
+console.log(`Loading routes/page.ts`);
+
+export const load = (async ({ fetch, url }) => {
   try {
     await init(fetch);
     const authenticated = await loadUser();
-    if (authenticated) {
-      redirect(302, AppRoute.PHOTOS);
+    const cachedEmail = authenticated?.email;
+    const emailFromUrl = url.searchParams.get('email');
+
+    console.log(`Calling 'load()' in web/src/routes/+page.ts with emailFromUrl: ${emailFromUrl} and cachedEmail: ${cachedEmail}`);
+
+    if (cachedEmail /*&& emailFromUrl*/) {
+      if (cachedEmail == emailFromUrl) {
+        console.log(`Redirecting to PHOTOS page from web/src/routes/+page.ts, because cachedEmail == emailFromUrl`);
+        redirect(302, AppRoute.PHOTOS);
+      } else {
+        console.log(`Redirecting to LOGIN because cachedEmail != emailFromUrl`)
+        redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
+      }
     }
 
     const { isInitialized } = get(serverConfig);
     if (isInitialized) {
       // Redirect to login page if there exists an admin account (i.e. server is initialized)
-      redirect(302, AppRoute.AUTH_LOGIN);
+      console.log(`Redirecting to LOGIN page from web/src/routes/+page.ts, as user is unauthenticated but an admin account exists on the server`);
+      //redirect(302, AppRoute.AUTH_LOGIN);
+      redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

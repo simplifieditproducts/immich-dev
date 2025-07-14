@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { focusOutside } from '$lib/actions/focus-outside';
   import { shortcuts } from '$lib/actions/shortcut';
+  import CircleIconButton from '$lib/components/elements/buttons/circle-icon-button.svelte';
   import { AppRoute } from '$lib/constants';
   import { modalManager } from '$lib/managers/modal-manager.svelte';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
@@ -10,11 +11,11 @@
   import { generateId } from '$lib/utils/generate-id';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import type { MetadataSearchDto, SmartSearchDto } from '@immich/sdk';
-  import { IconButton } from '@immich/ui';
   import { mdiClose, mdiMagnify, mdiTune } from '@mdi/js';
   import { onDestroy, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import SearchHistoryBox from './search-history-box.svelte';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
 
   interface Props {
     value?: string;
@@ -33,6 +34,7 @@
   let selectedId: string | undefined = $state();
   let isFocus = $state(false);
   let close: (() => Promise<void>) | undefined;
+  let usingMobileDevice = $derived(mobileDevice.pointerCoarse);
 
   const listboxId = generateId();
 
@@ -93,7 +95,7 @@
     }
 
     const result = modalManager.open(SearchFilterModal, { searchQuery });
-    close = () => result.close(undefined);
+    close = result.close;
     closeDropdown();
 
     const searchResult = await result.onClose;
@@ -272,18 +274,11 @@
     </div>
 
     <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
-      <IconButton
-        aria-label={$t('show_search_options')}
-        shape="round"
-        icon={mdiTune}
-        onclick={onFilterClick}
-        size="medium"
-        color="secondary"
-        variant="ghost"
-      />
+      <CircleIconButton title={$t('show_search_options')} icon={mdiTune} onclick={onFilterClick} size="20" />
     </div>
 
-    {#if isFocus}
+    <!-- On mobile, don't show "chip" on right side of search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
+    {#if isFocus && !usingMobileDevice}
       <div
         class="absolute inset-y-0 flex items-center"
         class:end-16={isFocus}
@@ -299,28 +294,11 @@
 
     {#if showClearIcon}
       <div class="absolute inset-y-0 end-0 flex items-center pe-2">
-        <IconButton
-          onclick={onClear}
-          icon={mdiClose}
-          aria-label={$t('clear')}
-          size="medium"
-          color="secondary"
-          variant="ghost"
-          shape="round"
-        />
+        <CircleIconButton onclick={onClear} icon={mdiClose} title={$t('clear')} size="20" />
       </div>
     {/if}
     <div class="absolute inset-y-0 start-0 flex items-center ps-2">
-      <IconButton
-        type="submit"
-        aria-label={$t('search')}
-        icon={mdiMagnify}
-        size="medium"
-        onclick={() => {}}
-        shape="round"
-        color="secondary"
-        variant="ghost"
-      />
+      <CircleIconButton type="submit" title={$t('search')} icon={mdiMagnify} size="20" onclick={() => {}} />
     </div>
   </form>
 </div>

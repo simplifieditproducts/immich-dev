@@ -20,7 +20,6 @@
   import { Button, IconButton } from '@immich/ui';
   import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { t } from 'svelte-i18n';
-  import ThemeButton from '../theme-button.svelte';
   import UserAvatar from '../user-avatar.svelte';
   import AccountInfoPanel from './account-info-panel.svelte';
 
@@ -117,7 +116,8 @@
           />
         {/if}
 
-        <ThemeButton />
+        <!-- Gavin has hidden the Theme Switch button. -->
+        <!-- <ThemeButton padding="2" /> -->
 
         <div
           use:clickOutside={{
@@ -140,7 +140,7 @@
           {/if}
         </div>
 
-        <CastButton />
+        <CastButton navBar />
 
         <div
           use:clickOutside={{
@@ -155,7 +155,7 @@
             title={`${$user.name} (${$user.email})`}
           >
             {#key $user}
-              <UserAvatar user={$user} size="md" noTitle interactive />
+              <UserAvatar user={$user} size="md" showTitle={false} interactive />
             {/key}
           </button>
 

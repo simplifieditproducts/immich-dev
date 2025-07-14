@@ -10,6 +10,7 @@
   import { Alert, Button, Field, Input, PasswordInput, Stack } from '@immich/ui';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
+  import { preferences as preferences$, user as user$, resetSavedUser } from '$lib/stores/user.store';
   import type { PageData } from './$types';
 
   interface Props {
@@ -26,6 +27,7 @@
   let oauthLoading = $state(true);
 
   const onSuccess = async (user: LoginResponseDto) => {
+    console.log(`Calling 'onSuccess' with continueUrl: ${data.continueUrl}`);
     await goto(data.continueUrl, { invalidateAll: true });
     eventManager.emit('auth.login', user);
   };
@@ -34,6 +36,30 @@
   const onOnboarding = async () => await goto(AppRoute.AUTH_ONBOARDING);
 
   onMount(async () => {
+
+    const url = globalThis.location.href
+
+    console.log(`Calling 'onMount() within 'web/src/routes/auth/login/+page.svelte' with url: ${url}`);
+
+    // TODO: Instead of using this, save the values of email and password locally. Remove it immediately after using it.
+    console.log(`ResendImmichAutoLoginInfo`);
+
+    // BEGIN auto-login logic added by Gavin.
+    // To use auto-login, use `window.postMessage` to pass in `email` and `password` fields while opening the Immich Web UI.
+    globalThis.addEventListener("message", (event) => {
+      const { autoEmail, autoPassword, autoUrl } = event.data;
+      if (!autoEmail || !autoPassword) { return };
+
+      resetSavedUser();
+
+      email = autoEmail;
+      password = autoPassword;
+
+      console.log(`Auto-login started with email: ${autoEmail} and autoUrl: ${autoUrl}`);
+      handleLogin().catch((error) => console.error("Auto-login failed", error));
+    });
+    // END auto-login logic added by Gavin.
+
     if (!$featureFlags.oauth) {
       oauthLoading = false;
       return;
@@ -42,12 +68,6 @@
     if (oauth.isCallback(globalThis.location)) {
       try {
         const user = await oauth.login(globalThis.location);
-
-        if (!user.isOnboarded) {
-          await onOnboarding();
-          return;
-        }
-
         await onSuccess(user);
         return;
       } catch (error) {
@@ -58,10 +78,7 @@
     }
 
     try {
-      if (
-        ($featureFlags.oauthAutoLaunch && !oauth.isAutoLaunchDisabled(globalThis.location)) ||
-        oauth.isAutoLaunchEnabled(globalThis.location)
-      ) {
+      if ($featureFlags.oauthAutoLaunch && !oauth.isAutoLaunchDisabled(globalThis.location)) {
         await goto(`${AppRoute.AUTH_LOGIN}?autoLaunch=0`, { replaceState: true });
         await oauth.authorize(globalThis.location);
         return;
@@ -75,6 +92,7 @@
 
   const handleLogin = async () => {
     try {
+      console.log(`Calling 'handleLogin() method'`)
       errorMessage = '';
       loading = true;
       const user = await login({ loginCredentialDto: { email, password } });
@@ -84,19 +102,10 @@
         return;
       }
 
-      // change the user password before we onboard them
       if (!user.isAdmin && user.shouldChangePassword) {
         await onFirstLogin();
         return;
       }
-
-      // We want to onboard after the first login since their password will change
-      // and handleLogin will be called again (relogin). We then do onboarding on that next call.
-      if (!user.isOnboarded) {
-        await onOnboarding();
-        return;
-      }
-
       await onSuccess(user);
       return;
     } catch (error) {

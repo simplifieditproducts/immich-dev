@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import CircleIconButton from '$lib/components/elements/buttons/circle-icon-button.svelte';
   import Icon from '$lib/components/elements/icon.svelte';
   import ImmichLogo from '$lib/components/shared-components/immich-logo.svelte';
   import Portal from '$lib/components/shared-components/portal/portal.svelte';
@@ -13,7 +14,7 @@
   import { handleError } from '$lib/utils/handle-error';
   import { getButtonVisibility } from '$lib/utils/purchase-utils';
   import { updateMyPreferences } from '@immich/sdk';
-  import { Button, IconButton } from '@immich/ui';
+  import { Button } from '@immich/ui';
   import { mdiClose, mdiInformationOutline } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
@@ -27,7 +28,7 @@
   const { isPurchased } = purchaseStore;
 
   const openPurchaseModal = async () => {
-    await modalManager.show(PurchaseModal);
+    await modalManager.show(PurchaseModal, {});
     showMessage = false;
   };
 
@@ -73,7 +74,13 @@
   });
 </script>
 
-<div class="license-status ps-4 text-sm">
+<!-- {#if isOpen}
+  <LicenseModal onClose={() => (isOpen = false)} />
+{/if} -->
+
+<!-- TODO: We could repurpose this modal for our own subscription purchase offers. -->
+ <!-- I've commented out the "Buy Immich" button that appears in the bottom-left. -->
+<!-- <div class="hidden md:block license-status pl-4 text-sm">
   {#if $isPurchased && $preferences.purchase.showSupportBadge}
     <button
       onclick={() => goto(`${AppRoute.USER_SETTINGS}?isOpen=user-purchase-settings`)}
@@ -112,7 +119,7 @@
       </div>
     </button>
   {/if}
-</div>
+</div> -->
 
 <Portal target="body">
   {#if showMessage}
@@ -129,16 +136,13 @@
         <div class="h-10 w-10">
           <ImmichLogo noText class="h-[32px]" />
         </div>
-        <IconButton
-          shape="round"
-          color="secondary"
-          variant="ghost"
+        <CircleIconButton
           icon={mdiClose}
           onclick={() => {
             showMessage = false;
           }}
-          aria-label={$t('close')}
-          size="medium"
+          title={$t('close')}
+          size="18"
           class="text-immich-dark-gray/85 dark:text-immich-gray"
         />
       </div>

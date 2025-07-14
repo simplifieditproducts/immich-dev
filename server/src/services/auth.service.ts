@@ -91,7 +91,11 @@ export class AuthService extends BaseService {
 
   async changePassword(auth: AuthDto, dto: ChangePasswordDto): Promise<UserAdminResponseDto> {
     const { password, newPassword } = dto;
-    const user = await this.userRepository.getForChangePassword(auth.user.id);
+    const user = await this.userRepository.getByEmail(auth.user.email, { withPassword: true });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
     const valid = this.validateSecret(password, user.password);
     if (!valid) {
       throw new BadRequestException('Wrong password');
@@ -202,6 +206,8 @@ export class AuthService extends BaseService {
       this.getCookieToken(headers)) as string;
     const apiKey = (headers[ImmichHeader.ApiKey] || queryParams[ImmichQuery.ApiKey]) as string;
 
+    console.log(`Calling 'validate()' with user token: ${headers[ImmichHeader.USER_TOKEN]}, session token: ${headers[ImmichHeader.SESSION_TOKEN]}, bearer token: ${this.getBearerToken(headers)}, cookie token: ${this.getCookieToken(headers)}`);
+
     if (shareKey) {
       return this.validateSharedLink(shareKey);
     }
@@ -250,7 +256,7 @@ export class AuthService extends BaseService {
     const { oauth } = await this.getConfig({ withCache: false });
     const url = this.resolveRedirectUri(oauth, dto.url);
     const profile = await this.oauthRepository.getProfile(oauth, url, expectedState, codeVerifier);
-    const { autoRegister, defaultStorageQuota, storageLabelClaim, storageQuotaClaim, roleClaim } = oauth;
+    const { autoRegister, defaultStorageQuota, storageLabelClaim, storageQuotaClaim } = oauth;
     this.logger.debug(`Logging in with OAuth: ${JSON.stringify(profile)}`);
     let user: UserAdmin | undefined = await this.userRepository.getByOAuthId(profile.sub);
 
@@ -290,20 +296,14 @@ export class AuthService extends BaseService {
         default: defaultStorageQuota,
         isValid: (value: unknown) => Number(value) >= 0,
       });
-      const role = this.getClaim<'admin' | 'user'>(profile, {
-        key: roleClaim,
-        default: 'user',
-        isValid: (value: unknown) => isString(value) && ['admin', 'user'].includes(value),
-      });
 
       const userName = profile.name ?? `${profile.given_name || ''} ${profile.family_name || ''}`;
       user = await this.createUser({
         name: userName,
         email: profile.email,
         oauthId: profile.sub,
-        quotaSizeInBytes: storageQuota === null ? null : storageQuota * HumanReadableSize.GiB,
+        quotaSizeInBytes: storageQuota * HumanReadableSize.GiB || null,
         storageLabel: storageLabel || null,
-        isAdmin: role === 'admin',
       });
     }
 
@@ -466,7 +466,6 @@ export class AuthService extends BaseService {
         user: session.user,
         session: {
           id: session.id,
-          isPendingSyncReset: session.isPendingSyncReset,
           hasElevatedPermission,
         },
       };

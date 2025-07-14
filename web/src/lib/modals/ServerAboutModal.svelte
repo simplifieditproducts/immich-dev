@@ -157,14 +157,15 @@
         </div>
       {/if}
 
-      {#if info.sourceRef === 'main' && info.repository === 'immich-app/immich'}
+      <!-- Hide main branch warning, which would alert user if they're currently using a non-main version of Immich -->
+      <!-- {#if info.sourceRef === 'main' && info.repository === 'immich-app/immich'}
         <div class="col-span-full p-4 flex gap-1">
           <Icon path={mdiAlert} size="2em" color="#ffcc4d" />
           <p class="immich-form-label text-sm" id="main-warning">
             {$t('main_branch_warning')}
           </p>
         </div>
-      {/if}
+      {/if} -->
 
       <div class="col-span-full">
         <label class="font-medium text-immich-primary dark:text-immich-dark-primary text-sm" for="version-history"
