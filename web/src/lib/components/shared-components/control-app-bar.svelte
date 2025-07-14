@@ -2,12 +2,12 @@
   import { browser } from '$app/environment';
 
   import { isSelectingAllAssets } from '$lib/stores/assets-store.svelte';
+  import { IconButton } from '@immich/ui';
   import { mdiClose } from '@mdi/js';
   import { onDestroy, onMount, type Snippet } from 'svelte';
   import { t } from 'svelte-i18n';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { fly } from 'svelte/transition';
-  import CircleIconButton from '../elements/buttons/circle-icon-button.svelte';
 
   interface Props {
     showBackButton?: boolean;
@@ -54,7 +54,7 @@
 
   onMount(() => {
     if (browser) {
-      document.addEventListener('scroll', onScroll);
+      document.addEventListener('scroll', onScroll, { passive: true });
     }
   });
 
@@ -63,8 +63,6 @@
       document.removeEventListener('scroll', onScroll);
     }
   });
-
-  let buttonClass = $derived(forceDark ? 'hover:text-immich-dark-gray' : undefined);
 </script>
 
 <!-- Gavin made space around the search bar white, as it solves visual issues with image de-loading when scrolling.
@@ -83,9 +81,17 @@
       forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-subtle dark:bg-immich-dark-gray',
     ]}
   >
-    <div class="flex place-items-center sm:gap-6 justify-self-start dark:text-immich-dark-fg">
+    <div class="flex place-items-center sm:gap-6 justify-self-start dark:text-immich-dark-fg {forceDark ? 'dark' : ''}">
       {#if showBackButton}
-        <CircleIconButton title={$t('close')} onclick={handleClose} icon={backIcon} size="24" class={buttonClass} />
+        <IconButton
+          aria-label={$t('close')}
+          onclick={handleClose}
+          color="secondary"
+          shape="round"
+          variant="ghost"
+          icon={backIcon}
+          size="large"
+        />
       {/if}
       {@render leading?.()}
     </div>
