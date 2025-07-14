@@ -2,7 +2,6 @@
   import { goto } from '$app/navigation';
   import { focusOutside } from '$lib/actions/focus-outside';
   import { shortcuts } from '$lib/actions/shortcut';
-  import CircleIconButton from '$lib/components/elements/buttons/circle-icon-button.svelte';
   import { AppRoute } from '$lib/constants';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
   import { searchStore } from '$lib/stores/search.svelte';
@@ -95,7 +94,7 @@
     }
 
     const result = modalManager.open(SearchFilterModal, { searchQuery });
-    close = result.close;
+    close = () => result.close(undefined);
     closeDropdown();
 
     const searchResult = await result.onClose;
@@ -274,7 +273,15 @@
     </div>
 
     <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
-      <CircleIconButton title={$t('show_search_options')} icon={mdiTune} onclick={onFilterClick} size="20" />
+      <IconButton
+        aria-label={$t('show_search_options')}
+        shape="round"
+        icon={mdiTune}
+        onclick={onFilterClick}
+        size="medium"
+        color="secondary"
+        variant="ghost"
+      />
     </div>
 
     <!-- On mobile, don't show "chip" on right side of search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
@@ -294,11 +301,28 @@
 
     {#if showClearIcon}
       <div class="absolute inset-y-0 end-0 flex items-center pe-2">
-        <CircleIconButton onclick={onClear} icon={mdiClose} title={$t('clear')} size="20" />
+        <IconButton
+          onclick={onClear}
+          icon={mdiClose}
+          aria-label={$t('clear')}
+          size="medium"
+          color="secondary"
+          variant="ghost"
+          shape="round"
+        />
       </div>
     {/if}
     <div class="absolute inset-y-0 start-0 flex items-center ps-2">
-      <CircleIconButton type="submit" title={$t('search')} icon={mdiMagnify} size="20" onclick={() => {}} />
+      <IconButton
+        type="submit"
+        aria-label={$t('search')}
+        icon={mdiMagnify}
+        size="medium"
+        onclick={() => {}}
+        shape="round"
+        color="secondary"
+        variant="ghost"
+      />
     </div>
   </form>
 </div>
