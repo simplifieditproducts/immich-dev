@@ -3,8 +3,6 @@
   import ChangePinCodeSettings from '$lib/components/user-settings-page/PinCodeSettings.svelte';
   import DownloadSettings from '$lib/components/user-settings-page/download-settings.svelte';
   import FeatureSettings from '$lib/components/user-settings-page/feature-settings.svelte';
-  import NotificationsSettings from '$lib/components/user-settings-page/notifications-settings.svelte';
-  import UserPurchaseSettings from '$lib/components/user-settings-page/user-purchase-settings.svelte';
   import UserUsageStatistic from '$lib/components/user-settings-page/user-usage-statistic.svelte';
   import { OpenSettingQueryParameterValue, QueryParameter } from '$lib/constants';
   import { featureFlags } from '$lib/stores/server-config.store';
@@ -15,14 +13,11 @@
     mdiAccountGroupOutline,
     mdiAccountOutline,
     mdiApi,
-    mdiBellOutline,
     mdiCogOutline,
     mdiDevices,
     mdiDownload,
     mdiFeatureSearchOutline,
-    mdiKeyOutline,
     mdiLockSmart,
-    mdiFormTextboxPassword,
     mdiServerOutline,
     mdiTwoFactorAuthentication,
   } from '@mdi/js';
@@ -30,7 +25,6 @@
   import SettingAccordionState from '../shared-components/settings/setting-accordion-state.svelte';
   import SettingAccordion from '../shared-components/settings/setting-accordion.svelte';
   import AppSettings from './app-settings.svelte';
-  import ChangePasswordSettings from './change-password-settings.svelte';
   import DeviceList from './device-list.svelte';
   import OAuthSettings from './oauth-settings.svelte';
   import PartnerSettings from './partner-settings.svelte';
@@ -103,6 +97,8 @@
     <FeatureSettings />
   </SettingAccordion>
 
+  <!-- Kevin has hidden the 'Notifications' panel. -->
+  <!--
   <SettingAccordion
     icon={mdiBellOutline}
     key="notifications"
@@ -111,6 +107,7 @@
   >
     <NotificationsSettings />
   </SettingAccordion>
+  -->
 
   {#if $featureFlags.loaded && $featureFlags.oauth}
     <SettingAccordion
@@ -124,6 +121,8 @@
     </SettingAccordion>
   {/if}
 
+  <!-- Kevin has hidden the 'Password' panel. -->
+  <!--
   <SettingAccordion
     icon={mdiFormTextboxPassword}
     key="password"
@@ -132,6 +131,7 @@
   >
     <ChangePasswordSettings />
   </SettingAccordion>
+  -->
 
   <SettingAccordion
     icon={mdiAccountGroupOutline}
@@ -152,6 +152,8 @@
     <ChangePinCodeSettings />
   </SettingAccordion>
 
+  <!-- Kevin has hidden the 'Purchase' panel. -->
+  <!--
   <SettingAccordion
     icon={mdiKeyOutline}
     key="user-purchase-settings"
@@ -161,4 +163,5 @@
   >
     <UserPurchaseSettings />
   </SettingAccordion>
+  -->
 </SettingAccordionState>
