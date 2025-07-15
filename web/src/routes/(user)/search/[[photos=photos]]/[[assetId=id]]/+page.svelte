@@ -387,20 +387,26 @@
       </div>
     </section>
   {/if}
-  <section id="search-content">
+  <!-- Gavin added this as part of the "Show More" feature. Displays a button labeled "Show More" that invokes pagination.
+       Gavin also changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling. 
+       Gavin also added a check for `hasActivatedPagination` before calling `loadNextPage()`. 
+       Gavin also added bottom padding to this element to add space between the bottom-most images and the screen bottom when scrolled all the way down. -->
+  <section id="search-content" class="pb-2">
     {#if searchResultAssets.length > 0}
-      <!-- Gavin changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling. -->
       <GalleryViewer
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
         {assetInteraction}
-        onIntersected={loadNextPage}
+        onIntersected={() => {
+          if (hasActivatedPagination) {
+            void loadNextPage();
+          }
+        }}
         showArchiveIcon={true}
         {viewport}
         pageHeaderOffset={mobileDevice.pointerCoarse ? 86 : 54}
       />
 
-    <!-- Gavin added this as part of the "Show More" feature. Display a button labeled "Show More" that invokes pagination. -->
-    {#if (!hasActivatedPagination && searchResultAssets.length > INITIAL_ASSET_LIMIT) || (hasActivatedPagination && nextPage && !isLoading)}
+    {#if (!hasActivatedPagination && searchResultAssets.length > INITIAL_ASSET_LIMIT)}
       <div class="flex justify-center py-8">
         <button
           type="button"
