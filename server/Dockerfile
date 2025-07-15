@@ -90,10 +90,11 @@ COPY open-api/typescript-sdk/ ./
 RUN npm run build
 
 WORKDIR /usr/src/app
-COPY web/package*.json web/svelte.config.js web/patch-package.cjs ./
+COPY web/package*.json web/svelte.config.js ./
 RUN npm ci
 COPY web ./
 COPY i18n ../i18n
+RUN node ./patch-package.cjs
 RUN npm run build
 
 
