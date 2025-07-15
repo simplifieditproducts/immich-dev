@@ -58,7 +58,8 @@
   // The GalleryViewer pushes it's own history state, which causes weird
   // behavior for history.back(). To prevent that we store the previous page
   // manually and navigate back to that.
-  let previousRoute = $state(AppRoute.EXPLORE as string);
+  /* Gavin changed this so PHOTOS is the previous page when we link directly to SEARCH. */
+  let previousRoute = $state(AppRoute.PHOTOS as string);
 
   let nextPage = $state(1);
   let searchResultAlbums: AlbumResponseDto[] = $state([]);
