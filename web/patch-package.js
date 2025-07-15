@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+import fs from 'fs';
+import path from 'path';
 
 // This script patches the immich-ui logo in the web project.
 const oldLogoPath = path.resolve(__dirname, "./node_modules/@immich/ui/dist/assets/immich-logo.svg");
