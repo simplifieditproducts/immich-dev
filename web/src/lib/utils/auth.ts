@@ -30,10 +30,8 @@ export const loadUser = async () => {
         purchaseStore.setPurchaseStatus(true);
       }
     }
-    console.log(`Calling 'loadUser()' in 'web/src/lib/utils/auth.ts' with: user: ${user.email}, preferences: ${preferences}, hasAuthorizationCookie: ${hasAuthorizationCookie} `);
     return user;
-  } catch(error) {
-    console.log(`Caught error in 'loadUser() with error: ${error}`);
+  } catch {
     return null;
   }
 };
@@ -58,14 +56,11 @@ export const authenticate = async (url: URL, options?: AuthOptions) => {
   const { public: publicRoute, admin: adminRoute } = options || {};
   const user = await loadUser();
 
-  console.log(`Calling 'authenticate()' in 'auth.ts' with user: ${user?.email}, public route: ${publicRoute}, and admin route: ${adminRoute}`)
-
   if (publicRoute) {
     return;
   }
 
   if (!user) {
-    console.log(`Redirecting to LOGIN page from 'authenticate()' in 'web/src/lib/utils/auth.ts', as 'user == null'`)
     redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
   }
 

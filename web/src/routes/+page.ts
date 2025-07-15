@@ -3,6 +3,8 @@ import { serverConfig } from '$lib/stores/server-config.store';
 import { getFormatter } from '$lib/utils/i18n';
 import { init } from '$lib/utils/server';
 
+import { goto } from '$app/navigation';
+import type { UserAdminResponseDto } from '@immich/sdk';
 import { redirect } from '@sveltejs/kit';
 import { get } from 'svelte/store';
 import { loadUser } from '../lib/utils/auth';
@@ -11,33 +13,48 @@ import type { PageLoad } from './$types';
 export const ssr = false;
 export const csr = true;
 
-console.log(`Loading routes/page.ts`);
+let authenticatedUser: UserAdminResponseDto | null = null;
+let autoLoginData: { autoEmail: string; autoPassword: string; continueUrl: string } | null = null;
 
 export const load = (async ({ fetch, url }) => {
   try {
-    await init(fetch);
-    const authenticated = await loadUser();
-    const cachedEmail = authenticated?.email;
     const emailFromUrl = url.searchParams.get('email');
 
-    console.log(`Calling 'load()' in web/src/routes/+page.ts with emailFromUrl: ${emailFromUrl} and cachedEmail: ${cachedEmail}`);
+    if (emailFromUrl) {
+      autoLoginData = await new Promise<{ autoEmail: string; autoPassword: string; continueUrl: string }>((resolve) => {
+        const listener = (event: MessageEvent) => {
+          const { autoEmail, autoPassword, continueUrl } = event.data;
+          if (autoEmail && autoPassword) {
+            console.log(`Fetched auto-login credentials in 'web/src/routes/+page.ts' with autoEmail: ${autoEmail} and continueUrl: ${continueUrl}`);
+            window.removeEventListener("message", listener);
+            resolve({ autoEmail, autoPassword, continueUrl });
+          }
+        };
+        window.addEventListener("message", listener);
+      });
+    }
 
-    if (cachedEmail /*&& emailFromUrl*/) {
-      if (cachedEmail == emailFromUrl) {
-        console.log(`Redirecting to PHOTOS page from web/src/routes/+page.ts, because cachedEmail == emailFromUrl`);
-        redirect(302, AppRoute.PHOTOS);
+    await init(fetch);
+    authenticatedUser = await loadUser();
+
+    if (authenticatedUser && autoLoginData) {
+      if (autoLoginData.autoEmail && autoLoginData.autoEmail != authenticatedUser.email) {
+        localStorage.setItem('autoEmail', autoLoginData.autoEmail);
+        localStorage.setItem('autoPassword', autoLoginData.autoPassword);
+        console.log(`Redirecting to LOGIN page, because cachedEmail is not the same as the autoEmail`);
+        redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(autoLoginData.continueUrl.toString())}`);
       } else {
-        console.log(`Redirecting to LOGIN because cachedEmail != emailFromUrl`)
-        redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
+        console.log(`Redirecting to continueUrl from web/src/routes/+page.ts, because cachedEmail == emailFromUrl`);
+        await goto(new URL(autoLoginData.continueUrl.toString()));
       }
     }
 
-    const { isInitialized } = get(serverConfig);
-    if (isInitialized) {
-      // Redirect to login page if there exists an admin account (i.e. server is initialized)
-      console.log(`Redirecting to LOGIN page from web/src/routes/+page.ts, as user is unauthenticated but an admin account exists on the server`);
-      //redirect(302, AppRoute.AUTH_LOGIN);
-      redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(url.pathname + url.search)}`);
+    const isInitialized = get(serverConfig);
+    if (isInitialized && autoLoginData) {
+      localStorage.setItem('autoEmail', autoLoginData.autoEmail);
+      localStorage.setItem('autoPassword', autoLoginData.autoPassword);
+      console.log(`Redirecting to LOGIN page, as user is unauthenticated but an admin account exists on the server`);
+      redirect(302, `${AppRoute.AUTH_LOGIN}?continue=${encodeURIComponent(autoLoginData.continueUrl.toString())}`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

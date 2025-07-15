@@ -20,3 +20,4 @@ These are various important files in the codebase:
 - `immich/web/src/routes/auth/login/+page.svelte` handles the login logic.
 - `immich/web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is the search results UI.
 - `immich/web/src/routes/+page.ts` is the default route page. It displays a "Welcome to Immich" message for first-time users, or redirects to the Login or Photos page for existing users.
+- `user.store.ts` stores the active user and its preferences, and also contains a method for clearing them.
