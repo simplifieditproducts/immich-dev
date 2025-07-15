@@ -70,6 +70,8 @@ services:
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
     shm_size: 256mb
     restart: always
+    ports:
+      - "5432:5432"  # Expose port to host
 
 volumes:
   model-cache:
