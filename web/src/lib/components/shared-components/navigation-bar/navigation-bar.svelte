@@ -119,6 +119,8 @@
         <!-- Gavin has hidden the Theme Switch button. -->
         <!-- <ThemeButton padding="2" /> -->
 
+        <!-- Kevin has hidden the 'Notifications' button. -->
+        <!--
         <div
           use:clickOutside={{
             onOutclick: () => (shouldShowNotificationPanel = false),
@@ -139,6 +141,7 @@
             <NotificationPanel />
           {/if}
         </div>
+        -->
 
         <CastButton navBar />
 

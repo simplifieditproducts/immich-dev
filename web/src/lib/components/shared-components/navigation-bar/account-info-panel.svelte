@@ -4,7 +4,6 @@
   import Icon from '$lib/components/elements/icon.svelte';
   import { AppRoute } from '$lib/constants';
   import AvatarEditModal from '$lib/modals/AvatarEditModal.svelte';
-  import HelpAndFeedbackModal from '$lib/modals/HelpAndFeedbackModal.svelte';
   import { user } from '$lib/stores/user.store';
   import { userInteraction } from '$lib/stores/user.svelte';
   import { getAboutInfo, type ServerAboutResponseDto } from '@immich/sdk';
@@ -37,7 +36,7 @@
   use:focusTrap
 >
   <div
-    class="mx-4 mt-4 flex flex-col items-center justify-center gap-4 rounded-t-3xl bg-white p-4 dark:bg-immich-dark-primary/10"
+    class="m-3 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white p-4 dark:bg-immich-dark-primary/10"
   >
     <div class="relative">
       <UserAvatar user={$user} size="xl" />
@@ -62,7 +61,7 @@
       <p class="text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
     </div>
 
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-2">
       <Button
         href={AppRoute.USER_SETTINGS}
         onclick={onClose}
@@ -97,6 +96,8 @@
     </div>
   </div>
 
+  <!-- Kevin has hidden the 'Sign Out' button. -->
+  <!--
   <div class="mb-4 flex flex-col">
     <Button
       class="m-1 mx-4 rounded-none rounded-b-3xl bg-white p-3 dark:bg-immich-dark-primary/10"
@@ -119,4 +120,5 @@
       {$t('support_and_feedback')}
     </button>
   </div>
+  -->
 </div>
