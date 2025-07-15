@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // This script patches the immich-ui logo in the web project.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const oldLogoPath = path.resolve(__dirname, "./node_modules/@immich/ui/dist/assets/immich-logo.svg");
 let newLogoPath = path.resolve(__dirname, "./static/logo.svg");
 if (!fs.existsSync(newLogoPath)) {
