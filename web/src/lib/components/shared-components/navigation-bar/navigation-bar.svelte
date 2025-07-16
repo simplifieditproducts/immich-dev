@@ -20,6 +20,7 @@
   import { Button, IconButton } from '@immich/ui';
   import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { t } from 'svelte-i18n';
+  import ThemeButton from '../theme-button.svelte';
   import UserAvatar from '../user-avatar.svelte';
   import AccountInfoPanel from './account-info-panel.svelte';
 
@@ -116,34 +117,36 @@
           />
         {/if}
 
-        <!-- Gavin has hidden the Theme Switch button. -->
-        <!-- <ThemeButton padding="2" /> -->
+        <!-- Gavin has made the "Theme Switch" button visible only for admins. -->
+        {#if $user.isAdmin}
+          <ThemeButton />
+        {/if}
 
-        <!-- Kevin has hidden the 'Notifications' button. -->
-        <!--
-        <div
-          use:clickOutside={{
-            onOutclick: () => (shouldShowNotificationPanel = false),
-            onEscape: () => (shouldShowNotificationPanel = false),
-          }}
-        >
-          <IconButton
-            shape="round"
-            color={hasUnreadNotifications ? 'primary' : 'secondary'}
-            variant="ghost"
-            size="medium"
-            icon={hasUnreadNotifications ? mdiBellBadge : mdiBellOutline}
-            onclick={() => (shouldShowNotificationPanel = !shouldShowNotificationPanel)}
-            aria-label={$t('notifications')}
-          />
+        <!-- Kevin/Gavin have made the 'Notifications' button visible only for admins. -->
+        {#if $user.isAdmin}          
+          <div
+            use:clickOutside={{
+              onOutclick: () => (shouldShowNotificationPanel = false),
+              onEscape: () => (shouldShowNotificationPanel = false),
+            }}
+          >
+            <IconButton
+              shape="round"
+              color={hasUnreadNotifications ? 'primary' : 'secondary'}
+              variant="ghost"
+              size="medium"
+              icon={hasUnreadNotifications ? mdiBellBadge : mdiBellOutline}
+              onclick={() => (shouldShowNotificationPanel = !shouldShowNotificationPanel)}
+              aria-label={$t('notifications')}
+            />
 
-          {#if shouldShowNotificationPanel}
-            <NotificationPanel />
-          {/if}
-        </div>
-        -->
+            {#if shouldShowNotificationPanel}
+              <NotificationPanel />
+            {/if}
+          </div>
+        {/if}
 
-        <CastButton navBar />
+        <CastButton />
 
         <div
           use:clickOutside={{
@@ -158,7 +161,7 @@
             title={`${$user.name} (${$user.email})`}
           >
             {#key $user}
-              <UserAvatar user={$user} size="md" showTitle={false} interactive />
+              <UserAvatar user={$user} size="md" noTitle interactive />
             {/key}
           </button>
 

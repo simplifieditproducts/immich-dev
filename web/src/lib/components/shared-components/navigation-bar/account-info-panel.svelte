@@ -5,11 +5,12 @@
   import { AppRoute } from '$lib/constants';
   import { modalManager } from '$lib/managers/modal-manager.svelte';
   import AvatarEditModal from '$lib/modals/AvatarEditModal.svelte';
+  import HelpAndFeedbackModal from '$lib/modals/HelpAndFeedbackModal.svelte';
   import { user } from '$lib/stores/user.store';
   import { userInteraction } from '$lib/stores/user.svelte';
   import { getAboutInfo, type ServerAboutResponseDto } from '@immich/sdk';
   import { Button, IconButton } from '@immich/ui';
-  import { mdiCog, mdiPencil, mdiWrench } from '@mdi/js';
+  import { mdiCog, mdiLogout, mdiPencil, mdiWrench } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
@@ -37,7 +38,7 @@
   use:focusTrap
 >
   <div
-    class="m-3 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white p-4 dark:bg-immich-dark-primary/10"
+    class="{$user.isAdmin ? "mx-4 mt-4 rounded-t-3xl" : "m-3 rounded-2xl"} flex flex-col items-center justify-center gap-4 bg-white p-4 dark:bg-immich-dark-primary/10"
   >
     <div class="relative">
       <UserAvatar user={$user} size="xl" />
@@ -59,7 +60,9 @@
       <p class="text-center text-lg font-medium text-immich-primary dark:text-immich-dark-primary">
         {$user.name}
       </p>
-      <p class="text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
+      {#if $user.isAdmin}
+        <p class="text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
+      {/if}
     </div>
 
     <div class="flex flex-col gap-2">
@@ -97,29 +100,29 @@
     </div>
   </div>
 
-  <!-- Kevin has hidden the 'Sign Out' button. -->
-  <!--
-  <div class="mb-4 flex flex-col">
-    <Button
-      class="m-1 mx-4 rounded-none rounded-b-3xl bg-white p-3 dark:bg-immich-dark-primary/10"
-      onclick={onLogout}
-      leadingIcon={mdiLogout}
-      variant="ghost"
-      color="secondary">{$t('sign_out')}</Button
-    >
+  <!-- Kevin/Gavin have made the "Sign Out" button and "Support and Feedback" button visible only for admins. -->
+  {#if $user.isAdmin}
+    <div class="mb-4 flex flex-col">
+      <Button
+        class="m-1 mx-4 rounded-none rounded-b-3xl bg-white p-3 dark:bg-immich-dark-primary/10"
+        onclick={onLogout}
+        leadingIcon={mdiLogout}
+        variant="ghost"
+        color="secondary">{$t('sign_out')}</Button
+      >
 
-    <button
-      type="button"
-      class="text-center mt-4 underline text-xs text-immich-primary dark:text-immich-dark-primary"
-      onclick={async () => {
-        onClose();
-        if (info) {
-          await modalManager.show(HelpAndFeedbackModal, { info });
-        }
-      }}
-    >
-      {$t('support_and_feedback')}
-    </button>
-  </div>
-  -->
+      <button
+        type="button"
+        class="text-center mt-4 underline text-xs text-immich-primary dark:text-immich-dark-primary"
+        onclick={async () => {
+          onClose();
+          if (info) {
+            await modalManager.show(HelpAndFeedbackModal, { info });
+          }
+        }}
+      >
+        {$t('support_and_feedback')}
+      </button>
+    </div>
+  {/if}
 </div>

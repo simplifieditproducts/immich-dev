@@ -88,8 +88,8 @@
   });
 </script>
 
-<!-- Gavin changed this to ensure the Upload Button is never visible (as we only want uploads to come from the PKC app). -->
-<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={false} scrollbar={false}>
+<!-- Gavin has made the 'Upload' Button visible only for admins (as we only want uploads to come from the PKC app). -->
+<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false}>
   <AssetGrid
     enableRouting={true}
     {timelineManager}
