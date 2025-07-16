@@ -3,6 +3,8 @@
   import ChangePinCodeSettings from '$lib/components/user-settings-page/PinCodeSettings.svelte';
   import DownloadSettings from '$lib/components/user-settings-page/download-settings.svelte';
   import FeatureSettings from '$lib/components/user-settings-page/feature-settings.svelte';
+  import NotificationsSettings from '$lib/components/user-settings-page/notifications-settings.svelte';
+  import UserPurchaseSettings from '$lib/components/user-settings-page/user-purchase-settings.svelte';
   import UserUsageStatistic from '$lib/components/user-settings-page/user-usage-statistic.svelte';
   import { OpenSettingQueryParameterValue, QueryParameter } from '$lib/constants';
   import { featureFlags } from '$lib/stores/server-config.store';
@@ -13,11 +15,14 @@
     mdiAccountGroupOutline,
     mdiAccountOutline,
     mdiApi,
+    mdiBellOutline,
     mdiCogOutline,
     mdiDevices,
     mdiDownload,
     mdiFeatureSearchOutline,
+    mdiKeyOutline,
     mdiLockSmart,
+    mdiFormTextboxPassword,
     mdiServerOutline,
     mdiTwoFactorAuthentication,
   } from '@mdi/js';
@@ -25,6 +30,7 @@
   import SettingAccordionState from '../shared-components/settings/setting-accordion-state.svelte';
   import SettingAccordion from '../shared-components/settings/setting-accordion.svelte';
   import AppSettings from './app-settings.svelte';
+  import ChangePasswordSettings from './change-password-settings.svelte';
   import DeviceList from './device-list.svelte';
   import OAuthSettings from './oauth-settings.svelte';
   import PartnerSettings from './partner-settings.svelte';
@@ -97,17 +103,17 @@
     <FeatureSettings />
   </SettingAccordion>
 
-  <!-- Kevin has hidden the 'Notifications' panel. -->
-  <!--
-  <SettingAccordion
-    icon={mdiBellOutline}
-    key="notifications"
-    title={$t('notifications')}
-    subtitle={$t('notifications_setting_description')}
-  >
-    <NotificationsSettings />
-  </SettingAccordion>
-  -->
+  <!-- Kevin/Gavin have made the 'Notifications' panel visible only for admins. -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiBellOutline}
+      key="notifications"
+      title={$t('notifications')}
+      subtitle={$t('notifications_setting_description')}
+    >
+      <NotificationsSettings />
+    </SettingAccordion>
+  {/if}
 
   {#if $featureFlags.loaded && $featureFlags.oauth}
     <SettingAccordion
@@ -121,17 +127,17 @@
     </SettingAccordion>
   {/if}
 
-  <!-- Kevin has hidden the 'Password' panel. -->
-  <!--
-  <SettingAccordion
-    icon={mdiFormTextboxPassword}
-    key="password"
-    title={$t('password')}
-    subtitle={$t('change_your_password')}
-  >
-    <ChangePasswordSettings />
-  </SettingAccordion>
-  -->
+  <!-- Kevin/Gavin have made the 'Password' panel visible only for admins. -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiFormTextboxPassword}
+      key="password"
+      title={$t('password')}
+      subtitle={$t('change_your_password')}
+    >
+      <ChangePasswordSettings />
+    </SettingAccordion>
+  {/if}
 
   <SettingAccordion
     icon={mdiAccountGroupOutline}
@@ -152,16 +158,16 @@
     <ChangePinCodeSettings />
   </SettingAccordion>
 
-  <!-- Kevin has hidden the 'Purchase' panel. -->
-  <!--
-  <SettingAccordion
-    icon={mdiKeyOutline}
-    key="user-purchase-settings"
-    title={$t('user_purchase_settings')}
-    subtitle={$t('user_purchase_settings_description')}
-    autoScrollTo={true}
-  >
-    <UserPurchaseSettings />
-  </SettingAccordion>
-  -->
+  <!-- Kevin/Gavin have made the 'Purchase' panel visible only for admins. -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiKeyOutline}
+      key="user-purchase-settings"
+      title={$t('user_purchase_settings')}
+      subtitle={$t('user_purchase_settings_description')}
+      autoScrollTo={true}
+    >
+      <UserPurchaseSettings />
+    </SettingAccordion>
+  {/if}
 </SettingAccordionState>
