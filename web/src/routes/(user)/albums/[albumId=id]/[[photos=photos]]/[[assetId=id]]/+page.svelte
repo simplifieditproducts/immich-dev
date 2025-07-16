@@ -712,13 +712,16 @@
           {/snippet}
 
           {#snippet trailing()}
-            <button
-              type="button"
-              onclick={handleSelectFromComputer}
-              class="rounded-lg px-6 py-2 text-sm font-medium text-immich-primary transition-all hover:bg-immich-primary/10 dark:text-immich-dark-primary dark:hover:bg-immich-dark-primary/25"
-            >
-              {$t('select_from_computer')}
-            </button>
+            <!-- Gavin has made 'Select from computer' button visible only for admins -->
+            {#if $user.isAdmin}
+              <button
+                type="button"
+                onclick={handleSelectFromComputer}
+                class="rounded-lg px-6 py-2 text-sm font-medium text-immich-primary transition-all hover:bg-immich-primary/10 dark:text-immich-dark-primary dark:hover:bg-immich-dark-primary/25"
+              >
+                {$t('select_from_computer')}
+              </button>
+            {/if}
             <Button size="small" disabled={!timelineInteraction.selectionActive} onclick={handleAddAssets}
               >{$t('done')}</Button
             >

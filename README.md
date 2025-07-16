@@ -20,7 +20,7 @@ Useful info:
 - To get a user's admin status, add `import { user } from '$lib/stores/user.store';` and then use `$user.isAdmin`. 
 
 These are various important files in the codebase:
-- `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` is the main photo viewer UI.
+- `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` is the main photo viewer UI, including the top bar and context (3-dot) menu.
 - `web/src/lib/utils/auth.ts` checks if user is already logged in, and redirect to Login page if not.
 - `web/src/routes/auth/login/+page.svelte` handles the login logic.
 - `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is the search results UI.
@@ -28,4 +28,4 @@ These are various important files in the codebase:
 - `web/src/lib/stores/user.store.ts` stores the active user and its preferences, and also contains a method for clearing them.
 - `web/src/lib/components/user-settings-page/user-settings-list.svelte` defines the Settings UI.
 - `web/src/lib/components/shared-components/navigation-bar/navigation-bar.svelte` defines the top bar that contains the Profile icon, Search bar, and more.
-- 
+- `web/src/lib/components/shared-components/side-bar/user-sidebar.svelte` defines the left bar items (these go in hamburger menu on mobile).
