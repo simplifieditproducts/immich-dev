@@ -53,7 +53,7 @@
 
   /* Gavin added these two lines as part of the "Show More" feature. */
   let hasActivatedPagination = $state(false);
-  const INITIAL_ASSET_LIMIT = 10;
+  const INITIAL_ASSET_LIMIT = 16;
 
   const MAX_ASSET_COUNT = 5000;
   let { isViewing: showAssetViewer } = assetViewingStore;
