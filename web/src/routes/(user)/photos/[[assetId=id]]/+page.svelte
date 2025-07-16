@@ -88,7 +88,7 @@
   });
 </script>
 
-<!-- Gavin has made the 'Upload' Button visible only for admins (as we only want uploads to come from the PKC app). -->
+<!-- Gavin has made the 'Upload' Button visible only for admins -->
 <UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false}>
   <AssetGrid
     enableRouting={true}
@@ -147,7 +147,10 @@
       <ChangeDate menuItem />
       <ChangeDescription menuItem />
       <ChangeLocation menuItem />
-      <ArchiveAction menuItem onArchive={(assetIds) => timelineManager.removeAssets(assetIds)} />
+      <!-- Gavin has made 'Archive' button visible only for admins -->
+      {#if $user.isAdmin}
+        <ArchiveAction menuItem onArchive={(assetIds) => timelineManager.removeAssets(assetIds)} />
+      {/if}
       {#if $preferences.tags.enabled}
         <TagAction menuItem />
       {/if}
@@ -156,9 +159,12 @@
         onAssetDelete={(assetIds) => timelineManager.removeAssets(assetIds)}
         onUndoDelete={(assets) => timelineManager.addAssets(assets)}
       />
-      <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
-      <hr />
-      <AssetJobActions />
+      <!-- Gavin has made 'Move to locked folder', 'Refresh thumbnails', and 'Refresh metadata' buttons visible only for admins -->
+      {#if $user.isAdmin}
+        <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+        <hr />
+        <AssetJobActions />
+      {/if}
     </ButtonContextMenu>
   </AssetSelectControlBar>
 {/if}

@@ -33,6 +33,7 @@
   import { t } from 'svelte-i18n';
   import { fly } from 'svelte/transition';
   import SideBarLink from './side-bar-link.svelte';
+  import { user } from '$lib/stores/user.store';
 
   let isArchiveSelected: boolean = $state(false);
   let isFavoritesSelected: boolean = $state(false);
@@ -124,19 +125,22 @@
     icon={isUtilitiesSelected ? mdiToolbox : mdiToolboxOutline}
   ></SideBarLink>
 
-  <SideBarLink
-    title={$t('archive')}
-    routeId="/(user)/archive"
-    bind:isSelected={isArchiveSelected}
-    icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
-  ></SideBarLink>
+  <!-- Gavin has made 'Archive' and 'Locked Folder' options visible only for admins. -->
+  {#if $user.isAdmin}
+    <SideBarLink
+      title={$t('archive')}
+      routeId="/(user)/archive"
+      bind:isSelected={isArchiveSelected}
+      icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
+    ></SideBarLink>
 
-  <SideBarLink
-    title={$t('locked_folder')}
-    routeId="/(user)/locked"
-    bind:isSelected={isLockedFolderSelected}
-    icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
-  ></SideBarLink>
+    <SideBarLink
+      title={$t('locked_folder')}
+      routeId="/(user)/locked"
+      bind:isSelected={isLockedFolderSelected}
+      icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
+    ></SideBarLink>
+  {/if}
 
   {#if $featureFlags.trash}
     <SideBarLink

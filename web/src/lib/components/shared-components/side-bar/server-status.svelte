@@ -14,6 +14,7 @@
   import { mdiAlert } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
+  import { user } from '$lib/stores/user.store';
 
   const { serverVersion, connected } = websocketStore;
 
@@ -31,7 +32,7 @@
     userInteraction.aboutInfo = info;
     userInteraction.versions = versions;
   });
-  //let isMain = $derived(info?.sourceRef === 'main' && info.repository === 'immich-app/immich');
+  let isMain = $derived(info?.sourceRef === 'main' && info.repository === 'immich-app/immich');
   let version = $derived(
     $serverVersion ? `v${$serverVersion.major}.${$serverVersion.minor}.${$serverVersion.patch}` : null,
   );
@@ -53,22 +54,23 @@
   {/if}
 
   <div class="flex justify-between justify-items-center">
-    {#if $connected && version}
-      <button
-        type="button"
-        onclick={() => info && modalManager.show(ServerAboutModal, { versions, info })}
-        class="dark:text-immich-gray flex gap-1"
-      >
-        <!-- Hide a warning icon that would otherwise appear if we're not on an official Immich release version. -->
-        <!-- {#if isMain}
-          <Icon path={mdiAlert} size="1.5em" color="#ffcc4d" /> {info?.sourceRef}
-        {:else}
-          {version}
-        {/if} -->
-        {version}
-      </button>
-    {:else}
-      <p class="text-red-500">{$t('unknown')}</p>
+    <!-- Gavin has made 'Immich Version' button visible only for admins. -->
+    {#if $user.isAdmin}
+      {#if $connected && version}
+        <button
+          type="button"
+          onclick={() => info && modalManager.show(ServerAboutModal, { versions, info })}
+          class="dark:text-immich-gray flex gap-1"
+        >
+          {#if isMain}
+            <Icon path={mdiAlert} size="1.5em" color="#ffcc4d" /> {info?.sourceRef}
+          {:else}
+            {version}
+          {/if}
+        </button>
+      {:else}
+        <p class="text-red-500">{$t('unknown')}</p>
+      {/if}
     {/if}
   </div>
 </div>
