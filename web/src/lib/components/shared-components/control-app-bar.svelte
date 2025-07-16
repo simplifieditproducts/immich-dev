@@ -66,14 +66,15 @@
 </script>
 
 <!-- Gavin made space around the search bar white, as it solves visual issues with image de-loading when scrolling.
-     The change Gavin made in `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is related to this. -->
+     The change Gavin made in `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is related to this. 
+     Gavin also increased the width of the search bar. -->
 <div in:fly={{ y: 10, duration: 200 }} class="absolute top-0 w-full bg-white">
   <nav
     id="asset-selection-app-bar"
     class={[
       'grid',
-      multiRow && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
-      !multiRow && 'grid-cols-[10%_80%_10%] sm:grid-cols-[25%_50%_25%]',
+      multiRow && 'grid-cols-[100%] md:grid-cols-[15%_70%_15%]',
+      !multiRow && 'grid-cols-[8%_88%_4%] sm:grid-cols-[15%_70%_15%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
       appBarBorder,
       'mx-2 mt-2 place-items-center rounded-lg p-2 max-md:p-0 transition-all',

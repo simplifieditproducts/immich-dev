@@ -285,7 +285,7 @@
       />
     </div>
 
-    <!-- On mobile, don't show "chip" on right side of search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
+    <!-- Gavin changed this to not show "chip" on right side of mobile search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
     {#if isFocus && !usingMobileDevice}
       <div
         class="absolute inset-y-0 flex items-center"
