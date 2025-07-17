@@ -46,6 +46,7 @@ export const load = (async ({ fetch, url }) => {
       } else {
         console.log(`Redirecting to continueUrl from web/src/routes/+page.ts, because cachedEmail == emailFromUrl`);
         await goto(new URL(autoLoginData.continueUrl.toString()));
+        return;
       }
     }
 
