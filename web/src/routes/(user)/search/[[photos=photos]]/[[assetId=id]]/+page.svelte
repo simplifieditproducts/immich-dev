@@ -388,8 +388,8 @@
     </section>
   {/if}
   <!-- Gavin added this as part of the "Show More" feature. Displays a button labeled "Show More" that invokes pagination.
-       Gavin also changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling. 
-       Gavin also added a check for `hasActivatedPagination` before calling `loadNextPage()`. 
+       Gavin also changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling.
+       Gavin also added a check for `hasActivatedPagination` before calling `loadNextPage()`.
        Gavin also added bottom padding to this element to add space between the bottom-most images and the screen bottom when scrolled all the way down. -->
   <section id="search-content" class="pb-2">
     {#if searchResultAssets.length > 0}
