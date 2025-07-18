@@ -18,9 +18,8 @@ export const loadUser = async () => {
     let user = get(user$);
     let preferences = get(preferences$);
     let serverInfo;
-    const hasAuthorizationCookie = hasAuthCookie();
 
-    if ((!user || !preferences) && hasAuthorizationCookie) {
+    if ((!user || !preferences) && hasAuthCookie()) {
       [user, preferences, serverInfo] = await Promise.all([getMyUser(), getMyPreferences(), getAboutInfo()]);
       user$.set(user);
       preferences$.set(preferences);

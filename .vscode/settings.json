@@ -51,7 +51,7 @@
     "editor.tabSize": 2
   },
   "cSpell.words": ["immich"],
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "eslint.validate": ["javascript", "svelte"],
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {

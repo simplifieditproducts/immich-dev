@@ -123,7 +123,7 @@
         {/if}
 
         <!-- Kevin/Gavin have made the 'Notifications' button visible only for admins. -->
-        {#if $user.isAdmin}          
+        {#if $user.isAdmin}
           <div
             use:clickOutside={{
               onOutclick: () => (shouldShowNotificationPanel = false),
