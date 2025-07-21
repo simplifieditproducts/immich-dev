@@ -37,9 +37,9 @@
   use:focusTrap
 >
   <div
-    class="{$user.isAdmin
-      ? 'mx-4 mt-4 rounded-t-3xl'
-      : 'm-3 rounded-2xl'} flex flex-col items-center justify-center gap-4 bg-white p-4 dark:bg-immich-dark-primary/10"
+    class="{$user.isAdmin 
+        ? 'mx-4 mt-4 rounded-t-3xl' 
+        : 'm-3 rounded-2xl pb-3'} flex flex-col items-center justify-center gap-4 bg-white p-4 dark:bg-immich-dark-primary/10"
   >
     <div class="relative">
       <UserAvatar user={$user} size="xl" />
