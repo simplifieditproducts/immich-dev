@@ -212,12 +212,15 @@
           {/if}
 
           {#if !isLocked}
-            <ArchiveAction {asset} {onAction} {preAction} />
-            <MenuOption
-              icon={mdiUpload}
-              onClick={() => openFileUploadDialog({ multiple: false, assetId: asset.id })}
-              text={$t('replace_with_upload')}
-            />
+            <!-- Kevin has made 'Archive' and 'Replace with upload' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <ArchiveAction {asset} {onAction} {preAction} />
+              <MenuOption
+                icon={mdiUpload}
+                onClick={() => openFileUploadDialog({ multiple: false, assetId: asset.id })}
+                text={$t('replace_with_upload')}
+              />
+            {/if}
             {#if !asset.isArchived && !asset.isTrashed}
               <MenuOption
                 icon={mdiImageSearch}
@@ -227,31 +230,34 @@
             {/if}
           {/if}
 
-          {#if !asset.isTrashed}
-            <SetVisibilityAction asset={toTimelineAsset(asset)} {onAction} {preAction} />
-          {/if}
-          <hr />
-          <MenuOption
-            icon={mdiHeadSyncOutline}
-            onClick={() => onRunJob(AssetJobName.RefreshFaces)}
-            text={$getAssetJobName(AssetJobName.RefreshFaces)}
-          />
-          <MenuOption
-            icon={mdiDatabaseRefreshOutline}
-            onClick={() => onRunJob(AssetJobName.RefreshMetadata)}
-            text={$getAssetJobName(AssetJobName.RefreshMetadata)}
-          />
-          <MenuOption
-            icon={mdiImageRefreshOutline}
-            onClick={() => onRunJob(AssetJobName.RegenerateThumbnail)}
-            text={$getAssetJobName(AssetJobName.RegenerateThumbnail)}
-          />
-          {#if asset.type === AssetTypeEnum.Video}
+          <!-- Kevin has made 'Move to locked folder', 'Refresh faces', 'Refresh metadata' and 'Refresh thumbnails' buttons visible only for admins -->
+          {#if $user.isAdmin}
+            {#if !asset.isTrashed}
+              <SetVisibilityAction asset={toTimelineAsset(asset)} {onAction} {preAction} />
+            {/if}
+            <hr />
             <MenuOption
-              icon={mdiCogRefreshOutline}
-              onClick={() => onRunJob(AssetJobName.TranscodeVideo)}
-              text={$getAssetJobName(AssetJobName.TranscodeVideo)}
+              icon={mdiHeadSyncOutline}
+              onClick={() => onRunJob(AssetJobName.RefreshFaces)}
+              text={$getAssetJobName(AssetJobName.RefreshFaces)}
             />
+            <MenuOption
+              icon={mdiDatabaseRefreshOutline}
+              onClick={() => onRunJob(AssetJobName.RefreshMetadata)}
+              text={$getAssetJobName(AssetJobName.RefreshMetadata)}
+            />
+            <MenuOption
+              icon={mdiImageRefreshOutline}
+              onClick={() => onRunJob(AssetJobName.RegenerateThumbnail)}
+              text={$getAssetJobName(AssetJobName.RegenerateThumbnail)}
+            />
+            {#if asset.type === AssetTypeEnum.Video}
+              <MenuOption
+                icon={mdiCogRefreshOutline}
+                onClick={() => onRunJob(AssetJobName.TranscodeVideo)}
+                text={$getAssetJobName(AssetJobName.TranscodeVideo)}
+              />
+            {/if}
           {/if}
         {/if}
       </ButtonContextMenu>

@@ -38,7 +38,7 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { locale } from '$lib/stores/preferences.store';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
   import { getPeopleThumbnailUrl, handlePromiseError } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
@@ -532,15 +532,18 @@
         <ChangeDate menuItem />
         <ChangeDescription menuItem />
         <ChangeLocation menuItem />
-        <ArchiveAction
-          menuItem
-          unarchive={assetInteraction.isAllArchived}
-          onArchive={(assetIds) => timelineManager.removeAssets(assetIds)}
-        />
-        {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
-          <TagAction menuItem />
+        <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+        {#if $user.isAdmin}
+          <ArchiveAction
+            menuItem
+            unarchive={assetInteraction.isAllArchived}
+            onArchive={(assetIds) => timelineManager.removeAssets(assetIds)}
+          />
+          {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
+            <TagAction menuItem />
+          {/if}
+          <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
         {/if}
-        <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
         <DeleteAssets
           menuItem
           onAssetDelete={(assetIds) => handleDeleteAssets(assetIds)}

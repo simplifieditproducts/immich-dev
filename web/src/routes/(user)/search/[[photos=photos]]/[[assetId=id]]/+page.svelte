@@ -30,7 +30,7 @@
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { lang, locale } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { handlePromiseError } from '$lib/utils';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { parseUtcDate } from '$lib/utils/date-time';
@@ -274,64 +274,6 @@
 <svelte:window bind:scrollY />
 <svelte:document use:shortcut={{ shortcut: { key: 'Escape' }, onShortcut: onEscape }} />
 
-<section>
-  {#if assetInteraction.selectionActive}
-    <div class="fixed top-0 start-0 w-full">
-      <AssetSelectControlBar
-        assets={assetInteraction.selectedAssets}
-        clearSelect={() => cancelMultiselect(assetInteraction)}
-      >
-        <CreateSharedLink />
-        <IconButton
-          shape="round"
-          color="secondary"
-          variant="ghost"
-          aria-label={$t('select_all')}
-          icon={mdiSelectAll}
-          onclick={handleSelectAll}
-        />
-        <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
-          <AddToAlbum {onAddToAlbum} />
-          <AddToAlbum shared {onAddToAlbum} />
-        </ButtonContextMenu>
-        <FavoriteAction
-          removeFavorite={assetInteraction.isAllFavorite}
-          onFavorite={(assetIds, isFavorite) => {
-            for (const assetId of assetIds) {
-              const asset = searchResultAssets.find((searchAsset) => searchAsset.id === assetId);
-              if (asset) {
-                asset.isFavorite = isFavorite;
-              }
-            }
-          }}
-        />
-
-        <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
-          <DownloadAction menuItem />
-          <ChangeDate menuItem />
-          <ChangeLocation menuItem />
-          <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
-          {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
-            <TagAction menuItem />
-          {/if}
-          <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
-          <hr />
-          <AssetJobActions />
-        </ButtonContextMenu>
-      </AssetSelectControlBar>
-    </div>
-  {:else}
-    <div class="fixed top-0 start-0 w-full">
-      <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft}>
-        <div class="absolute bg-light"></div>
-        <div class="w-full flex-1 ps-4">
-          <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} />
-        </div>
-      </ControlAppBar>
-    </div>
-  {/if}
-</section>
-
 <!-- 
   Kevin: Try to solve a problem Gavin found that the images could temporarily overlap the top bar while scrolling upwards. 
   In this fix, the search chips and search results are wrapped in a div with a top margin so that the images will always be below the top bar.
@@ -484,16 +426,22 @@
             <ChangeDate menuItem />
             <ChangeDescription menuItem />
             <ChangeLocation menuItem />
-            <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
-            {#if assetInteraction.isAllUserOwned}
-              <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
-            {/if}
-            {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
-              <TagAction menuItem />
+            <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
+              {#if assetInteraction.isAllUserOwned}
+                <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+              {/if}
+              {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
+                <TagAction menuItem />
+              {/if}
             {/if}
             <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
-            <hr />
-            <AssetJobActions />
+            <!-- Kevin has made 'Refresh thumbnails' and 'Refresh metadata' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <hr />
+              <AssetJobActions />
+            {/if}
           </ButtonContextMenu>
         </AssetSelectControlBar>
       </div>

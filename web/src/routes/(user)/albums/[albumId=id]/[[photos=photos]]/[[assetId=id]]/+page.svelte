@@ -593,8 +593,11 @@
                 onClick={() => updateThumbnailUsingCurrentSelection()}
               />
             {/if}
-            <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
-            <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+            <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
+              <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+            {/if}
           {/if}
 
           {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
