@@ -449,7 +449,8 @@
       <div class="fixed top-0 start-0 w-full">
         <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft}>
           <div class="absolute bg-light"></div>
-          <div class="w-full flex-1 ps-4">
+          <!-- Kevin has center-aligned the search box on mobile. -->
+          <div class="w-full flex-1 px-2 sm:ps-4">
             <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} />
           </div>
         </ControlAppBar>

@@ -4,6 +4,7 @@
   import { shortcuts } from '$lib/actions/shortcut';
   import { AppRoute } from '$lib/constants';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { searchStore } from '$lib/stores/search.svelte';
   import { handlePromiseError } from '$lib/utils';
   import { generateId } from '$lib/utils/generate-id';
@@ -14,7 +15,6 @@
   import { onDestroy, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import SearchHistoryBox from './search-history-box.svelte';
-  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
 
   interface Props {
     value?: string;
@@ -228,11 +228,12 @@
   >
     <div use:focusOutside={{ onFocusOut: closeDropdown }} tabindex="-1">
       <label for="main-search-bar" class="sr-only">{$t('search_your_photos')}</label>
+      <!-- Kevin has increased the right padding of the input field on desktop. -->
       <input
         type="text"
         name="q"
         id="main-search-bar"
-        class="w-full transition-all border-2 px-14 py-4 max-md:py-2 text-immich-fg/75 dark:text-immich-dark-fg
+        class="w-full transition-all border-2 px-14 sm:pr-28 py-4 max-md:py-2 text-immich-fg/75 dark:text-immich-dark-fg
         {grayTheme ? 'dark:bg-immich-dark-gray' : 'dark:bg-immich-dark-bg'}
         {showSuggestions && isSearchSuggestions ? 'rounded-t-3xl' : 'rounded-3xl bg-gray-200'}
         {searchStore.isSearchEnabled ? 'border-gray-200 dark:border-gray-700 bg-white' : 'border-transparent'}"
@@ -272,7 +273,8 @@
       />
     </div>
 
-    <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
+    <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
+    <div class="absolute inset-y-0 {showClearIcon ? 'sm:end-14' : 'sm:end-2'} -end-10.5 flex items-center ps-6 transition-all">
       <IconButton
         aria-label={$t('show_search_options')}
         shape="round"
