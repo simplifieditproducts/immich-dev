@@ -277,26 +277,27 @@
 <!-- 
   Kevin: Try to solve a problem Gavin found that the images could temporarily overlap the top bar while scrolling upwards. 
   In this fix, the search chips and search results are wrapped in a div with a top margin so that the images will always be below the top bar.
+  Also, the text in the search chips is now truncated to prevent overflow.
 -->
 <div class="mt-16 sm:mt-20 overflow-y-auto w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
 
 {#if terms}
   <section
     id="search-chips"
-    class="mt-2 sm:mt-5 text-center w-full flex gap-5 place-content-center place-items-center flex-wrap px-24"
+    class="mt-2 sm:mt-5 text-center w-full flex gap-5 place-content-center place-items-center flex-wrap px-14 sm:px-24"
   >
     {#each getObjectKeys(terms) as searchKey (searchKey)}
       {@const value = terms[searchKey]}
-      <div class="flex place-content-center place-items-center text-xs">
+      <div class="flex place-content-center place-items-center text-xs w-full">
         <div
-          class="bg-immich-primary py-2 px-4 text-white dark:text-black dark:bg-immich-dark-primary
+          class="bg-immich-primary py-2 pl-4 pr-3 text-white dark:text-black dark:bg-immich-dark-primary
           {value === true ? 'rounded-full' : 'rounded-s-full'}"
         >
           {getHumanReadableSearchKey(searchKey as keyof SearchTerms)}
         </div>
 
         {#if value !== true}
-          <div class="bg-gray-300 py-2 px-4 dark:bg-gray-800 dark:text-white rounded-e-full">
+          <div class="bg-gray-300 py-2 pl-3 pr-4 dark:bg-gray-800 dark:text-white rounded-e-full truncate">
             {#if (searchKey === 'takenAfter' || searchKey === 'takenBefore') && typeof value === 'string'}
               {getHumanReadableDate(value)}
             {:else if searchKey === 'personIds' && Array.isArray(value)}

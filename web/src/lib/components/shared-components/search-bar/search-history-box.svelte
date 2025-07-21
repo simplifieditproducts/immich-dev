@@ -103,7 +103,7 @@
           <button
             id={getId(0)}
             type="button"
-            class="rounded-lg p-2 font-semibold text-immich-primary aria-selected:bg-immich-primary/25 hover:bg-immich-primary/25 dark:text-immich-dark-primary"
+            class="rounded-lg p-1 font-semibold text-immich-primary aria-selected:bg-immich-primary/25 hover:bg-immich-primary/25 dark:text-immich-dark-primary"
             role="option"
             onclick={() => handleClearAll()}
             tabindex="-1"
@@ -120,6 +120,7 @@
         <div class="flex w-full items-center justify-between text-sm text-black dark:text-gray-300">
           <div class="relative w-full items-center">
             <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- Kevin adjusted the layout of recent searches list. -->
             <div
               id={getId(index)}
               class="relative flex w-full cursor-pointer gap-3 py-3 ps-5 hover:bg-gray-100 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-500/30 dark:hover:bg-gray-500/30"
@@ -129,10 +130,10 @@
               aria-selected={selectedIndex === index}
               aria-label={savedSearchTerm}
             >
-              <Icon path={mdiMagnify} size="1.5em" ariaHidden={true} />
-              {savedSearchTerm}
+              <Icon path={mdiMagnify} size="1.5em" ariaHidden={true} class="shrink-0" />
+              <span class="truncate pr-12">{savedSearchTerm}</span>
             </div>
-            <div aria-hidden={true} class="absolute end-5 top-0 items-center justify-center py-3">
+            <div aria-hidden={true} class="absolute end-3 top-0 items-center justify-center py-1">
               <IconButton
                 shape="round"
                 color="secondary"
