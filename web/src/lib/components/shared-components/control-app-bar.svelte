@@ -64,10 +64,8 @@
   });
 </script>
 
-<!-- Gavin made space around the search bar white, as it solves visual issues with image de-loading when scrolling.
-     The change Gavin made in `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is related to this. 
-     Gavin also increased the width of the search bar. -->
-<div in:fly={{ y: 10, duration: 200 }} class="absolute top-0 w-full bg-white">
+<!-- Gavin has increased the width of the search bar. -->
+<div in:fly={{ y: 10, duration: 200 }} class="absolute top-0 w-full bg-transparent">
   <nav
     id="asset-selection-app-bar"
     class={[
