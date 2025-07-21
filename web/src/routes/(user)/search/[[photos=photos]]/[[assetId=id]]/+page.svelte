@@ -321,8 +321,7 @@
       </AssetSelectControlBar>
     </div>
   {:else}
-    <!-- Gavin changed the z-order to 100 as it solves a problem in which scrolling upwards would cause images to temporarily overlap the top bar -->
-    <div class="fixed top-0 start-0 w-full z-100">
+    <div class="fixed top-0 start-0 w-full">
       <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft}>
         <div class="absolute bg-light"></div>
         <div class="w-full flex-1 ps-4">
