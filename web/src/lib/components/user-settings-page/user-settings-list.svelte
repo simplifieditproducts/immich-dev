@@ -103,17 +103,14 @@
     <FeatureSettings />
   </SettingAccordion>
 
-  <!-- Kevin/Gavin have made the 'Notifications' panel visible only for admins. -->
-  {#if $user.isAdmin}
-    <SettingAccordion
-      icon={mdiBellOutline}
-      key="notifications"
-      title={$t('notifications')}
-      subtitle={$t('notifications_setting_description')}
-    >
-      <NotificationsSettings />
-    </SettingAccordion>
-  {/if}
+  <SettingAccordion
+    icon={mdiBellOutline}
+    key="notifications"
+    title={$t('notifications')}
+    subtitle={$t('notifications_setting_description')}
+  >
+    <NotificationsSettings />
+  </SettingAccordion>
 
   {#if $featureFlags.loaded && $featureFlags.oauth}
     <SettingAccordion
@@ -127,17 +124,14 @@
     </SettingAccordion>
   {/if}
 
-  <!-- Kevin/Gavin have made the 'Password' panel visible only for admins. -->
-  {#if $user.isAdmin}
-    <SettingAccordion
-      icon={mdiFormTextboxPassword}
-      key="password"
-      title={$t('password')}
-      subtitle={$t('change_your_password')}
-    >
-      <ChangePasswordSettings />
-    </SettingAccordion>
-  {/if}
+  <SettingAccordion
+    icon={mdiFormTextboxPassword}
+    key="password"
+    title={$t('password')}
+    subtitle={$t('change_your_password')}
+  >
+    <ChangePasswordSettings />
+  </SettingAccordion>
 
   <SettingAccordion
     icon={mdiAccountGroupOutline}
@@ -158,16 +152,13 @@
     <ChangePinCodeSettings />
   </SettingAccordion>
 
-  <!-- Kevin/Gavin have made the 'Purchase' panel visible only for admins. -->
-  {#if $user.isAdmin}
-    <SettingAccordion
-      icon={mdiKeyOutline}
-      key="user-purchase-settings"
-      title={$t('user_purchase_settings')}
-      subtitle={$t('user_purchase_settings_description')}
-      autoScrollTo={true}
-    >
-      <UserPurchaseSettings />
-    </SettingAccordion>
-  {/if}
+  <SettingAccordion
+    icon={mdiKeyOutline}
+    key="user-purchase-settings"
+    title={$t('user_purchase_settings')}
+    subtitle={$t('user_purchase_settings_description')}
+    autoScrollTo={true}
+  >
+    <UserPurchaseSettings />
+  </SettingAccordion>
 </SettingAccordionState>

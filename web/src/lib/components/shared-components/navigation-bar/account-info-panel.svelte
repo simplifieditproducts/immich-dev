@@ -66,6 +66,8 @@
       {/if}
     </div>
 
+    <!-- Kevin has made the 'Account Settings' button visible only for admins. -->
+    {#if $user.isAdmin}
     <div class="flex flex-col gap-2">
       <Button
         href={AppRoute.USER_SETTINGS}
@@ -99,6 +101,7 @@
         </Button>
       {/if}
     </div>
+    {/if}
   </div>
 
   <!-- Kevin/Gavin have made the "Sign Out" button and "Support and Feedback" button visible only for admins. -->
