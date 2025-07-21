@@ -27,6 +27,7 @@
   import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { lang, locale } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { preferences } from '$lib/stores/user.store';
@@ -36,7 +37,6 @@
   import { handleError } from '$lib/utils/handle-error';
   import { isAlbumsRoute, isPeopleRoute } from '$lib/utils/navigation';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
-  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import {
     type AlbumResponseDto,
     getPerson,
@@ -332,10 +332,16 @@
   {/if}
 </section>
 
+<!-- 
+  Kevin: Try to solve a problem Gavin found that the images could temporarily overlap the top bar while scrolling upwards. 
+  In this fix, the search chips and search results are wrapped in a div with a top margin so that the images will always be below the top bar.
+-->
+<div class="mt-16 sm:mt-20 overflow-y-auto w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
+
 {#if terms}
   <section
     id="search-chips"
-    class="mt-24 text-center w-full flex gap-5 place-content-center place-items-center flex-wrap px-24"
+    class="mt-2 sm:mt-5 text-center w-full flex gap-5 place-content-center place-items-center flex-wrap px-24"
   >
     {#each getObjectKeys(terms) as searchKey (searchKey)}
       {@const value = terms[searchKey]}
@@ -372,7 +378,7 @@
 {/if}
 
 <section
-  class="mb-12 bg-immich-bg dark:bg-immich-dark-bg m-4"
+  class="mb-3 bg-immich-bg dark:bg-immich-dark-bg m-4"
   bind:clientHeight={viewport.height}
   bind:clientWidth={viewport.width}
 >
@@ -503,3 +509,5 @@
     {/if}
   </section>
 </section>
+
+</div>
