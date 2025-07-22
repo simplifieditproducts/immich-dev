@@ -25,7 +25,7 @@
 
   <div class="grid grid-auto-fit-40 gap-5 mt-4">
     <label class="immich-form-label relative" for="start-date">
-      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-black">{$t('start_date')}</span>
+      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-gray-800">{$t('start_date')}</span>
       <DateInput
         class="immich-form-input w-full mt-1 hover:cursor-pointer"
         type="date"
@@ -37,7 +37,7 @@
     </label>
 
     <label class="immich-form-label relative" for="end-date">
-      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-black">{$t('end_date')}</span>
+      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-gray-800">{$t('end_date')}</span>
       <DateInput
         class="immich-form-input w-full mt-1 hover:cursor-pointer"
         type="date"
