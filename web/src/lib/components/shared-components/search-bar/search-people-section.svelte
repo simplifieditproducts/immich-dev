@@ -71,7 +71,7 @@
     -->
     <div id="people-selection" class="max-h-60 -mb-4 overflow-y-auto immich-scrollbar">
       <p class="immich-form-label text-gray-600 text-lg flex items-end -ml-0.5 gap-x-1 leading-6"><Icon path={mdiAccountBoxOutline} class="size-7" />Who's in the photo?</p>
-      <p class="text-gray-500 text-sm -mt-0.5">Select one or more people, leave blank if unsure.</p>
+      <p class="text-gray-500 text-sm">Select one or more people, leave blank if unsure.</p>
       {#if $user.isAdmin}
       <div class="mt-4 sm:max-w-sm">
         <SearchBar bind:name placeholder={$t('filter_people')} showLoadingSpinner={false} />

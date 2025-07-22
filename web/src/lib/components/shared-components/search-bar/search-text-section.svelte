@@ -21,7 +21,7 @@ Kevin has customized this component:
 <div class="flex flex-col gap-4">
   <label for="context-input">
     <p class="immich-form-label text-gray-600 text-lg flex items-end -ml-0.5 gap-x-1 leading-6"><Icon path={mdiImageOutline} class="size-7" />What are you looking for?</p>
-    <p class="text-gray-500 text-sm -mt-0.5">Example: “Wedding in Hawaii” or “dog at the beach”</p>
+    <p class="text-gray-500 text-sm">Example: “Wedding in Hawaii” or “dog at the beach”</p>
   </label>
     
   {#if $user.isAdmin}
