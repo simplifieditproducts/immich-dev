@@ -70,7 +70,7 @@
       - Various text and layout adjustments
     -->
     <div id="people-selection" class="max-h-60 -mb-4 overflow-y-auto immich-scrollbar">
-      <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiAccountBoxOutline} class="size-8" />Who's in the photo?</p>
+      <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiAccountBoxOutline} class="size-7" />Who's in the photo?</p>
       <p class="text-gray-500 text-sm -mt-0.5">Select one or more people, leave blank if unsure.</p>
       {#if $user.isAdmin}
       <div class="mt-4 sm:max-w-sm">

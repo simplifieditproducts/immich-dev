@@ -20,7 +20,7 @@
 
 <!-- Kevin has customized text and layout in this component. -->
 <div id="date-range-selection">
-  <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiCalendarRangeOutline} class="size-8" />When was it taken?</p>
+  <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiCalendarRangeOutline} class="size-7" />When was it taken?</p>
   <p class="text-gray-500 text-sm -mt-0.5">Narrow your search by photo's taken date.</p>
 
   <div class="grid grid-auto-fit-40 gap-5 mt-4">
