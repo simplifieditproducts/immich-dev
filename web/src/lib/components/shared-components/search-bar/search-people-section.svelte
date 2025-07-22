@@ -1,5 +1,6 @@
 <script lang="ts">
   import ImageThumbnail from '$lib/components/assets/thumbnail/image-thumbnail.svelte';
+  import Icon from '$lib/components/elements/icon.svelte';
   import SearchBar from '$lib/components/elements/search-bar.svelte';
   import LoadingSpinner from '$lib/components/shared-components/loading-spinner.svelte';
   import SingleGridRow from '$lib/components/shared-components/single-grid-row.svelte';
@@ -8,7 +9,7 @@
   import { handleError } from '$lib/utils/handle-error';
   import { getAllPeople, type PersonResponseDto } from '@immich/sdk';
   import { Button } from '@immich/ui';
-  import { mdiArrowRight, mdiClose } from '@mdi/js';
+  import { mdiAccountBoxOutline, mdiArrowRight, mdiClose } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { SvelteSet } from 'svelte/reactivity';
 
@@ -69,7 +70,7 @@
       - Various text and layout adjustments
     -->
     <div id="people-selection" class="max-h-60 -mb-4 overflow-y-auto immich-scrollbar">
-      <p class="immich-form-label text-gray-600 text-lg">Who's in the photo?</p>
+      <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiAccountBoxOutline} class="size-8" />Who's in the photo?</p>
       <p class="text-gray-500 text-sm -mt-0.5">Select one or more people, leave blank if unsure.</p>
       {#if $user.isAdmin}
       <div class="mt-4 sm:max-w-sm">

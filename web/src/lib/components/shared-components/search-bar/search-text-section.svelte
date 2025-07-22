@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Icon from '$lib/components/elements/icon.svelte';
   import RadioButton from '$lib/components/elements/radio-button.svelte';
   import { user } from '$lib/stores/user.store';
+  import { mdiImageOutline } from '@mdi/js';
   import { t } from 'svelte-i18n';
 
   interface Props {
@@ -18,7 +20,7 @@ Kevin has customized this component:
 -->
 <div class="flex flex-col gap-4">
   <label for="context-input">
-    <span class="immich-form-label text-gray-600 text-lg">What are you looking for?</span>
+    <span class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiImageOutline} class="size-8" />What are you looking for?</span>
     <p class="text-gray-500 text-sm -mt-0.5">Example: “Wedding in Hawaii” or “dog at the beach”</p>
   </label>
     
