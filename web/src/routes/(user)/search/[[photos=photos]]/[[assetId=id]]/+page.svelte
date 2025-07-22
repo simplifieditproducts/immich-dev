@@ -277,14 +277,14 @@
 <!-- 
   Kevin: Try to solve a problem Gavin found that the images could temporarily overlap the top bar while scrolling upwards. 
   In this fix, the search chips and search results are wrapped in a div with a top margin so that the images will always be below the top bar.
+  The margin has been adjusted to align with the 'photos' page, and the chips will be hidden if it is a simple context search.
   Also, the text in the search chips is now truncated to prevent overflow.
 -->
 <div class="mt-16 sm:mt-20 overflow-y-auto w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
-
-{#if terms}
+{#if terms && Object.keys(terms).length > 0 && !(Object.keys(terms).length == 1 && terms.query?.length > 0)}
   <section
     id="search-chips"
-    class="mt-2 sm:mt-5 text-center w-full flex gap-5 place-content-center place-items-center flex-wrap px-14 sm:px-24"
+    class="mt-2 mb-4 sm:my-5 text-center w-full flex gap-3 place-content-center place-items-center flex-wrap px-14 sm:px-24"
   >
     {#each getObjectKeys(terms) as searchKey (searchKey)}
       {@const value = terms[searchKey]}
@@ -321,7 +321,7 @@
 {/if}
 
 <section
-  class="mb-3 bg-immich-bg dark:bg-immich-dark-bg m-4"
+  class="bg-immich-bg dark:bg-immich-dark-bg mx-2"
   bind:clientHeight={viewport.height}
   bind:clientWidth={viewport.width}
 >
