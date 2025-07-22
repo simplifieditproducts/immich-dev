@@ -80,7 +80,7 @@
 
 <!-- Kevin has customized text and layout in this component. -->
 <div id="location-selection">
-  <p class="immich-form-label text-gray-600 text-lg inline-flex items-center -ml-1 gap-x-1"><Icon path={mdiImageMarkerOutline} class="size-7" />Where was it taken?</p>
+  <p class="immich-form-label text-gray-600 text-lg flex items-end -ml-0.5 gap-x-1 leading-6"><Icon path={mdiImageMarkerOutline} class="size-7" />Where was it taken?</p>
   <p class="text-gray-500 text-sm -mt-0.5">Narrow your search by country, state, or city.</p>
 
   <div class="grid grid-auto-fit-40 gap-5 mt-4">
