@@ -3,6 +3,7 @@
   import SearchBar from '$lib/components/elements/search-bar.svelte';
   import LoadingSpinner from '$lib/components/shared-components/loading-spinner.svelte';
   import SingleGridRow from '$lib/components/shared-components/single-grid-row.svelte';
+  import { user } from '$lib/stores/user.store';
   import { getPeopleThumbnailUrl } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { getAllPeople, type PersonResponseDto } from '@immich/sdk';
@@ -62,14 +63,21 @@
       ? filterPeople(people, name)
       : filterPeople(people, name).slice(0, numberOfPeople)}
 
+    <!-- 
+    Kevin has customized this component:
+      - Hide the "Filter people" search bar for non-admin users
+      - Various text and layout adjustments
+    -->
     <div id="people-selection" class="max-h-60 -mb-4 overflow-y-auto immich-scrollbar">
-      <div class="flex items-center w-full justify-between gap-6">
-        <p class="immich-form-label py-3">{$t('people').toUpperCase()}</p>
+      <p class="immich-form-label text-gray-600 text-lg">Who's in the photo?</p>
+      <p class="text-gray-500 text-sm -mt-0.5">Select one or more people, leave blank if unsure.</p>
+      {#if $user.isAdmin}
+      <div class="mt-4">
         <SearchBar bind:name placeholder={$t('filter_people')} showLoadingSpinner={false} />
       </div>
-
+      {/if}
       <SingleGridRow
-        class="grid grid-auto-fill-20 gap-1 mt-2 overflow-y-auto immich-scrollbar"
+        class="grid grid-auto-fill-20 mt-3 overflow-y-auto immich-scrollbar"
         bind:itemCount={numberOfPeople}
       >
         {#each peopleList as person (person.id)}

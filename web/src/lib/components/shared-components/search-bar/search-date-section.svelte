@@ -16,29 +16,34 @@
   let { filters = $bindable() }: Props = $props();
 </script>
 
-<div id="date-range-selection" class="grid grid-auto-fit-40 gap-5">
-  <label class="immich-form-label" for="start-date">
-    <span>{$t('start_date').toUpperCase()}</span>
-    <DateInput
-      class="immich-form-input w-full mt-1 hover:cursor-pointer"
-      type="date"
-      id="start-date"
-      name="start-date"
-      max={filters.takenBefore}
-      bind:value={filters.takenAfter}
-    />
-  </label>
+<!-- Kevin has customized text and layout in this component. -->
+<div id="date-range-selection">
+  <p class="immich-form-label text-gray-600 text-lg">When was it taken?</p>
+  <p class="text-gray-500 text-sm -mt-0.5">Narrow your search by photo's taken date.</p>
 
-  <label class="immich-form-label" for="end-date">
-    <span>{$t('end_date').toUpperCase()}</span>
-    <DateInput
-      class="immich-form-input w-full mt-1 hover:cursor-pointer"
-      type="date"
-      id="end-date"
-      name="end-date"
-      placeholder=""
-      min={filters.takenAfter}
-      bind:value={filters.takenBefore}
-    />
-  </label>
+  <div class="grid grid-auto-fit-40 gap-5 mt-4">
+    <label class="immich-form-label relative" for="start-date">
+      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-black">{$t('start_date')}</span>
+      <DateInput
+        class="immich-form-input w-full mt-1 hover:cursor-pointer"
+        type="date"
+        id="start-date"
+        name="start-date"
+        max={filters.takenBefore}
+        bind:value={filters.takenAfter}
+      />
+    </label>
+
+    <label class="immich-form-label relative" for="end-date">
+      <span class="absolute -top-1 left-2 text-xs px-1 rounded-md bg-white dark:bg-black">{$t('end_date')}</span>
+      <DateInput
+        class="immich-form-input w-full mt-1 hover:cursor-pointer"
+        type="date"
+        id="end-date"
+        name="end-date"
+        min={filters.takenAfter}
+        bind:value={filters.takenBefore}
+      />
+    </label>
+  </div>
 </div>

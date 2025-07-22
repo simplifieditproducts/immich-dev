@@ -12,7 +12,6 @@
   import Combobox, { asComboboxOptions, asSelectedOption } from '$lib/components/shared-components/combobox.svelte';
   import { handlePromiseError } from '$lib/utils';
   import { getSearchSuggestions, SearchSuggestionType } from '@immich/sdk';
-  import { t } from 'svelte-i18n';
 
   interface Props {
     filters: SearchLocationFilter;
@@ -77,36 +76,38 @@
   });
 </script>
 
+<!-- Kevin has customized text and layout in this component. -->
 <div id="location-selection">
-  <p class="immich-form-label">{$t('place').toUpperCase()}</p>
+  <p class="immich-form-label text-gray-600 text-lg">Where was it taken?</p>
+  <p class="text-gray-500 text-sm -mt-0.5">Narrow your search by country, state, or city.</p>
 
-  <div class="grid grid-auto-fit-40 gap-5 mt-1">
+  <div class="grid grid-auto-fit-40 gap-5 mt-4">
     <div class="w-full">
       <Combobox
-        label={$t('country')}
+        label=""
         onSelect={(option) => (filters.country = option?.value)}
         options={asComboboxOptions(countries)}
-        placeholder={$t('search_country')}
+        placeholder="Country"
         selectedOption={asSelectedOption(filters.country)}
       />
     </div>
 
     <div class="w-full">
       <Combobox
-        label={$t('state')}
+        label=""
         onSelect={(option) => (filters.state = option?.value)}
         options={asComboboxOptions(states)}
-        placeholder={$t('search_state')}
+        placeholder="State"
         selectedOption={asSelectedOption(filters.state)}
       />
     </div>
 
     <div class="w-full">
       <Combobox
-        label={$t('city')}
+        label=""
         onSelect={(option) => (filters.city = option?.value)}
         options={asComboboxOptions(cities)}
-        placeholder={$t('search_city')}
+        placeholder="City"
         selectedOption={asSelectedOption(filters.city)}
       />
     </div>
