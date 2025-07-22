@@ -72,7 +72,7 @@
       <p class="immich-form-label text-gray-600 text-lg">Who's in the photo?</p>
       <p class="text-gray-500 text-sm -mt-0.5">Select one or more people, leave blank if unsure.</p>
       {#if $user.isAdmin}
-      <div class="mt-4">
+      <div class="mt-4 sm:max-w-sm">
         <SearchBar bind:name placeholder={$t('filter_people')} showLoadingSpinner={false} />
       </div>
       {/if}
