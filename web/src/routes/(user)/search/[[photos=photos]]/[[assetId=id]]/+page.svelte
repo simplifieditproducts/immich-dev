@@ -280,7 +280,7 @@
   The margin has been adjusted to align with the 'photos' page, and the chips will be hidden if it is a simple context search.
   Also, the text in the search chips is now truncated to prevent overflow.
 -->
-<div class="mt-16 sm:mt-20 overflow-y-auto w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
+<div class="mt-16 sm:mt-24 overflow-y-auto w-full h-[calc(100vh-4rem-env(safe-area-inset-bottom)-env(safe-area-inset-top))] sm:h-[calc(100vh-6rem-env(safe-area-inset-bottom)-env(safe-area-inset-top))]">
 {#if terms && Object.keys(terms).length > 0 && !(Object.keys(terms).length == 1 && terms.query?.length > 0)}
   <section
     id="search-chips"
@@ -344,9 +344,9 @@
       <GalleryViewer
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
         {assetInteraction}
-        onIntersected={() => {
+        onIntersected={async () => {
           if (hasActivatedPagination) {
-            void loadNextPage();
+            await loadNextPage();
           }
         }}
         showArchiveIcon={true}
