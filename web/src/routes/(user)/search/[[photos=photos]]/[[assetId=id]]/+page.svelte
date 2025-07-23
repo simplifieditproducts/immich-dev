@@ -48,7 +48,7 @@
   } from '@immich/sdk';
   import { IconButton } from '@immich/ui';
   import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
-  import { tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
 
   /* Gavin added these two lines as part of the "Show More" feature. */
@@ -269,6 +269,24 @@
   function getObjectKeys<T extends object>(obj: T): (keyof T)[] {
     return Object.keys(obj) as (keyof T)[];
   }
+
+  // Kevin: Set the height of photo gallery to fill the viewport minus the top bar's height.
+  let height = $state('100vh');
+  const updateHeight = () => {
+    const viewportHeight = window.visualViewport?.height;
+    const isMobile = window.innerWidth < 768; // adjustable breakpoint
+    const topBarHeight = isMobile ? '4rem' : '6rem';
+    height = viewportHeight ? `calc(${viewportHeight}px - ${topBarHeight})` : `calc(100vh - ${topBarHeight})`;
+  };
+  onMount(() => {
+    updateHeight();
+    window.visualViewport?.addEventListener('resize', updateHeight);
+    window.addEventListener('resize', updateHeight);
+  });
+  onDestroy(() => {
+    window.visualViewport?.removeEventListener('resize', updateHeight);
+    window.removeEventListener('resize', updateHeight);
+  });
 </script>
 
 <svelte:window bind:scrollY />
@@ -280,7 +298,10 @@
   The margin has been adjusted to align with the 'photos' page, and the chips will be hidden if it is a simple context search.
   Also, the text in the search chips is now truncated to prevent overflow.
 -->
-<div class="mt-16 sm:mt-24 overflow-y-auto w-full h-[calc(100vh-4rem-env(safe-area-inset-bottom)-env(safe-area-inset-top))] sm:h-[calc(100vh-6rem-env(safe-area-inset-bottom)-env(safe-area-inset-top))]">
+<div
+  class="mt-16 sm:mt-24 overflow-y-auto w-full"
+  style="height: {height};"
+>
 {#if terms && Object.keys(terms).length > 0 && !(Object.keys(terms).length == 1 && terms.query?.length > 0)}
   <section
     id="search-chips"
@@ -339,7 +360,7 @@
        Gavin also changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling.
        Gavin also added a check for `hasActivatedPagination` before calling `loadNextPage()`.
        Gavin also added bottom padding to this element to add space between the bottom-most images and the screen bottom when scrolled all the way down. -->
-  <section id="search-content" class="pb-2">
+  <section id="search-content" class="pb-6">
     {#if searchResultAssets.length > 0}
       <GalleryViewer
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
