@@ -4,13 +4,13 @@
   import { AppRoute } from '$lib/constants';
   import { eventManager } from '$lib/managers/event-manager.svelte';
   import { featureFlags, serverConfig } from '$lib/stores/server-config.store';
+  import { resetSavedUser } from '$lib/stores/user.store';
   import { oauth } from '$lib/utils';
   import { getServerErrorMessage, handleError } from '$lib/utils/handle-error';
   import { login, type LoginResponseDto } from '@immich/sdk';
   import { Alert, Button, Field, Input, PasswordInput, Stack } from '@immich/ui';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
-  import { resetSavedUser } from '$lib/stores/user.store';
   import type { PageData } from './$types';
 
   interface Props {

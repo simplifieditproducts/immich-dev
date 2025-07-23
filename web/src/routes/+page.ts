@@ -1,9 +1,8 @@
+import { goto } from '$app/navigation';
 import { AppRoute } from '$lib/constants';
 import { serverConfig } from '$lib/stores/server-config.store';
 import { getFormatter } from '$lib/utils/i18n';
 import { init } from '$lib/utils/server';
-
-import { goto } from '$app/navigation';
 import type { UserAdminResponseDto } from '@immich/sdk';
 import { redirect } from '@sveltejs/kit';
 import { get } from 'svelte/store';
@@ -50,7 +49,7 @@ export const load = (async ({ fetch, url }) => {
       }
     }
 
-    const isInitialized = get(serverConfig);
+    const { isInitialized } = get(serverConfig);
     if (isInitialized && autoLoginData) {
       localStorage.setItem('autoEmail', autoLoginData.autoEmail);
       localStorage.setItem('autoPassword', autoLoginData.autoPassword);
