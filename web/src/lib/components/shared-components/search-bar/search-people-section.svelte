@@ -78,7 +78,7 @@
       </div>
       {/if}
       <SingleGridRow
-        class="grid grid-auto-fill-20 mt-3 overflow-y-auto immich-scrollbar"
+        class="grid grid-auto-fill-20 mt-3 gap-1 overflow-y-auto immich-scrollbar"
         bind:itemCount={numberOfPeople}
       >
         {#each peopleList as person (person.id)}
