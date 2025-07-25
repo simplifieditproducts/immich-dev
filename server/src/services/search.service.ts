@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { LRUMap } from 'mnemonist';
+import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
 import { AssetMapOptions, AssetResponseDto, MapAsset, mapAsset } from 'src/dtos/asset-response.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { mapPerson, PersonResponseDto } from 'src/dtos/person.dto';
@@ -21,7 +23,8 @@ import { AssetOrder, AssetVisibility } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getMyPartnerIds } from 'src/utils/asset.util';
-import { isSmartSearchEnabled } from 'src/utils/misc';
+import { isFilterExtractionEnabled, isSmartSearchEnabled } from 'src/utils/misc';
+import { z } from "zod";
 
 @Injectable()
 export class SearchService extends BaseService {
@@ -99,6 +102,56 @@ export class SearchService extends BaseService {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isSmartSearchEnabled(machineLearning)) {
       throw new BadRequestException('Smart search is not enabled');
+    }
+
+    // TODO: incomplete code block
+    if (isFilterExtractionEnabled(machineLearning)) {
+      const modelName = machineLearning.filterExtraction.modelName;
+      const prompt = machineLearning.filterExtraction.prompt;
+
+      // check if user specified any other filters other than the query.
+      if (dto.query && !dto.personIds?.length && !dto.city && !dto.country && !dto.state && !dto.takenBefore && !dto.takenAfter) {
+        console.log("This is a simple context search, we could potentially extract additional filters from the query.");
+
+        const openai = new OpenAI();
+        const ZodSearchOptions = z.object({
+          takenBefore: z.string().nullable(),
+          takenAfter: z.string().nullable(),
+
+          country: z.string().nullable(),
+          state: z.string().nullable(),
+          city: z.string().nullable(),
+
+          people: z.array(z.string()).nullable(),
+
+          query: z.string(),
+        });
+
+        // TODO: add a timeout, handle errors, etc.
+        const response = await openai.responses.parse({
+          model: modelName,
+          input: [
+            { role: "system", content: prompt },
+            {
+              role: "user",
+              content: dto.query,
+            },
+          ],
+          text: {
+            format: zodTextFormat(ZodSearchOptions, "options"),
+          },
+        });
+
+        if (response.output_parsed?.takenBefore) {
+          dto.takenBefore = new Date(response.output_parsed.takenBefore);
+        }
+        if (response.output_parsed?.takenAfter) {
+          dto.takenAfter = new Date(response.output_parsed.takenAfter);
+        }
+
+        // TODO: add people extraction
+        dto = { ...dto, country : response.output_parsed?.country, state: response.output_parsed?.state, city: response.output_parsed?.city };
+      }
     }
 
     const userIds = this.getUserIdsToSearch(auth);

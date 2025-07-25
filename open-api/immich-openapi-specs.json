@@ -10694,6 +10694,25 @@
         ],
         "type": "object"
       },
+      "FilterExtractionConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "modelName",
+          "prompt"
+        ],
+        "type": "object"
+      },
       "FoldersResponse": {
         "properties": {
           "enabled": {
@@ -12778,6 +12797,9 @@
           "facialRecognition": {
             "type": "boolean"
           },
+          "filterExtraction": {
+            "type": "boolean"
+          },
           "importFaces": {
             "type": "boolean"
           },
@@ -12814,6 +12836,7 @@
           "duplicateDetection",
           "email",
           "facialRecognition",
+          "filterExtraction",
           "importFaces",
           "map",
           "oauth",
@@ -15107,6 +15130,9 @@
           "facialRecognition": {
             "$ref": "#/components/schemas/FacialRecognitionConfig"
           },
+          "filterExtraction": {
+            "$ref": "#/components/schemas/FilterExtractionConfig"
+          },
           "url": {
             "deprecated": true,
             "description": "This property was deprecated in v1.122.0",
@@ -15127,6 +15153,7 @@
           "duplicateDetection",
           "enabled",
           "facialRecognition",
+          "filterExtraction",
           "urls"
         ],
         "type": "object"

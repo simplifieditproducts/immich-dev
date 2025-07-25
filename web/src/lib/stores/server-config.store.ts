@@ -12,6 +12,7 @@ export type FeatureFlags = ServerFeaturesDto & { loaded: boolean };
 
 export const featureFlags = writable<FeatureFlags>({
   loaded: false,
+  filterExtraction: false,
   smartSearch: true,
   duplicateDetection: false,
   facialRecognition: true,

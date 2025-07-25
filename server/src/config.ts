@@ -54,6 +54,11 @@ export interface SystemConfig {
   machineLearning: {
     enabled: boolean;
     urls: string[];
+    filterExtraction: {
+      enabled: boolean;
+      modelName: string;
+      prompt: string;
+    };
     clip: {
       enabled: boolean;
       modelName: string;
@@ -227,6 +232,23 @@ export const defaults = Object.freeze<SystemConfig>({
   machineLearning: {
     enabled: process.env.IMMICH_MACHINE_LEARNING_ENABLED !== 'false',
     urls: [process.env.IMMICH_MACHINE_LEARNING_URL || 'http://immich-machine-learning:3003'],
+    filterExtraction: {
+      enabled: false,
+      modelName: 'gpt-4.1-2025-04-14',
+      prompt: `Create a prompt that returns a JSON object in the following structure:
+{
+  "takenAfter": "2025-06-01T00:00:00Z",
+  "takenBefore": "2025-08-31T23:59:59Z",
+  "country": null,
+  "state": null,
+  "city": "Washington, D.C.",
+  "people": ["Kevin", "William"],
+  "refinedQuery": "trip"
+}
+
+The city value must match a valid entry in the cities500 dataset. All fields are optional.
+`
+    },
     clip: {
       enabled: true,
       modelName: 'ViT-B-32__openai',

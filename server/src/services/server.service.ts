@@ -19,7 +19,7 @@ import { UserStatsQueryResponse } from 'src/repositories/user.repository';
 import { BaseService } from 'src/services/base.service';
 import { asHumanReadable } from 'src/utils/bytes';
 import { mimeTypes } from 'src/utils/mime-types';
-import { isDuplicateDetectionEnabled, isFacialRecognitionEnabled, isSmartSearchEnabled } from 'src/utils/misc';
+import { isDuplicateDetectionEnabled, isFacialRecognitionEnabled, isFilterExtractionEnabled, isSmartSearchEnabled } from 'src/utils/misc';
 
 @Injectable()
 export class ServerService extends BaseService {
@@ -86,6 +86,7 @@ export class ServerService extends BaseService {
     const { configFile } = this.configRepository.getEnv();
 
     return {
+      filterExtraction: isFilterExtractionEnabled(machineLearning),
       smartSearch: isSmartSearchEnabled(machineLearning),
       facialRecognition: isFacialRecognitionEnabled(machineLearning),
       duplicateDetection: isDuplicateDetectionEnabled(machineLearning),

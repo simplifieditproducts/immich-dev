@@ -90,6 +90,7 @@
     "nestjs-kysely": "^3.0.0",
     "nestjs-otel": "^7.0.0",
     "nodemailer": "^7.0.0",
+    "openai": "^5.10.2",
     "openid-client": "^6.3.3",
     "pg": "^8.11.3",
     "pg-connection-string": "^2.9.1",
@@ -110,7 +111,8 @@
     "thumbhash": "^0.1.1",
     "typeorm": "^0.3.17",
     "ua-parser-js": "^2.0.0",
-    "validator": "^13.12.0"
+    "validator": "^13.12.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",

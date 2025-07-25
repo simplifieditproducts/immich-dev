@@ -88,6 +88,11 @@ The default configuration looks like this:
   "machineLearning": {
     "enabled": true,
     "urls": ["http://immich-machine-learning:3003"],
+    "filterExtraction": {
+      "enabled": false,
+      "modelName": "gpt-4.1-2025-04-14",
+      "prompt": ""
+    },
     "clip": {
       "enabled": true,
       "modelName": "ViT-B-32__openai"

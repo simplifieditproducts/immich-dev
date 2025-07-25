@@ -1081,6 +1081,7 @@ export type ServerConfigDto = {
 };
 export type ServerFeaturesDto = {
     configFile: boolean;
+    filterExtraction: boolean;
     duplicateDetection: boolean;
     email: boolean;
     facialRecognition: boolean;
@@ -1354,6 +1355,11 @@ export type SystemConfigLoggingDto = {
     enabled: boolean;
     level: LogLevel;
 };
+export type FilterExtractionConfig = {
+    enabled: boolean;
+    modelName: string;
+    prompt: string;
+};
 export type ClipConfig = {
     enabled: boolean;
     modelName: string;
@@ -1370,6 +1376,7 @@ export type FacialRecognitionConfig = {
     modelName: string;
 };
 export type SystemConfigMachineLearningDto = {
+    filterExtraction: FilterExtractionConfig;
     clip: ClipConfig;
     duplicateDetection: DuplicateDetectionConfig;
     enabled: boolean;

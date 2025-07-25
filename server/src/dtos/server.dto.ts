@@ -157,6 +157,7 @@ export class ServerConfigDto {
 }
 
 export class ServerFeaturesDto {
+  filterExtraction!: boolean;
   smartSearch!: boolean;
   duplicateDetection!: boolean;
   configFile!: boolean;

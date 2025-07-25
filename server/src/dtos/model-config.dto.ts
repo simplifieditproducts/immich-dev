@@ -14,6 +14,11 @@ export class ModelConfig extends TaskConfig {
   modelName!: string;
 }
 
+export class FilterExtractionConfig extends ModelConfig {
+  @IsString()
+  prompt!: string;
+}
+
 export class CLIPConfig extends ModelConfig {}
 
 export class DuplicateDetectionConfig extends TaskConfig {

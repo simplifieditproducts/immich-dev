@@ -16,7 +16,7 @@ import {
 } from 'class-validator';
 import { SystemConfig } from 'src/config';
 import { PropertyLifecycle } from 'src/decorators';
-import { CLIPConfig, DuplicateDetectionConfig, FacialRecognitionConfig } from 'src/dtos/model-config.dto';
+import { CLIPConfig, DuplicateDetectionConfig, FacialRecognitionConfig, FilterExtractionConfig } from 'src/dtos/model-config.dto';
 import {
   AudioCodec,
   CQMode,
@@ -271,6 +271,11 @@ class SystemConfigMachineLearningDto {
   @ValidateIf((dto) => dto.enabled)
   @ApiProperty({ type: 'array', items: { type: 'string', format: 'uri' }, minItems: 1 })
   urls!: string[];
+
+  @Type(() => FilterExtractionConfig)
+  @ValidateNested()
+  @IsObject()
+  filterExtraction!: FilterExtractionConfig;
 
   @Type(() => CLIPConfig)
   @ValidateNested()
