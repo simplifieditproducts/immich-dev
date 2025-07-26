@@ -26,6 +26,21 @@ import { getMyPartnerIds } from 'src/utils/asset.util';
 import { isFilterExtractionEnabled, isSmartSearchEnabled } from 'src/utils/misc';
 import { z } from "zod";
 
+// Define the JSON schema of OpenAI's structured outputs. All fields must be required, see:
+// https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required
+const FilterExtractionResponse = z.object({
+  takenBefore: z.string().nullable(),
+  takenAfter: z.string().nullable(),
+
+  country: z.string().nullable(),
+  state: z.string().nullable(),
+  city: z.string().nullable(),
+
+  people: z.array(z.string()).nullable(),
+
+  refinedQuery: z.string(),
+});
+
 @Injectable()
 export class SearchService extends BaseService {
   private embeddingCache = new LRUMap<string, string>(100);
@@ -94,6 +109,93 @@ export class SearchService extends BaseService {
     return items.map((item) => mapAsset(item, { auth }));
   }
 
+  async extractFilters(auth: AuthDto, dto: SmartSearchDto, machineLearning: {modelName: string, prompt: string}): Promise<SmartSearchDto> {
+    console.log(
+      "Extracting filters for search:",
+      Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
+    );
+
+    // check if user has already specified all of the related filters.
+    if (dto.personIds?.length && dto.country && dto.state && dto.city && dto.takenBefore && !dto.takenAfter) {
+      console.log("User has specified all of the related filters. There is no need to extract them from the query.");
+      return dto;
+    }
+
+    // if the query is empty, we cannot extract filters.
+    if (!dto.query || dto.query.trim() === "") {
+      console.log("Query is empty, cannot extract filters.");
+      return dto;
+    }
+
+    // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $BIRTHDAY
+    // split auth.user.name into firstName and lastName
+    const [firstName, lastName] = auth.user.name.split(" ");
+    const prompt = machineLearning.prompt
+      .replaceAll('$TODAY', new Date().toDateString())
+      .replaceAll('$FIRST_NAME', firstName || "")
+      .replaceAll('$LAST_NAME', lastName || "")
+      .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
+
+    // use GPT to extract filters from the query.
+    const openai = new OpenAI({
+      timeout: 3000, // timeout in 3 seconds
+    });
+    try {
+      const response = await openai.responses.parse({
+        model: machineLearning.modelName,
+        input: [
+          { role: "system", content: prompt },
+          { role: "user", content: dto.query },
+        ],
+        text: {
+          format: zodTextFormat(FilterExtractionResponse, "response"),
+        },
+      });
+
+      let data = response.output_parsed;
+      console.log("Filter extraction raw response:", data);
+
+      // filter data, unset any fields with value undefined or null or empty string
+      data = Object.fromEntries(
+        Object.entries(data as Record<string, any>).filter(([_, value]) => value !== undefined && value !== null && value !== "" && value !== "undefined" && value !== "null")
+      ) as typeof FilterExtractionResponse._type;
+
+      // extract the taken dates and convert them to Date objects. sometimes, GPT may return a date range
+      // from the beginning of the year 1970 to the end of the current year, which is meaningless.
+      if (data?.takenBefore) {
+        const takenBefore = new Date(data.takenBefore);
+        if (takenBefore.toString() !== "Invalid Date" && takenBefore.getDate() <= Date.now()) {
+          dto.takenBefore = takenBefore;
+        }
+      }
+      if (data?.takenAfter) {
+        const takenAfter = new Date(data.takenAfter);
+        if (takenAfter.toString() !== "Invalid Date" && takenAfter.getFullYear() > 1970) {
+          dto.takenAfter = takenAfter;
+        }
+      }
+
+      // TODO: add people extraction
+
+      // add the rest of the fields to the dto
+      dto = { ...dto, query: data?.refinedQuery || "", country : data?.country, state: data?.state, city: data?.city };
+        
+      console.log(
+        "Updated search filters:",
+        Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
+      );
+    } catch (error) {
+      console.error("Error extracting filters from query:", {
+        query: dto.query,
+        modelName: machineLearning.modelName,
+        prompt,
+        error,
+      });
+    }
+
+    return dto;
+ }
+
   async searchSmart(auth: AuthDto, dto: SmartSearchDto): Promise<SearchResponseDto> {
     if (dto.visibility === AssetVisibility.Locked) {
       requireElevatedPermission(auth);
@@ -104,54 +206,8 @@ export class SearchService extends BaseService {
       throw new BadRequestException('Smart search is not enabled');
     }
 
-    // TODO: incomplete code block
     if (isFilterExtractionEnabled(machineLearning)) {
-      const modelName = machineLearning.filterExtraction.modelName;
-      const prompt = machineLearning.filterExtraction.prompt;
-
-      // check if user specified any other filters other than the query.
-      if (dto.query && !dto.personIds?.length && !dto.city && !dto.country && !dto.state && !dto.takenBefore && !dto.takenAfter) {
-        console.log("This is a simple context search, we could potentially extract additional filters from the query.");
-
-        const openai = new OpenAI();
-        const ZodSearchOptions = z.object({
-          takenBefore: z.string().nullable(),
-          takenAfter: z.string().nullable(),
-
-          country: z.string().nullable(),
-          state: z.string().nullable(),
-          city: z.string().nullable(),
-
-          people: z.array(z.string()).nullable(),
-
-          query: z.string(),
-        });
-
-        // TODO: add a timeout, handle errors, etc.
-        const response = await openai.responses.parse({
-          model: modelName,
-          input: [
-            { role: "system", content: prompt },
-            {
-              role: "user",
-              content: dto.query,
-            },
-          ],
-          text: {
-            format: zodTextFormat(ZodSearchOptions, "options"),
-          },
-        });
-
-        if (response.output_parsed?.takenBefore) {
-          dto.takenBefore = new Date(response.output_parsed.takenBefore);
-        }
-        if (response.output_parsed?.takenAfter) {
-          dto.takenAfter = new Date(response.output_parsed.takenAfter);
-        }
-
-        // TODO: add people extraction
-        dto = { ...dto, country : response.output_parsed?.country, state: response.output_parsed?.state, city: response.output_parsed?.city };
-      }
+      dto = await this.extractFilters(auth, dto, machineLearning.filterExtraction);
     }
 
     const userIds = this.getUserIdsToSearch(auth);
