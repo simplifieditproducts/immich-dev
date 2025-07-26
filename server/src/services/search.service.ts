@@ -175,7 +175,19 @@ export class SearchService extends BaseService {
         }
       }
 
-      // TODO: add people extraction
+      // add personIds by matching people names from the response with existing persons in the database
+      if (data?.people && data.people.length > 0) {
+        const firstNames = data.people
+          .map((name) => name.trim().toLowerCase().split(" ")[0])
+          .filter(Boolean);
+
+        // make sure the first name exists in the person's name in the database
+        const allPersons = await this.personRepository.getAllForUserWithoutFaces(auth.user.id);
+        dto.personIds = allPersons.filter((person) => {
+          const parts = person.name.toLowerCase().replaceAll(/[^a-z\s]/g, "").split(" ");
+          return firstNames.some((firstName) => parts.includes(firstName));
+        }).map((person) => person.id);
+      }
 
       // add the rest of the fields to the dto
       dto = { ...dto, query: data?.refinedQuery || "", country : data?.country, state: data?.state, city: data?.city };
