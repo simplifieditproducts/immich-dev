@@ -1,8 +1,17 @@
 dev:
 	@trap 'make dev-down' EXIT; COMPOSE_BAKE=true docker compose -f ./docker/docker-compose.dev.yml up --remove-orphans
 
+dev-up:
+	COMPOSE_BAKE=true docker compose -f ./docker/docker-compose.dev.yml up --remove-orphans
+
 dev-down:
 	docker compose -f ./docker/docker-compose.dev.yml down --remove-orphans
+
+dev-start:
+	COMPOSE_BAKE=true docker compose -f ./docker/docker-compose.dev.yml start
+
+dev-stop:
+	docker compose -f ./docker/docker-compose.dev.yml stop
 
 dev-update:
 	@trap 'make dev-down' EXIT; COMPOSE_BAKE=true docker compose -f ./docker/docker-compose.dev.yml up --build -V --remove-orphans
