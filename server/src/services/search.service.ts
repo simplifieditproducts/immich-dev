@@ -116,7 +116,7 @@ export class SearchService extends BaseService {
     );
 
     // check if user has already specified all of the related filters.
-    if (dto.personIds?.length && dto.country && dto.state && dto.city && dto.takenBefore && !dto.takenAfter) {
+    if (dto.personIds?.length && dto.country && dto.state && dto.city && dto.takenBefore && dto.takenAfter) {
       console.log("User has specified all of the related filters. There is no need to extract them from the query.");
       return dto;
     }
@@ -128,7 +128,6 @@ export class SearchService extends BaseService {
     }
 
     // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $BIRTHDAY
-    // split auth.user.name into firstName and lastName
     const [firstName, lastName] = auth.user.name.split(" ");
     const prompt = machineLearning.prompt
       .replaceAll('$TODAY', new Date().toDateString())
@@ -153,6 +152,11 @@ export class SearchService extends BaseService {
       });
 
       let data = response.output_parsed;
+      if (!data) {
+        console.error("No data returned from filter extraction:", response);
+        return dto;
+      }
+
       console.log("Filter extraction raw response:", data);
 
       // filter data, unset any fields with value undefined or null or empty string
@@ -162,13 +166,13 @@ export class SearchService extends BaseService {
 
       // extract the taken dates and convert them to Date objects. sometimes, GPT may return a date range
       // from the beginning of the year 1970 to the end of the current year, which is meaningless.
-      if (data?.takenBefore) {
+      if (!dto.takenBefore && data.takenBefore) {
         const takenBefore = new Date(data.takenBefore);
         if (takenBefore.toString() !== "Invalid Date" && takenBefore.getDate() <= Date.now()) {
           dto.takenBefore = takenBefore;
         }
       }
-      if (data?.takenAfter) {
+      if (!dto.takenAfter && data.takenAfter) {
         const takenAfter = new Date(data.takenAfter);
         if (takenAfter.toString() !== "Invalid Date" && takenAfter.getFullYear() > 1970) {
           dto.takenAfter = takenAfter;
@@ -176,13 +180,13 @@ export class SearchService extends BaseService {
       }
 
       // add personIds by matching people names from the response with existing persons in the database
-      if (data?.people && data.people.length > 0) {
+      if (!dto.personIds?.length && data.people && data.people.length > 0) {
         const firstNames = data.people
           .map((name) => name.trim().toLowerCase().split(" ")[0])
           .filter(Boolean);
 
         // make sure the first name exists in the person's name in the database
-        const allPersons = await this.personRepository.getAllForUserWithoutFaces(auth.user.id);
+        const allPersons = await this.personRepository.getAllForUserWithNames(auth.user.id);
         dto.personIds = allPersons.filter((person) => {
           const parts = person.name.toLowerCase().replaceAll(/[^a-z\s]/g, "").split(" ");
           return firstNames.some((firstName) => parts.includes(firstName));
@@ -190,8 +194,14 @@ export class SearchService extends BaseService {
       }
 
       // add the rest of the fields to the dto
-      dto = { ...dto, query: data?.refinedQuery || "", country : data?.country, state: data?.state, city: data?.city };
-        
+      dto = { 
+        ...dto, 
+        query: data.refinedQuery || dto.query, 
+        country: dto.country || data.country, 
+        state: dto.state || data.state, 
+        city: dto.city || data.city 
+      };
+
       console.log(
         "Updated search filters:",
         Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))

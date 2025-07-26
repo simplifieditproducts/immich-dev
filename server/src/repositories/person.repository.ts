@@ -208,10 +208,11 @@ export class PersonRepository {
   }
 
   @GenerateSql()
-  getAllForUserWithoutFaces(userId: string) {
+  getAllForUserWithNames(userId: string) {
     return this.db
       .selectFrom('person')
       .select(['person.id', 'person.name'])
+      .where('person.name', '!=', '')
       .where('person.ownerId', '=', userId)
       .where('person.isHidden', '=', false)
       .execute();
