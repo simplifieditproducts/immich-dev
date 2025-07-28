@@ -193,9 +193,20 @@
       searchResultAssets.push(...assets.items.map((asset) => toTimelineAsset(asset)));
 
       if (extractedTerms) {
-        shouldReactToTermsChange = false;
-        const params = getMetadataSearchQuery(extractedTerms);
-        await goto(`${AppRoute.SEARCH}?${params}`, { replaceState: true });
+        // loop through the items in the extractedTerms object, compare to the original terms object,
+        // and check if any of the values have changed.
+        let haveTermsChanged = false;
+        for (const key in extractedTerms) {
+          if (terms[key] !== (extractedTerms as Record<string, unknown>)[key]) {
+            haveTermsChanged = true;
+            break;
+          }
+        }
+        if (haveTermsChanged) {
+          shouldReactToTermsChange = false;
+          const params = getMetadataSearchQuery(extractedTerms);
+          await goto(`${AppRoute.SEARCH}?${params}`, { replaceState: true });
+        }
       }
 
       nextPage = Number(assets.nextPage) || 0;
