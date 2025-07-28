@@ -35,6 +35,7 @@
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { parseUtcDate } from '$lib/utils/date-time';
   import { handleError } from '$lib/utils/handle-error';
+  import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import { isAlbumsRoute, isPeopleRoute } from '$lib/utils/navigation';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import {
@@ -79,10 +80,18 @@
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
 
+  // Normally, we would use $effect to react to changes in search terms, but we want to
+  // avoid unnecessary updates when the search terms are updated by 'Filter Extraction'.
+  let shouldReactToTermsChange = true;
+
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     terms;
     setTimeout(() => {
+      if (!shouldReactToTermsChange) {
+        shouldReactToTermsChange = true;
+        return;
+      }
       handlePromiseError(onSearchQueryUpdate());
     });
   });
@@ -175,13 +184,19 @@
     };
 
     try {
-      const { albums, assets } =
+      const { albums, assets, terms: extractedTerms } =
         'query' in searchDto && smartSearchEnabled
           ? await searchSmart({ smartSearchDto: searchDto })
           : await searchAssets({ metadataSearchDto: searchDto });
 
       searchResultAlbums.push(...albums.items);
       searchResultAssets.push(...assets.items.map((asset) => toTimelineAsset(asset)));
+
+      if (extractedTerms) {
+        shouldReactToTermsChange = false;
+        const params = getMetadataSearchQuery(extractedTerms);
+        await goto(`${AppRoute.SEARCH}?${params}`, { replaceState: true });
+      }
 
       nextPage = Number(assets.nextPage) || 0;
     } catch (error) {

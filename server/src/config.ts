@@ -58,6 +58,7 @@ export interface SystemConfig {
       enabled: boolean;
       modelName: string;
       prompt: string;
+      showExtractedFilters: boolean;
     };
     clip: {
       enabled: boolean;
@@ -247,7 +248,8 @@ export const defaults = Object.freeze<SystemConfig>({
 }
 
 The city value must match a valid entry in the cities500 dataset. All fields are optional.
-`
+`,
+      showExtractedFilters: false
     },
     clip: {
       enabled: true,

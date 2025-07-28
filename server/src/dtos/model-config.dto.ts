@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
 import { ValidateBoolean } from 'src/validation';
 
 export class TaskConfig {
@@ -17,6 +17,9 @@ export class ModelConfig extends TaskConfig {
 export class FilterExtractionConfig extends ModelConfig {
   @IsString()
   prompt!: string;
+
+  @IsBoolean()
+  showExtractedFilters!: boolean;
 }
 
 export class CLIPConfig extends ModelConfig {}

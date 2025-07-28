@@ -91,7 +91,8 @@ The default configuration looks like this:
     "filterExtraction": {
       "enabled": false,
       "modelName": "gpt-4.1-2025-04-14",
-      "prompt": ""
+      "prompt": "",
+      "showExtractedFilters": false
     },
     "clip": {
       "enabled": true,

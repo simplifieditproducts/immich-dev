@@ -10704,12 +10704,16 @@
           },
           "prompt": {
             "type": "string"
+          },
+          "showExtractedFilters": {
+            "type": "boolean"
           }
         },
         "required": [
           "enabled",
           "modelName",
-          "prompt"
+          "prompt",
+          "showExtractedFilters"
         ],
         "type": "object"
       },
@@ -12611,6 +12615,9 @@
           },
           "assets": {
             "$ref": "#/components/schemas/SearchAssetResponseDto"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/SmartSearchDto"
           }
         },
         "required": [

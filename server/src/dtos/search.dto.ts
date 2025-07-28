@@ -303,6 +303,7 @@ class SearchAssetResponseDto {
 export class SearchResponseDto {
   albums!: SearchAlbumResponseDto;
   assets!: SearchAssetResponseDto;
+  terms?: SmartSearchDto;
 }
 
 export class SearchStatisticsResponseDto {

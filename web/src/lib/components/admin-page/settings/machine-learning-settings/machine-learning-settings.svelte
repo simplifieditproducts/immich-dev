@@ -119,6 +119,13 @@
             disabled={disabled || !config.machineLearning.enabled || !config.machineLearning.filterExtraction.enabled}
             description="Provide a system prompt that guides the model to extract dates, locations, people, and keywords from the user's query. Supported placeholders: $TODAY, $FIRST_NAME, $LAST_NAME, $BIRTHDAY"
             isEdited={config.machineLearning.filterExtraction.prompt !== savedConfig.machineLearning.filterExtraction.prompt}
+          />  
+
+          <SettingSwitch
+            title="Show extracted filters"
+            subtitle='If enabled, the extracted search filters will be shown in the "Search Options" dialog.'
+            bind:checked={config.machineLearning.filterExtraction.showExtractedFilters}
+            disabled={disabled || !config.machineLearning.enabled || !config.machineLearning.filterExtraction.enabled}
           />          
         </div>
       </SettingAccordion>      

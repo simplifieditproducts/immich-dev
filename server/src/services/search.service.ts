@@ -130,7 +130,7 @@ export class SearchService extends BaseService {
     // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $BIRTHDAY
     const [firstName, lastName] = auth.user.name.split(" ");
     const prompt = machineLearning.prompt
-      .replaceAll('$TODAY', new Date().toDateString())
+      .replaceAll('$TODAY', new Date().toLocaleDateString())
       .replaceAll('$FIRST_NAME', firstName || "")
       .replaceAll('$LAST_NAME', lastName || "")
       .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
@@ -249,7 +249,16 @@ export class SearchService extends BaseService {
       { ...dto, userIds: await userIds, embedding },
     );
 
-    return this.mapResponse(items, hasNextPage ? (page + 1).toString() : null, { auth });
+    const response = this.mapResponse(items, hasNextPage ? (page + 1).toString() : null, { auth });
+
+    // send back the updated search terms when 'showExtractedFilters' is true.
+    const showExtractedFilters = isFilterExtractionEnabled(machineLearning) && machineLearning.filterExtraction.showExtractedFilters;
+    if (showExtractedFilters) {
+      const { withExif: _unused1, language: _unused2, page: _unused3, ...filteredDto } = dto;
+      response.terms = filteredDto;
+    }
+
+    return response;
   }
 
   async getAssetsByCity(auth: AuthDto): Promise<AssetResponseDto[]> {

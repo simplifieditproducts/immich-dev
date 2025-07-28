@@ -86,6 +86,7 @@ const updatedConfig = Object.freeze<SystemConfig>({
       enabled: false,
       modelName: 'gpt-4.1-2025-04-14',
       prompt: '',
+      showExtractedFilters: false,
     },
     clip: {
       enabled: true,
