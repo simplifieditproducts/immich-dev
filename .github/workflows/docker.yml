@@ -90,6 +90,27 @@ jobs:
       build-args: |
         DEVICE=cpu
 
+  web-ub:
+    name: Build and Push Web App (Ultimate Backup)
+    needs: pre-job
+    if: ${{ needs.pre-job.outputs.should_run_server == 'true' }}
+    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@129aeda75a450666ce96e8bc8126652e717917a7 # multi-runner-build-workflow-0.1.1
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    with:
+      image: immich-web-ub
+      context: .
+      dockerfile: web/Dockerfile.prod
+      dockerhub-push: ${{ github.event_name == 'release' }}
+      build-args: |
+        DEVICE=cpu
+        APP_ID=ultimatebackup
+
   success-check-server:
     name: Docker Build & Push Server Success
     needs: [server, retag_server]
@@ -100,3 +121,14 @@ jobs:
       - uses: immich-app/devtools/actions/success-check@68f10eb389bb02a3cf9d1156111964c549eb421b # 0.0.4
         with:
           needs: ${{ toJSON(needs) }}
+
+  success-check-web-ub:
+    name: Docker Build & Push Web App (Ultimate Backup) Success
+    needs: [web-ub]
+    permissions: {}
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: immich-app/devtools/actions/success-check@68f10eb389bb02a3cf9d1156111964c549eb421b # 0.0.4
+        with:
+          needs: ${{ toJSON(needs) }}          

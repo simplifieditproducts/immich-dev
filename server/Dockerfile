@@ -93,7 +93,7 @@ WORKDIR /usr/src/app/open-api/typescript-sdk
 RUN npm ci && npm run build
 
 WORKDIR /usr/src/app/web
-RUN npm ci && node ./patch-package.js && npm run build
+RUN npm ci && node ./custom-build.js && npm run build
 
 # prod build
 FROM ghcr.io/immich-app/base-server-prod:202507162011@sha256:636f3ddb6106628ef851d51c23f3fa2c6e4829390cc315b27b38c288c82b23a7

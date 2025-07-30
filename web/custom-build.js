@@ -2,6 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// TODO: Implement the build logic here
+const appId = process.env.APP_ID || 'picturekeeper';
+console.log('Running patch with APP_ID:', appId);
+
 // This script patches the immich-ui logo in the web project.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const oldLogoPath = path.resolve(__dirname, "./node_modules/@immich/ui/dist/assets/immich-logo.svg");
