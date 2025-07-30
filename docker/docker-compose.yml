@@ -32,6 +32,19 @@ services:
     healthcheck:
       disable: false
 
+  immich-web-ub:
+    container_name: immich_web_ub
+    image: ghcr.io/simplifieditproducts/immich-web-ub:custom-patch
+    env_file:
+      - .env
+    ports:
+      - 2284:8080
+    depends_on:
+      - immich-server
+    restart: always
+    healthcheck:
+      disable: false
+
   immich-machine-learning:
     container_name: immich_machine_learning
     # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
