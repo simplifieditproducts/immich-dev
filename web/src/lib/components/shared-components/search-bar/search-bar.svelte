@@ -19,10 +19,11 @@
   interface Props {
     value?: string;
     grayTheme: boolean;
+    inAppSearch?: boolean;
     searchQuery?: MetadataSearchDto | SmartSearchDto;
   }
 
-  let { value = $bindable(''), grayTheme, searchQuery = {} }: Props = $props();
+  let { value = $bindable(''), grayTheme, searchQuery = {}, inAppSearch = false }: Props = $props();
 
   let showClearIcon = $derived(value.length > 0);
 
@@ -42,7 +43,10 @@
   });
 
   const handleSearch = async (payload: SmartSearchDto | MetadataSearchDto) => {
-    const params = getMetadataSearchQuery(payload);
+    let params = getMetadataSearchQuery(payload);
+    if (inAppSearch) {
+      params += '&inApp=true';
+    }
 
     closeDropdown();
     searchStore.isSearchEnabled = false;
@@ -233,9 +237,9 @@
         type="text"
         name="q"
         id="main-search-bar"
-        class="w-full transition-all border-2 px-14 sm:pr-28 py-4 max-md:py-2 text-immich-fg/75 dark:text-immich-dark-fg
+        class="w-full transition-all border-2 px-12 sm:pr-28 py-4 max-md:py-2 text-immich-fg/75 dark:text-immich-dark-fg
         {grayTheme ? 'dark:bg-immich-dark-gray' : 'dark:bg-immich-dark-bg'}
-        {showSuggestions && isSearchSuggestions ? 'rounded-t-3xl' : 'rounded-3xl bg-gray-200'}
+        {showSuggestions && isSearchSuggestions ? 'rounded-t-lg sm:rounded-t-3xl' : 'rounded-lg sm:rounded-3xl bg-gray-200'}
         {searchStore.isSearchEnabled ? 'border-gray-200 dark:border-gray-700 bg-white' : 'border-transparent'}"
         placeholder={$t('search_your_photos')}
         required

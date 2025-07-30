@@ -498,9 +498,9 @@
       <div class="fixed top-0 start-0 w-full">
         <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft} inAppSearch={inApp}>
           <div class="absolute bg-light"></div>
-          <!-- Kevin has center-aligned the search box on mobile. -->
-          <div class="w-full flex-1 px-2 sm:ps-4">
-            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} />
+          <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
+          <div class="w-full flex-1 sm:ps-4 {inApp ? 'pr-2' : 'px-2'}">
+            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} inAppSearch={inApp} />
           </div>
         </ControlAppBar>
       </div>
