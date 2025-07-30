@@ -77,7 +77,7 @@
 
   type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query'>;
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
-  let inApp = $derived(page.url.searchParams.get(QueryParameter.IN_APP));
+  let inApp = $derived(['1', 'true'].includes(page.url.searchParams.get(QueryParameter.IN_APP) || ''));
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
 
