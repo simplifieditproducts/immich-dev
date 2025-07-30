@@ -4,17 +4,23 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
-const appId = process.env.APP_ID || 'picturekeeper';
+const appId = process.env.VITE_APP_ID || 'picturekeeper';
 const appName = appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper';
-console.log('Running custom build script with APP_ID:', appId);
+console.log('Running custom build script with VITE_APP_ID:', appId);
 
 
 /// 1. Copy the static files to the right location
 
 // patch all the icon files.
 if (appId !== 'picturekeeper') {
-  const srcFolder = path.resolve(__dirname, `./static/${appId}`);
-  const dstFolder = path.resolve(__dirname, './static');
+  let srcFolder = path.resolve(__dirname, `./static/${appId}`);
+  let dstFolder = path.resolve(__dirname, './static');
+  fs.readdirSync(srcFolder).forEach(file => {
+    fs.copyFileSync(path.join(srcFolder, file), path.join(dstFolder, file));
+  });
+
+  srcFolder = path.resolve(__dirname, `./src/lib/assets/${appId}`);
+  dstFolder = path.resolve(__dirname, './src/lib/assets');
   fs.readdirSync(srcFolder).forEach(file => {
     fs.copyFileSync(path.join(srcFolder, file), path.join(dstFolder, file));
   });

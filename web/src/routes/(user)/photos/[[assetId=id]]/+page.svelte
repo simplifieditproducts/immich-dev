@@ -33,6 +33,7 @@
     type OnLink,
     type OnUnlink,
   } from '$lib/utils/actions';
+  import { appId } from '$lib/constants';
   import { AssetVisibility } from '@immich/sdk';
 
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
@@ -106,7 +107,7 @@
         <div class="flex flex-col content-center items-center text-center">
           <Icon path={mdiImageOffOutline} size="3.5em" />
           <p class="mt-5 text-3xl font-medium">No photos available</p>
-          <p class="text-base font-normal px-2">Run a backup using the Picture Keeper Connect app and try again.</p>
+          <p class="text-base font-normal px-2">Run a backup using the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} app and try again.</p>
         </div>
       </div>
     {/snippet}

@@ -109,7 +109,7 @@ jobs:
       dockerhub-push: ${{ github.event_name == 'release' }}
       build-args: |
         DEVICE=cpu
-        APP_ID=ultimatebackup
+        VITE_APP_ID=ultimatebackup
 
   success-check-server:
     name: Docker Build & Push Server Success

@@ -19,6 +19,7 @@
     type ReleaseEvent,
   } from '$lib/stores/websocket';
   import { copyToClipboard } from '$lib/utils';
+  import { appName } from '$lib/constants';
   import { isAssetViewerRoute } from '$lib/utils/navigation';
   import type { ServerVersionResponseDto } from '@immich/sdk';
   import { modalManager, setTranslations } from '@immich/ui';
@@ -101,7 +102,7 @@
 </script>
 
 <svelte:head>
-  <title>{page.data.meta?.title || 'Web'} - Picture Keeper</title>
+  <title>{page.data.meta?.title || 'Web'} - {appName}</title>
   <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
   <meta name="theme-color" content="currentColor" />
   <AppleHeader />
