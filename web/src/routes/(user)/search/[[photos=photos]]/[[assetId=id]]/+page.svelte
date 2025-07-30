@@ -77,6 +77,7 @@
 
   type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query'>;
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
+  let inApp = $derived(page.url.searchParams.get(QueryParameter.IN_APP));
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
 
@@ -495,7 +496,7 @@
       </div>
     {:else}
       <div class="fixed top-0 start-0 w-full">
-        <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft}>
+        <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft} inAppSearch={inApp}>
           <div class="absolute bg-light"></div>
           <!-- Kevin has center-aligned the search box on mobile. -->
           <div class="w-full flex-1 px-2 sm:ps-4">
