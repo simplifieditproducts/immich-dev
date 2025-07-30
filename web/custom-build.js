@@ -1,13 +1,27 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-// TODO: Implement the build logic here
-const appId = process.env.APP_ID || 'picturekeeper';
-console.log('Running patch with APP_ID:', appId);
-
-// This script patches the immich-ui logo in the web project.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+
+const appId = process.env.APP_ID || 'picturekeeper';
+const appName = appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper';
+console.log('Running custom build script with APP_ID:', appId);
+
+
+/// 1. Copy the static files to the right location
+
+// patch all the icon files.
+if (appId !== 'picturekeeper') {
+  const srcFolder = path.resolve(__dirname, `./static/${appId}`);
+  const dstFolder = path.resolve(__dirname, './static');
+  fs.readdirSync(srcFolder).forEach(file => {
+    fs.copyFileSync(path.join(srcFolder, file), path.join(dstFolder, file));
+  });
+}
+console.log("✅ static icons have been updated!");
+
+// patch the immich-ui logo in the web project.
 const oldLogoPath = path.resolve(__dirname, "./node_modules/@immich/ui/dist/assets/immich-logo.svg");
 let newLogoPath = path.resolve(__dirname, "./static/logo.svg");
 if (!fs.existsSync(newLogoPath)) {
@@ -15,4 +29,20 @@ if (!fs.existsSync(newLogoPath)) {
   process.exit(1);
 }
 fs.copyFileSync(newLogoPath, oldLogoPath);
-console.log("✅ immich-ui's logo has been patched!");
+console.log("✅ immich-ui's logo has been updated!");
+
+
+/// 2. Update the text copies in i18n and configure files.
+
+const filesToUpdate = [
+  '../i18n/en.json',
+  './static/manifest.json',
+];
+filesToUpdate.forEach(filePath => {
+  const fullPath = path.resolve(__dirname, filePath);
+  let content = fs.readFileSync(fullPath, 'utf-8');
+  content = content.replaceAll(`"Immich"`, `"${appName}"`);
+  content = content.replaceAll("Welcome to Immich", `Welcome to ${appName}`);
+  fs.writeFileSync(fullPath, content, 'utf-8');
+});
+console.log("✅ i18n and manifest files have been updated!");
