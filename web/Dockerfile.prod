@@ -7,7 +7,6 @@ ENV APP_ID=$APP_ID
 WORKDIR /usr/src/app
 
 # Copy only needed files to keep build context small
-COPY ./docker ./docker/
 COPY ./web ./web/
 COPY ./i18n ./i18n/
 COPY ./open-api/typescript-sdk ./open-api/typescript-sdk/
@@ -23,8 +22,6 @@ RUN npm ci && node ./custom-build.js && npm run build
 
 # ---------- Stage 2: Serve the built SPA with NGINX ----------
 FROM nginx:alpine AS web-prod
-
-WORKDIR /usr/src/app
 
 # Copy built static files from previous stage
 COPY --from=web /usr/src/app/web/build /usr/share/nginx/html
