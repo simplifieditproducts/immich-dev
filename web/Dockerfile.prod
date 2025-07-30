@@ -30,6 +30,6 @@ WORKDIR /usr/src/app
 COPY --from=web /usr/src/app/web/build /usr/share/nginx/html
 
 # Custom NGINX config to support SPA routing
-COPY --from=web /usr/src/app/docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./web/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
