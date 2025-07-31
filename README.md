@@ -3,8 +3,9 @@ Steps to run development server locally on a Unix-based computer:
 2. Navigate to project root directory: `cd immich-dev`
 3. Check out `custom-patch` branch: `git checkout custom-patch` (our customizations should be made on `custom-patch` branch and then rebased onto `main` branch)
 4. Create the necessary `.env` file: `cp docker/example.dev.env docker/.env`
-5. Start the dev server using the provided Makefile: `make dev`
-6. Access the instance in your web browser by using `http://localhost:3000` or `http://your-machine-ip:3000`
+5. Add an OpenAI API key in the `.env` file to allow ChatGPT-enhanced smart search
+6. Start the dev server using the provided Makefile: `make dev`
+7. Access the instance in your web browser by using `http://localhost:3000` or `http://your-machine-ip:3000`
 
 Other possibly useful commands:
 - To delete Immich in Terminal, go to `/immich-dev/docker` and run `docker compose -f docker-compose.yml down -v`
@@ -29,3 +30,6 @@ These are various important files in the codebase:
 - `web/src/lib/components/user-settings-page/user-settings-list.svelte` defines the Settings UI.
 - `web/src/lib/components/shared-components/navigation-bar/navigation-bar.svelte` defines the top bar that contains the Profile icon, Search bar, and more.
 - `web/src/lib/components/shared-components/side-bar/user-sidebar.svelte` defines the left bar items (these go in hamburger menu on mobile).
+- `server/src/services/search.service.ts` is where Kevin implemented filter extraction functionality for Smart Search.
+
+More documentation can be found [here](https://github.com/simplifieditproducts/immich-devops/tree/main/docs).
