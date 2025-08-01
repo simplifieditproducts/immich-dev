@@ -74,6 +74,8 @@
     }
   });
 
+  // Gavin: Hide `VersionAnnouncementModal`, which would get displayed when a new Immich version is released.
+  /*
   const semverToName = ({ major, minor, patch }: ServerVersionResponseDto) => `v${major}.${minor}.${patch}`;
   const { release } = websocketStore;
 
@@ -99,6 +101,7 @@
   };
 
   $effect(() => void handleRelease($release));
+  */
 </script>
 
 <svelte:head>
