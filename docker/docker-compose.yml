@@ -84,7 +84,7 @@ services:
     shm_size: 256mb
     restart: always
     ports:
-      - "5432:5432"  # Expose port to host
+      - "127.0.0.1:5432:5432"  # Expose port to localhost only for security reasons
 
 volumes:
   model-cache:
