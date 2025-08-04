@@ -24,7 +24,7 @@ services:
     env_file:
       - .env
     ports:
-      - '2283:2283'
+      - "127.0.0.1:2283:2283"
     depends_on:
       - redis
       - database
@@ -38,7 +38,7 @@ services:
     env_file:
       - .env
     ports:
-      - 2284:8080
+      - "127.0.0.1:2284:8080"
     depends_on:
       - immich-server
     restart: always
