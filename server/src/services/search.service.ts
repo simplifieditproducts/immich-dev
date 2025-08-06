@@ -127,12 +127,18 @@ export class SearchService extends BaseService {
       return dto;
     }
 
-    // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $BIRTHDAY
+    // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $COUNTRIES, $STATES, $CITIES, $BIRTHDAY
     const [firstName, lastName] = auth.user.name.split(" ");
+    const countries = (await this.searchRepository.getCountries([auth.user.id])).join(", ");
+    const states = (await this.searchRepository.getStates([auth.user.id], { country: undefined })).join(", ");
+    const cities = (await this.searchRepository.getCities([auth.user.id], { country: undefined, state: undefined })).join(", ");
     const prompt = machineLearning.prompt
       .replaceAll('$TODAY', new Date().toLocaleDateString())
       .replaceAll('$FIRST_NAME', firstName || "")
       .replaceAll('$LAST_NAME', lastName || "")
+      .replaceAll('$COUNTRIES', countries)
+      .replaceAll('$STATES', states)
+      .replaceAll('$CITIES', cities)
       .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
 
     // use GPT to extract filters from the query.
