@@ -59,5 +59,16 @@
     "*.ts": "${capture}.spec.ts,${capture}.mock.ts"
   },
   "svelte.enable-ts-plugin": true,
-  "typescript.preferences.importModuleSpecifier": "non-relative"
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "search.exclude": {
+    "mobile": true,
+    "e2e": true,
+    "machine-learning": true,
+    "readme_i18n": true,
+    "misc": true,
+    "fastlane": true,
+    "docs": true,
+    "deployment": true,
+    "cli": true,
+  }
 }
