@@ -528,7 +528,7 @@
   <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl border-t">
     <div class="flex items-start gap-x-2">
       <Icon path={mdiLightbulbOutline} class="text-yellow-500 size-20" />
-      <p class="font-medium text-gray-700">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>
+      <p class="font-medium text-secondary">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>
     </div>
     <div class="flex items-center justify-end">
       <Button variant="ghost" onclick={() => (showNameFacesBanner = false)}>Maybe Later</Button>
