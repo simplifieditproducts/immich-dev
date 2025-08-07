@@ -399,6 +399,7 @@ export class PersonRepository {
       .where('person.ownerId', '=', userId)
       .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>(), zero).as('total'))
       .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>().filterWhere('isHidden', '=', true), zero).as('hidden'))
+      .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>().filterWhere('name', '=', ''), zero).as('unnamed'))
       .executeTakeFirstOrThrow();
   }
 

@@ -14,6 +14,7 @@ import {
   mapFaces,
   mapPerson,
   MergePersonDto,
+  NumberOfPeopleResponseDto,
   PeopleResponseDto,
   PeopleUpdateDto,
   PersonCreateDto,
@@ -75,6 +76,10 @@ export class PersonService extends BaseService {
       total,
       hidden,
     };
+  }
+
+  async getNumberOfPeople(auth: AuthDto): Promise<NumberOfPeopleResponseDto> {
+    return await this.personRepository.getNumberOfPeople(auth.user.id);
   }
 
   async reassignFaces(auth: AuthDto, personId: string, dto: AssetFaceUpdateDto): Promise<PersonResponseDto[]> {

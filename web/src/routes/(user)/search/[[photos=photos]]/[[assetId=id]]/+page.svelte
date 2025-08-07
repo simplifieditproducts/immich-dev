@@ -42,19 +42,25 @@
     type AlbumResponseDto,
     getPerson,
     getTagById,
+    getNumberOfPeople,
     type MetadataSearchDto,
     searchAssets,
     searchSmart,
     type SmartSearchDto,
   } from '@immich/sdk';
-  import { IconButton } from '@immich/ui';
-  import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
+  import { IconButton, Button } from '@immich/ui';
+  import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiPlus, mdiSelectAll, mdiLightbulbOutline } from '@mdi/js';
   import { onDestroy, onMount, tick } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { t } from 'svelte-i18n';
 
   /* Gavin added these two lines as part of the "Show More" feature. */
   let hasActivatedPagination = $state(false);
   const INITIAL_ASSET_LIMIT = 16;
+
+  /* Kevin added a banner to remind user to name people in their photos. */
+  let showNameFacesBanner = $state(false);
+  let numberOfUnnamedPeople = $state(0);
 
   const MAX_ASSET_COUNT = 5000;
   let { isViewing: showAssetViewer } = assetViewingStore;
@@ -309,6 +315,12 @@
     updateHeight();
     window.visualViewport?.addEventListener('resize', updateHeight);
     window.addEventListener('resize', updateHeight);
+
+    // Fetch number of unnamed people for the banner.
+    getNumberOfPeople().then(({ total, unnamed }) => {
+      showNameFacesBanner = (total > 0 && total === unnamed);
+      numberOfUnnamedPeople = unnamed;
+    });
   });
   onDestroy(() => {
     window.visualViewport?.removeEventListener('resize', updateHeight);
@@ -507,5 +519,23 @@
     {/if}
   </section>
 </section>
+
+{#if showNameFacesBanner}
+<div
+  class="sm:hidden fixed inset-0 top-14 z-10 bg-black/30"
+  transition:fade={{ duration: 300 }}
+>
+  <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl border-t">
+    <div class="flex items-start gap-x-2">
+      <Icon path={mdiLightbulbOutline} class="text-yellow-500 size-20" />
+      <p class="font-medium text-gray-700">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>
+    </div>
+    <div class="flex items-center justify-end">
+      <Button variant="ghost" onclick={() => (showNameFacesBanner = false)}>Maybe Later</Button>
+      <Button onclick={() => goto('/people')}>Start Naming</Button>
+    </div>
+  </div>
+</div>
+{/if}
 
 </div>

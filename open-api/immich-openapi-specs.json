@@ -4823,6 +4823,38 @@
         ]
       }
     },
+    "/people/count": {
+      "get": {
+        "operationId": "getNumberOfPeople",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NumberOfPeopleResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "People"
+        ]
+      }
+    },
     "/people/{id}": {
       "delete": {
         "operationId": "deletePerson",
@@ -11648,6 +11680,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "NumberOfPeopleResponseDto": {
+        "properties": {
+          "hidden": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unnamed": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hidden",
+          "total",
+          "unnamed"
+        ],
         "type": "object"
       },
       "OAuthAuthorizeResponseDto": {

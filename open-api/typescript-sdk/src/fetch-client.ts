@@ -796,6 +796,11 @@ export type PeopleResponseDto = {
     people: PersonResponseDto[];
     total: number;
 };
+export type NumberOfPeopleResponseDto = {
+    total: number;
+    hidden: number;
+    unnamed: number;
+};
 export type PersonCreateDto = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
@@ -2842,6 +2847,14 @@ export function getAllPeople({ closestAssetId, closestPersonId, page, size, with
         size,
         withHidden
     }))}`, {
+        ...opts
+    }));
+}
+export function getNumberOfPeople(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: NumberOfPeopleResponseDto;
+    }>('/people/count', {
         ...opts
     }));
 }
