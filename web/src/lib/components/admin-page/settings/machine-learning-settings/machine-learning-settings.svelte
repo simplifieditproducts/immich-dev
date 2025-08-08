@@ -117,7 +117,7 @@
             bind:value={config.machineLearning.filterExtraction.prompt}
             required={true}
             disabled={disabled || !config.machineLearning.enabled || !config.machineLearning.filterExtraction.enabled}
-            description="Provide a system prompt that guides the model to extract dates, locations, people, and keywords from the user's query. Supported placeholders: $TODAY, $FIRST_NAME, $LAST_NAME, $COUNTRIES, $STATES, $CITIES and $BIRTHDAY."
+            description="Provide a system prompt that guides the model to extract specific search filters from the query. Supported variables: $USER_NAME, $TODAY, $BIRTHDAY, $COUNTRIES, $STATES, $CITIES and $PEOPLE_NAMES."
             isEdited={config.machineLearning.filterExtraction.prompt !== savedConfig.machineLearning.filterExtraction.prompt}
           />  
 

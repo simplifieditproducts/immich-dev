@@ -127,19 +127,25 @@ export class SearchService extends BaseService {
       return dto;
     }
 
-    // update the variables in the prompt: $TODAY, $FIRST_NAME, $LAST_NAME, $COUNTRIES, $STATES, $CITIES, $BIRTHDAY
-    const [firstName, lastName] = auth.user.name.split(" ");
-    const countries = (await this.searchRepository.getCountries([auth.user.id])).join(", ");
-    const states = (await this.searchRepository.getStates([auth.user.id], { country: undefined })).join(", ");
-    const cities = (await this.searchRepository.getCities([auth.user.id], { country: undefined, state: undefined })).join(", ");
+    // get all named people in current user account.
+    const namedPeople = await this.personRepository.getAllForUserWithNames(auth.user.id);
+
+    // update the variables in the prompt: $TODAY, $USER_NAME, $COUNTRIES, $STATES, $CITIES, $PEOPLE_NAMES, $BIRTHDAY
+    const countries = JSON.stringify(await this.searchRepository.getCountries([auth.user.id]));
+    const states = JSON.stringify(await this.searchRepository.getStates([auth.user.id], { country: undefined }));
+    const cities = JSON.stringify(await this.searchRepository.getCities([auth.user.id], { country: undefined, state: undefined }));
+    const peopleNames = JSON.stringify(namedPeople.map(p => p.name));
     const prompt = machineLearning.prompt
-      .replaceAll('$TODAY', new Date().toLocaleDateString())
-      .replaceAll('$FIRST_NAME', firstName || "")
-      .replaceAll('$LAST_NAME', lastName || "")
+      .replaceAll('$TODAY', new Date().toISOString().split('T')[0])
+      .replaceAll('$USER_NAME', auth.user.name)
       .replaceAll('$COUNTRIES', countries)
       .replaceAll('$STATES', states)
       .replaceAll('$CITIES', cities)
+      .replaceAll('$PEOPLE_NAMES', peopleNames)
       .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
+
+    console.debug("Filter extraction model:", machineLearning.modelName);
+    console.debug("Filter extraction prompt:", prompt);
 
     // use GPT to extract filters from the query.
     const openai = new OpenAI({
@@ -187,22 +193,13 @@ export class SearchService extends BaseService {
 
       // add personIds by matching people names from the response with existing persons in the database
       if (!dto.personIds?.length && data.people && data.people.length > 0) {
-        const firstNames = data.people
-          .map((name) => name.trim().toLowerCase().split(" ")[0])
-          .filter(Boolean);
-
-        // make sure the first name exists in the person's name in the database
-        const allPersons = await this.personRepository.getAllForUserWithNames(auth.user.id);
-        dto.personIds = allPersons.filter((person) => {
-          const parts = person.name.toLowerCase().replaceAll(/[^a-z\s]/g, "").split(" ");
-          return firstNames.some((firstName) => parts.includes(firstName));
-        }).map((person) => person.id);
+        dto.personIds = namedPeople.filter(p => data.people!.includes(p.name)).map((p) => p.id);
       }
 
       // add the rest of the fields to the dto
       dto = { 
         ...dto, 
-        query: data.refinedQuery || dto.query, 
+        query: data.refinedQuery || "",
         country: dto.country || data.country, 
         state: dto.state || data.state, 
         city: dto.city || data.city 
