@@ -152,6 +152,7 @@ export class SearchService extends BaseService {
       timeout: 3000, // timeout in 3 seconds
     });
     try {
+      const startTime = Date.now();
       const response = await openai.responses.parse({
         model: machineLearning.modelName,
         input: [
@@ -162,6 +163,8 @@ export class SearchService extends BaseService {
           format: zodTextFormat(FilterExtractionResponse, "response"),
         },
       });
+      const endTime = Date.now();
+      console.log(`Filter extraction API call took ${endTime - startTime}ms`);
 
       let data = response.output_parsed;
       if (!data) {
