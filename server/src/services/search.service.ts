@@ -262,7 +262,7 @@ export class SearchService extends BaseService {
     if (showExtractedFilters) {
       const { withExif: _unused1, language: _unused2, page: _unused3, ...filteredDto } = dto;
       response.terms = filteredDto;
-    } 
+    }
 
     return response;
   }
