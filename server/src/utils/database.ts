@@ -115,6 +115,8 @@ export const asUuid = (id: string | Expression<string>) => sql<string>`${id}::uu
 
 export const anyUuid = (ids: string[]) => sql<string>`any(${`{${ids}}`}::uuid[])`;
 
+export const allUuid = (ids: string[]) => sql<string>`all(${`{${ids}}`}::uuid[])`;
+
 export const asVector = (embedding: number[]) => sql<string>`${`[${embedding}]`}::vector`;
 
 export const unnest = (array: string[]) => sql<Record<string, string>>`unnest(array[${sql.join(array)}]::text[])`;
@@ -360,6 +362,7 @@ export function searchAssetBuilder(kysely: Kysely<DB>, options: AssetSearchBuild
     .$if(!!options.id, (qb) => qb.where('asset.id', '=', asUuid(options.id!)))
     .$if(!!options.libraryId, (qb) => qb.where('asset.libraryId', '=', asUuid(options.libraryId!)))
     .$if(!!options.userIds, (qb) => qb.where('asset.ownerId', '=', anyUuid(options.userIds!)))
+    .$if(!!options.excludeAssetIds, (qb) => qb.where('asset.id', '!=', allUuid(options.excludeAssetIds!)))
     .$if(!!options.encodedVideoPath, (qb) => qb.where('asset.encodedVideoPath', '=', options.encodedVideoPath!))
     .$if(!!options.originalPath, (qb) =>
       qb.where(sql`f_unaccent(asset."originalPath")`, 'ilike', sql`'%' || f_unaccent(${options.originalPath}) || '%'`),

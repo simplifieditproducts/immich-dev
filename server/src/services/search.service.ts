@@ -234,7 +234,7 @@ export class SearchService extends BaseService {
       throw new BadRequestException('Smart search is not enabled');
     }
 
-    if (isFilterExtractionEnabled(machineLearning)) {
+    if (isFilterExtractionEnabled(machineLearning) && dto.withFilterExtraction) {
       dto = await this.extractFilters(auth, dto, machineLearning.filterExtraction);
     }
 

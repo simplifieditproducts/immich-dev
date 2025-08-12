@@ -16,6 +16,7 @@ export interface SearchAssetIdOptions {
   checksum?: Buffer;
   deviceAssetId?: string;
   id?: string;
+  excludeAssetIds?: string[];
 }
 
 export interface SearchUserIdOptions {

@@ -1009,6 +1009,8 @@ export type SmartSearchDto = {
     visibility?: AssetVisibility;
     withDeleted?: boolean;
     withExif?: boolean;
+    withFilterExtraction?: boolean;
+    excludeAssetIds?: string[];
 };
 export type StatisticsSearchDto = {
     albumIds?: string[];
