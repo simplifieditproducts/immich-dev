@@ -58,6 +58,9 @@
   let hasActivatedPagination = $state(false);
   const INITIAL_ASSET_LIMIT = 16;
 
+  /* Kevin added this constant to decide whether the 'Related Photos' section should be displayed. */
+  const MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS = 10;
+
   /* Kevin added a banner to remind user to name people in their photos. */
   let showNameFacesBanner = $state(false);
   let numberOfUnnamedPeople = $state(0);
@@ -78,6 +81,11 @@
   let isLoading = $state(true);
   let scrollY = $state(0);
   let scrollYHistory = 0;
+
+  // When search filters are enabled and the matched assets are not enough to fill up the whole page, we will
+  // query for related photos and use these photos to fill up the page.
+  let relatedPhotos: TimelineAsset[] = $state([]);
+  let showRelatedPhotos = $derived(relatedPhotos.length > 0);
 
   const assetInteraction = new AssetInteraction();
 
@@ -169,7 +177,13 @@
     nextPage = 1;
     searchResultAssets = [];
     searchResultAlbums = [];
+    relatedPhotos = [];
+
     await loadNextPage(true);
+
+    if (searchResultAssets.length <= MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS) {
+      await loadRelatedPhotos();
+    }
   }
 
   // eslint-disable-next-line svelte/valid-prop-names-in-kit-pages
@@ -217,6 +231,32 @@
       }
 
       nextPage = Number(assets.nextPage) || 0;
+    } catch (error) {
+      handleError(error, $t('loading_search_results_failed'));
+    } finally {
+      isLoading = false;
+    }
+  };
+
+  export const loadRelatedPhotos = async () => {
+    if (!('query' in terms) || !smartSearchEnabled) {
+      return;
+    }
+    isLoading = true;
+
+    const searchDto: SearchTerms = {
+      page: 1,
+      withExif: true,
+      isVisible: true,
+      language: $lang,
+      withFilterExtraction: false,
+      excludeAssetIds: searchResultAssets.map((asset) => asset.id),
+      query: terms.query,
+    };
+
+    try {
+      const { assets } = await searchSmart({ smartSearchDto: searchDto });
+      relatedPhotos.push(...assets.items.map((asset) => toTimelineAsset(asset)));
     } catch (error) {
       handleError(error, $t('loading_search_results_failed'));
     } finally {
@@ -300,7 +340,7 @@
   };
 
   function getObjectKeys<T extends object>(obj: T): (keyof T)[] {
-    return Object.keys(obj) as (keyof T)[];
+    return (Object.keys(obj) as (keyof T)[]).filter((key) => key != 'withFilterExtraction' && key != 'excludeAssetIds');
   }
 
   // Kevin: Set the height of photo gallery to fill the viewport minus the top bar's height.
@@ -399,7 +439,7 @@
        Gavin also changed `pageHeaderOffset` for mobile to prevent thumbnails from disappearing prematurely when scrolling.
        Gavin also added a check for `hasActivatedPagination` before calling `loadNextPage()`.
        Gavin also added bottom padding to this element to add space between the bottom-most images and the screen bottom when scrolled all the way down. -->
-  <section id="search-content" class="pb-6">
+  <section id="search-content" class="{showRelatedPhotos ? '' : 'pb-6'}">
     {#if searchResultAssets.length > 0}
       <GalleryViewer
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
@@ -433,7 +473,7 @@
     {/if}
     <!-- END Gavin added -->
 
-    {:else if !isLoading}
+    {:else if !isLoading && !showRelatedPhotos}
       <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
         <div class="flex flex-col content-center items-center text-center">
           <Icon path={mdiImageOffOutline} size="3.5em" />
@@ -449,6 +489,23 @@
       </div>
     {/if}
   </section>
+
+  {#if showRelatedPhotos}
+  <section id="highlighted-content" class="pb-6">
+    {#if searchResultAssets.length === 0}
+      <p class="text-xs text-center text-gray-500 dark:text-gray-400 font-semibold mb-3">The search has been broadened to include more results.</p>
+    {:else}
+      <p class="text-sm text-gray-700 dark:text-gray-300 font-semibold mt-6 mb-1">Related Photos</p>
+    {/if}
+    <GalleryViewer
+      assets={relatedPhotos}
+      {assetInteraction}
+      showArchiveIcon={true}
+      {viewport}
+      pageHeaderOffset={mobileDevice.pointerCoarse ? 86 : 54}
+    />
+  </section>
+  {/if}
 
   <section>
     {#if assetInteraction.selectionActive}
