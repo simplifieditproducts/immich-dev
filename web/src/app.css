@@ -168,4 +168,18 @@
   .icon-white-drop-shadow {
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
   }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
+    animation-fill-mode: both; /* Keep the element visible after animation */
+  }
+
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
 }

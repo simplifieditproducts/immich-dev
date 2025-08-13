@@ -32,6 +32,7 @@
     disableAssetSelect?: boolean;
     showArchiveIcon?: boolean;
     viewport: Viewport;
+    scrollingElement?: Element | null;
     onIntersected?: (() => void) | undefined;
     showAssetName?: boolean;
     isShowDeleteConfirmation?: boolean;
@@ -49,6 +50,7 @@
     disableAssetSelect = false,
     showArchiveIcon = false,
     viewport,
+    scrollingElement = document.scrollingElement,
     onIntersected = undefined,
     showAssetName = false,
     isShowDeleteConfirmation = $bindable(false),
@@ -124,7 +126,7 @@
 
   const updateSlidingWindow = () => {
     const v = $state.snapshot(viewport);
-    const top = (document.scrollingElement?.scrollTop || 0) - slidingWindowOffset;
+    const top = (scrollingElement?.scrollTop || 0) - slidingWindowOffset;
     const bottom = top + v.height;
     const w = {
       top,
@@ -134,11 +136,21 @@
   };
   const debouncedOnIntersected = debounce(() => onIntersected?.(), 750, { maxWait: 100, leading: true });
 
+  // The scrolling element may not be the document(root node), here we listen for scroll events on it.
+  $effect(() => {
+    if (scrollingElement) {
+      scrollingElement.addEventListener("scroll", updateSlidingWindow);
+      return () => {
+        scrollingElement.removeEventListener("scroll", updateSlidingWindow);
+      };
+    }
+  });
+
   let lastIntersectedHeight = 0;
   $effect(() => {
     // notify we got to (near) the end of scroll
     const scrollPercentage =
-      ((slidingWindow.bottom - viewport.height) / (viewport.height - (document.scrollingElement?.clientHeight || 0))) *
+      ((slidingWindow.bottom - viewport.height) / (viewport.height - (scrollingElement?.clientHeight || 0))) *
       100;
 
     if (scrollPercentage > 90) {

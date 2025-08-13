@@ -40,19 +40,19 @@
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import {
     type AlbumResponseDto,
+    getNumberOfPeople,
     getPerson,
     getTagById,
-    getNumberOfPeople,
     type MetadataSearchDto,
     searchAssets,
     searchSmart,
     type SmartSearchDto,
   } from '@immich/sdk';
-  import { IconButton, Button } from '@immich/ui';
-  import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiPlus, mdiSelectAll, mdiLightbulbOutline } from '@mdi/js';
+  import { Button, IconButton } from '@immich/ui';
+  import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiLightbulbOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
   import { onDestroy, onMount, tick } from 'svelte';
-  import { fade } from 'svelte/transition';
   import { t } from 'svelte-i18n';
+  import { fade } from 'svelte/transition';
 
   /* Gavin added these two lines as part of the "Show More" feature. */
   let hasActivatedPagination = $state(false);
@@ -81,6 +81,7 @@
   let isLoading = $state(true);
   let scrollY = $state(0);
   let scrollYHistory = 0;
+  let scrollingElement = $state<Element | null>(null);
 
   // When search filters are enabled and the matched assets are not enough to fill up the whole page, we will
   // query for related photos and use these photos to fill up the page.
@@ -180,10 +181,6 @@
     relatedPhotos = [];
 
     await loadNextPage(true);
-
-    if (searchResultAssets.length <= MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS) {
-      await loadRelatedPhotos();
-    }
   }
 
   // eslint-disable-next-line svelte/valid-prop-names-in-kit-pages
@@ -231,6 +228,11 @@
       }
 
       nextPage = Number(assets.nextPage) || 0;
+
+      // Fetch related photos if not enough results
+      if (searchResultAssets.length <= MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS) {
+        await loadRelatedPhotos();
+      }      
     } catch (error) {
       handleError(error, $t('loading_search_results_failed'));
     } finally {
@@ -380,6 +382,7 @@
 <div
   class="mt-16 sm:mt-24 overflow-y-auto w-full"
   style="height: {height};"
+  bind:this={scrollingElement}
 >
 {#if terms && Object.keys(terms).length > 0 && !(Object.keys(terms).length == 1 && terms.query?.length > 0)}
   <section
@@ -444,6 +447,7 @@
       <GalleryViewer
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
         {assetInteraction}
+        scrollingElement={scrollingElement}
         onIntersected={async () => {
           if (hasActivatedPagination) {
             await loadNextPage();
@@ -484,7 +488,7 @@
     {/if}
 
     {#if isLoading}
-      <div class="flex justify-center py-16 items-center">
+      <div class="flex justify-center py-16 items-center animate-delay-200 animate-fade-in">
         <LoadingSpinner size="48" />
       </div>
     {/if}
