@@ -31,7 +31,7 @@
   import { lang, locale } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { preferences, user } from '$lib/stores/user.store';
-  import { handlePromiseError } from '$lib/utils';
+  import { handlePromiseError, sendMessageToApp } from '$lib/utils';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { parseUtcDate } from '$lib/utils/date-time';
   import { handleError } from '$lib/utils/handle-error';
@@ -240,6 +240,7 @@
     }
   };
 
+  // eslint-disable-next-line svelte/valid-prop-names-in-kit-pages
   export const loadRelatedPhotos = async () => {
     if (!('query' in terms) || !smartSearchEnabled) {
       return;
@@ -341,6 +342,12 @@
     }
   };
 
+  const onClose = async () => {
+    if (!(inApp && sendMessageToApp('CMD_CLOSE_WINDOW'))) {
+      await goto(previousRoute);
+    }
+  }
+
   function getObjectKeys<T extends object>(obj: T): (keyof T)[] {
     return (Object.keys(obj) as (keyof T)[]).filter((key) => key != 'withFilterExtraction' && key != 'excludeAssetIds');
   }
@@ -362,6 +369,10 @@
     getNumberOfPeople().then(({ total, unnamed }) => {
       showNameFacesBanner = (total > 0 && total === unnamed);
       numberOfUnnamedPeople = unnamed;
+    }).catch((error) => {
+      console.error('Failed to fetch number of unnamed people:', error);
+      showNameFacesBanner = false;
+      numberOfUnnamedPeople = 0;
     });
   });
   onDestroy(() => {
@@ -569,10 +580,10 @@
       </div>
     {:else}
       <div class="fixed top-0 start-0 w-full">
-        <ControlAppBar onClose={() => goto(previousRoute)} backIcon={mdiArrowLeft} inAppSearch={inApp}>
+        <ControlAppBar onClose={onClose} backIcon={mdiArrowLeft}>
           <div class="absolute bg-light"></div>
           <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
-          <div class="w-full flex-1 sm:ps-4 {inApp ? 'pr-2' : 'px-2'}">
+          <div class="w-full flex-1 sm:ps-4 px-2">
             <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} inAppSearch={inApp} />
           </div>
         </ControlAppBar>

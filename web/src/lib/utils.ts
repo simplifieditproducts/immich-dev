@@ -343,3 +343,33 @@ export const withError = async <T>(fn: () => Promise<T>): Promise<[undefined, T]
 
 // eslint-disable-next-line unicorn/prefer-code-point
 export const decodeBase64 = (data: string) => Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+
+// Type declarations for native mobile app bridges
+declare global {
+  interface Window {
+    webkit?: {
+      messageHandlers?: {
+        immich?: {
+          postMessage: (data: string) => void;
+        };
+      };
+    };
+    Android?: {
+      postMessage: (data: string) => void;
+    };
+  }
+}
+
+export const sendMessageToApp = (data: string) => {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.immich) {
+    // iOS
+    window.webkit.messageHandlers.immich.postMessage(data);
+  } else if (window.Android && window.Android.postMessage) {
+    // Android
+    window.Android.postMessage(data);
+  } else {
+    console.warn("No native bridge available");
+    return false;
+  }
+  return true;
+}

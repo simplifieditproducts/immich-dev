@@ -9,7 +9,6 @@
   import { fly } from 'svelte/transition';
 
   interface Props {
-    inAppSearch?: boolean;
     showBackButton?: boolean;
     backIcon?: string;
     tailwindClasses?: string;
@@ -22,7 +21,6 @@
   }
 
   let {
-    inAppSearch = false,
     showBackButton = true,
     backIcon = mdiClose,
     tailwindClasses = '',
@@ -72,8 +70,7 @@
     class={[
       'grid',
       multiRow && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
-      !multiRow && !inAppSearch && 'grid-cols-[10%_80%_10%] sm:grid-cols-[25%_50%_25%]',
-      !multiRow && inAppSearch && 'grid-cols-[90%_10%] sm:grid-cols-[25%_50%_25%]',
+      !multiRow && 'grid-cols-[10%_80%_10%] sm:grid-cols-[25%_50%_25%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
       appBarBorder,
       'mx-2 mt-2 place-items-center rounded-lg p-2 max-md:p-0 transition-all',
@@ -81,7 +78,7 @@
       forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-subtle dark:bg-immich-dark-gray',
     ]}
   >
-    <div class="flex place-items-center sm:gap-6 justify-self-start dark:text-immich-dark-fg {forceDark ? 'dark' : ''} {inAppSearch ? 'hidden sm:block' : ''}">
+    <div class="flex place-items-center sm:gap-6 justify-self-start dark:text-immich-dark-fg {forceDark ? 'dark' : ''}">
       {#if showBackButton}
         <IconButton
           aria-label={$t('close')}
