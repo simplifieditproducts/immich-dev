@@ -349,7 +349,7 @@ declare global {
   interface Window {
     webkit?: {
       messageHandlers?: {
-        immich?: {
+        logHandler?: {
           postMessage: (data: string) => void;
         };
       };
@@ -361,9 +361,9 @@ declare global {
 }
 
 export const sendMessageToApp = (data: string) => {
-  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.immich) {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.logHandler) {
     // iOS
-    window.webkit.messageHandlers.immich.postMessage(data);
+    window.webkit.messageHandlers.logHandler.postMessage(data);
   } else if (window.Android && window.Android.postMessage) {
     // Android
     window.Android.postMessage(data);
