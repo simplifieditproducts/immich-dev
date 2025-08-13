@@ -59,7 +59,7 @@
   const INITIAL_ASSET_LIMIT = 16;
 
   /* Kevin added this constant to decide whether the 'Related Photos' section should be displayed. */
-  const MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS = 10;
+  const MAX_SEARCH_RESULTS_FOR_FETCH_RELATED_PHOTOS = 25;
 
   /* Kevin added a banner to remind user to name people in their photos. */
   let showNameFacesBanner = $state(false);
@@ -497,7 +497,7 @@
   {#if showRelatedPhotos}
   <section id="highlighted-content" class="pb-6">
     {#if searchResultAssets.length === 0}
-      <p class="text-xs text-center text-gray-500 dark:text-gray-400 font-semibold mb-3">The search has been broadened to include more results.</p>
+      <p class="text-xs text-center text-gray-500 dark:text-gray-400 font-semibold mb-3 mt-1">The search has been broadened to include more results.</p>
     {:else}
       <p class="text-sm text-gray-700 dark:text-gray-300 font-semibold mt-6 mb-1">Related Photos</p>
     {/if}
