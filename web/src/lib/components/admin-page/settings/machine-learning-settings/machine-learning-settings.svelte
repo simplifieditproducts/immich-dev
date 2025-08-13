@@ -122,7 +122,14 @@
           />  
 
           <SettingSwitch
-            title="Show extracted filters"
+            title="Cache extracted filters"
+            subtitle="If enabled, the extracted search filters will be cached to reduce repetitive calls to the LLM."
+            bind:checked={config.machineLearning.filterExtraction.cacheEnabled}
+            disabled={disabled || !config.machineLearning.enabled || !config.machineLearning.filterExtraction.enabled}
+          />
+
+          <SettingSwitch
+            title="Show extracted filters (debug only)"
             subtitle='If enabled, the extracted search filters will be shown in the "Search Options" dialog.'
             bind:checked={config.machineLearning.filterExtraction.showExtractedFilters}
             disabled={disabled || !config.machineLearning.enabled || !config.machineLearning.filterExtraction.enabled}

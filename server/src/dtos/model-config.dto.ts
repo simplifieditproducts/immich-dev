@@ -19,6 +19,9 @@ export class FilterExtractionConfig extends ModelConfig {
   prompt!: string;
 
   @IsBoolean()
+  cacheEnabled!: boolean;
+
+  @IsBoolean()
   showExtractedFilters!: boolean;
 }
 

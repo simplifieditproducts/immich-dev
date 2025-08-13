@@ -10728,6 +10728,9 @@
       },
       "FilterExtractionConfig": {
         "properties": {
+          "cacheEnabled": {
+            "type": "boolean"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -10742,6 +10745,7 @@
           }
         },
         "required": [
+          "cacheEnabled",
           "enabled",
           "modelName",
           "prompt",

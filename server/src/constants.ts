@@ -46,6 +46,7 @@ export const serverVersion = new SemVer(version);
 
 export const AUDIT_LOG_MAX_DURATION = Duration.fromObject({ days: 100 });
 export const ONE_HOUR = Duration.fromObject({ hours: 1 });
+export const FILTER_EXTRACTION_CACHE_TTL = Duration.fromObject({ days: 14 });
 
 export const APP_MEDIA_LOCATION = process.env.IMMICH_MEDIA_LOCATION || '/usr/src/app/upload';
 

@@ -1366,6 +1366,7 @@ export type FilterExtractionConfig = {
     enabled: boolean;
     modelName: string;
     prompt: string;
+    cacheEnabled: boolean;
     showExtractedFilters: boolean;
 };
 export type ClipConfig = {

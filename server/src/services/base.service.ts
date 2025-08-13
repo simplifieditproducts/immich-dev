@@ -35,6 +35,7 @@ import { OAuthRepository } from 'src/repositories/oauth.repository';
 import { PartnerRepository } from 'src/repositories/partner.repository';
 import { PersonRepository } from 'src/repositories/person.repository';
 import { ProcessRepository } from 'src/repositories/process.repository';
+import { RedisRepository } from 'src/repositories/redis.repository';
 import { SearchRepository } from 'src/repositories/search.repository';
 import { ServerInfoRepository } from 'src/repositories/server-info.repository';
 import { SessionRepository } from 'src/repositories/session.repository';
@@ -67,6 +68,7 @@ export const BASE_SERVICE_DEPENDENCIES = [
   ConfigRepository,
   CronRepository,
   CryptoRepository,
+  RedisRepository,
   DatabaseRepository,
   DownloadRepository,
   DuplicateRepository,
@@ -119,6 +121,7 @@ export class BaseService {
     protected configRepository: ConfigRepository,
     protected cronRepository: CronRepository,
     protected cryptoRepository: CryptoRepository,
+    protected redisRepository: RedisRepository,
     protected databaseRepository: DatabaseRepository,
     protected downloadRepository: DownloadRepository,
     protected duplicateRepository: DuplicateRepository,

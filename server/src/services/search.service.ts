@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { LRUMap } from 'mnemonist';
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
+import { FILTER_EXTRACTION_CACHE_TTL } from "src/constants";
 import { AssetMapOptions, AssetResponseDto, MapAsset, mapAsset } from 'src/dtos/asset-response.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { mapPerson, PersonResponseDto } from 'src/dtos/person.dto';
@@ -109,7 +110,7 @@ export class SearchService extends BaseService {
     return items.map((item) => mapAsset(item, { auth }));
   }
 
-  async extractFilters(auth: AuthDto, dto: SmartSearchDto, machineLearning: {modelName: string, prompt: string}): Promise<SmartSearchDto> {
+  async extractFilters(auth: AuthDto, dto: SmartSearchDto, filterExtraction: {modelName: string, prompt: string, cacheEnabled: boolean}): Promise<SmartSearchDto> {
     console.log(
       "Extracting filters for search:",
       Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
@@ -135,7 +136,7 @@ export class SearchService extends BaseService {
     const states = JSON.stringify(await this.searchRepository.getStates([auth.user.id], { country: undefined }));
     const cities = JSON.stringify(await this.searchRepository.getCities([auth.user.id], { country: undefined, state: undefined }));
     const peopleNames = JSON.stringify(namedPeople.map(p => p.name));
-    const prompt = machineLearning.prompt
+    const prompt = filterExtraction.prompt
       .replaceAll('$TODAY', new Date().toISOString().split('T')[0])
       .replaceAll('$USER_NAME', auth.user.name)
       .replaceAll('$COUNTRIES', countries)
@@ -144,7 +145,7 @@ export class SearchService extends BaseService {
       .replaceAll('$PEOPLE_NAMES', peopleNames)
       .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
 
-    console.debug("Filter extraction model:", machineLearning.modelName);
+    console.debug("Filter extraction model:", filterExtraction.modelName);
     console.debug("Filter extraction prompt:", prompt);
 
     // use GPT to extract filters from the query.
@@ -152,27 +153,41 @@ export class SearchService extends BaseService {
       timeout: 3000, // timeout in 3 seconds
     });
     try {
-      const startTime = Date.now();
-      const response = await openai.responses.parse({
-        model: machineLearning.modelName,
-        input: [
-          { role: "system", content: prompt },
-          { role: "user", content: dto.query },
-        ],
-        text: {
-          format: zodTextFormat(FilterExtractionResponse, "response"),
-        },
-      });
-      const endTime = Date.now();
-      console.log(`Filter extraction API call took ${endTime - startTime}ms`);
+      let data: Record<string, any> | null;
 
-      let data = response.output_parsed;
-      if (!data) {
-        console.error("No data returned from filter extraction:", response);
-        return dto;
+      // check if cache is enabled and if the key exists
+      const cacheKey = filterExtraction.cacheEnabled ? 'filter_extraction_' + this.cryptoRepository.hashSha256(`${dto.query}_${filterExtraction.modelName}_${prompt}`) : "";
+      const cacheVal = filterExtraction.cacheEnabled ? await this.redisRepository.get(cacheKey) : null;
+      if (cacheVal) {
+        data = JSON.parse(cacheVal);
+        console.log("Filter extraction response loaded from cache:", data);
       }
 
-      console.log("Filter extraction raw response:", data);
+      else {
+        const startTime = Date.now();
+        const response = await openai.responses.parse({
+          model: filterExtraction.modelName,
+          input: [
+            { role: "system", content: prompt },
+            { role: "user", content: dto.query },
+          ],
+          text: {
+            format: zodTextFormat(FilterExtractionResponse, "response"),
+          },
+        });
+        const endTime = Date.now();
+        console.log(`Filter extraction API call took ${endTime - startTime}ms`);
+
+        data = response.output_parsed;
+        if (!data) {
+          console.error("No data returned from filter extraction:", response);
+          return dto;
+        }
+
+        // cache the response
+        await this.redisRepository.set(cacheKey, JSON.stringify(data), FILTER_EXTRACTION_CACHE_TTL.as('seconds'));
+        console.log("Filter extraction raw response:", data);
+      }
 
       // filter data, unset any fields with value undefined or null or empty string
       data = Object.fromEntries(
@@ -215,7 +230,7 @@ export class SearchService extends BaseService {
     } catch (error) {
       console.error("Error extracting filters from query:", {
         query: dto.query,
-        modelName: machineLearning.modelName,
+        modelName: filterExtraction.modelName,
         prompt,
         error,
       });
