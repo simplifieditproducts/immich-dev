@@ -499,7 +499,7 @@
     {/if}
 
     {#if isLoading}
-      <div class="flex justify-center py-16 items-center animate-delay-200 animate-fade-in">
+      <div class="flex justify-center py-16 items-center animate-delay-500 animate-fade-in">
         <LoadingSpinner size="48" />
       </div>
     {/if}
@@ -508,7 +508,7 @@
   {#if showRelatedPhotos}
   <section id="highlighted-content" class="pb-6">
     {#if searchResultAssets.length === 0}
-      <p class="text-xs text-center text-gray-500 dark:text-gray-400 font-semibold mb-3 mt-1">The search has been broadened to include more results.</p>
+      <p class="text-xs text-center text-gray-500 dark:text-gray-400 font-semibold mb-3 mt-1">No exact matches found. Showing related photos that might interest you.</p>
     {:else}
       <p class="text-sm text-gray-700 dark:text-gray-300 font-semibold mt-6 mb-1">Related Photos</p>
     {/if}
