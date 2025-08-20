@@ -4,7 +4,6 @@
   import { AppRoute } from '$lib/constants';
   import { eventManager } from '$lib/managers/event-manager.svelte';
   import { featureFlags, serverConfig } from '$lib/stores/server-config.store';
-  import { resetSavedUser } from '$lib/stores/user.store';
   import { oauth } from '$lib/utils';
   import { getServerErrorMessage, handleError } from '$lib/utils/handle-error';
   import { login, type LoginResponseDto } from '@immich/sdk';
@@ -26,12 +25,7 @@
   let loading = $state(false);
   let oauthLoading = $state(true);
 
-  let autoEmail: string | null = null;
-  let autoPassword: string | null = null;
-  let showContent = $state(true);
-
   const onSuccess = async (user: LoginResponseDto) => {
-    console.log(`Calling 'onSuccess' with continueUrl: ${data.continueUrl}`);
     await goto(data.continueUrl, { invalidateAll: true });
     eventManager.emit('auth.login', user);
   };
@@ -40,19 +34,6 @@
   const onOnboarding = async () => await goto(AppRoute.AUTH_ONBOARDING);
 
   onMount(async () => {
-    autoEmail = localStorage.getItem('autoEmail');
-    autoPassword = localStorage.getItem('autoPassword');
-
-    localStorage.removeItem('autoEmail');
-    localStorage.removeItem('autoPassword');
-
-    if (autoEmail && autoPassword) {
-      showContent = false;
-      resetSavedUser();
-      console.log(`Auto-login started with email: ${autoEmail}`);
-      handleLogin().catch((error) => console.error("Auto-login failed", error));
-    }
-
     if (!$featureFlags.oauth) {
       oauthLoading = false;
       return;
@@ -98,10 +79,7 @@
     try {
       errorMessage = '';
       loading = true;
-
-      const emailToUse = autoEmail ?? email;
-      const passwordToUse = autoPassword ?? password;
-      const user = await login({ loginCredentialDto: { email: emailToUse, password: passwordToUse } });
+      const user = await login({ loginCredentialDto: { email, password } });
 
       if (user.isAdmin && !$serverConfig.isOnboarded) {
         await onOnboarding();
@@ -148,66 +126,64 @@
   };
 </script>
 
-{#if showContent}
-  {#if $featureFlags.loaded}
-    <AuthPageLayout title={data.meta.title}>
-      <Stack gap={4}>
-        {#if $serverConfig.loginPageMessage}
-          <Alert color="primary" class="mb-6">
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-            {@html $serverConfig.loginPageMessage}
-          </Alert>
-        {/if}
+{#if $featureFlags.loaded}
+  <AuthPageLayout title={data.meta.title}>
+    <Stack gap={4}>
+      {#if $serverConfig.loginPageMessage}
+        <Alert color="primary" class="mb-6">
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          {@html $serverConfig.loginPageMessage}
+        </Alert>
+      {/if}
 
-        {#if !oauthLoading && $featureFlags.passwordLogin}
-          <form {onsubmit} class="flex flex-col gap-4">
-            {#if errorMessage}
-              <Alert color="danger" title={errorMessage} closable />
-            {/if}
-
-            <Field label={$t('email')}>
-              <Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
-            </Field>
-
-            <Field label={$t('password')}>
-              <PasswordInput id="password" bind:value={password} autocomplete="current-password" />
-            </Field>
-
-            <Button type="submit" size="large" shape="round" fullWidth {loading} class="mt-6">{$t('to_login')}</Button>
-          </form>
-        {/if}
-
-        {#if $featureFlags.oauth}
-          {#if $featureFlags.passwordLogin}
-            <div class="inline-flex w-full items-center justify-center my-4">
-              <hr class="my-4 h-px w-3/4 border-0 bg-gray-200 dark:bg-gray-600" />
-              <span
-                class="absolute start-1/2 -translate-x-1/2 bg-gray-50 px-3 font-medium text-gray-900 dark:bg-neutral-900 dark:text-white"
-              >
-                {$t('or').toUpperCase()}
-              </span>
-            </div>
+      {#if !oauthLoading && $featureFlags.passwordLogin}
+        <form {onsubmit} class="flex flex-col gap-4">
+          {#if errorMessage}
+            <Alert color="danger" title={errorMessage} closable />
           {/if}
-          {#if oauthError}
-            <Alert color="danger" title={oauthError} closable />
-          {/if}
-          <Button
-            shape="round"
-            loading={loading || oauthLoading}
-            disabled={loading || oauthLoading}
-            size="large"
-            fullWidth
-            color={$featureFlags.passwordLogin ? 'secondary' : 'primary'}
-            onclick={handleOAuthLogin}
-          >
-            {$serverConfig.oauthButtonText}
-          </Button>
-        {/if}
 
-        {#if !$featureFlags.passwordLogin && !$featureFlags.oauth}
-          <Alert color="warning" title={$t('login_has_been_disabled')} />
+          <Field label={$t('email')}>
+            <Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
+          </Field>
+
+          <Field label={$t('password')}>
+            <PasswordInput id="password" bind:value={password} autocomplete="current-password" />
+          </Field>
+
+          <Button type="submit" size="large" shape="round" fullWidth {loading} class="mt-6">{$t('to_login')}</Button>
+        </form>
+      {/if}
+
+      {#if $featureFlags.oauth}
+        {#if $featureFlags.passwordLogin}
+          <div class="inline-flex w-full items-center justify-center my-4">
+            <hr class="my-4 h-px w-3/4 border-0 bg-gray-200 dark:bg-gray-600" />
+            <span
+              class="absolute start-1/2 -translate-x-1/2 bg-gray-50 px-3 font-medium text-gray-900 dark:bg-neutral-900 dark:text-white"
+            >
+              {$t('or').toUpperCase()}
+            </span>
+          </div>
         {/if}
-      </Stack>
-    </AuthPageLayout>
-  {/if}
+        {#if oauthError}
+          <Alert color="danger" title={oauthError} closable />
+        {/if}
+        <Button
+          shape="round"
+          loading={loading || oauthLoading}
+          disabled={loading || oauthLoading}
+          size="large"
+          fullWidth
+          color={$featureFlags.passwordLogin ? 'secondary' : 'primary'}
+          onclick={handleOAuthLogin}
+        >
+          {$serverConfig.oauthButtonText}
+        </Button>
+      {/if}
+
+      {#if !$featureFlags.passwordLogin && !$featureFlags.oauth}
+        <Alert color="warning" title={$t('login_has_been_disabled')} />
+      {/if}
+    </Stack>
+  </AuthPageLayout>
 {/if}
