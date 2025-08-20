@@ -100,6 +100,15 @@ export const getKyselyConfig = (
     }),
     log(event) {
       if (event.level === 'error') {
+
+        // Don't print an error log if the app skipped a duplicate asset during upload.
+        const error = event.error as any;
+        if (error?.message?.includes?.(`duplicate key value violates unique constraint "UQ_assets_owner_checksum"`)) {
+            const lastParam = event.query && event.query.parameters?.length > 0 ? event.query.parameters[event.query.parameters.length - 1] : 'unknown filename';
+            console.log(`Skip duplicate asset ${lastParam}. Detail: ${error?.detail || 'N/A'}`);
+            return;
+        }
+
         console.error('Query failed :', {
           durationMs: event.queryDurationMillis,
           error: event.error,
