@@ -10,6 +10,8 @@ import {
   AssetJobName,
   AssetJobsDto,
   AssetStatsDto,
+  GetAssetsDto,
+  GetAssetsResponseDto,
   UpdateAssetDto,
   mapStats,
 } from 'src/dtos/asset.dto';
@@ -43,6 +45,22 @@ export class AssetService extends BaseService {
 
   async getUserAssetsByDeviceId(auth: AuthDto, deviceId: string) {
     return this.assetRepository.getAllByDeviceId(auth.user.id, deviceId);
+  }
+
+  async getUserAssets(auth: AuthDto, dto: GetAssetsDto): Promise<GetAssetsResponseDto> {
+    const { page, size } = dto;
+    const pagination = {
+      take: size,
+      skip: (page - 1) * size,
+    };
+    const { items, hasNextPage } = await this.assetRepository.getAll(pagination, auth.user.id);
+    const { total } = await this.assetRepository.getNumberOfAssets(auth.user.id);
+
+    return {
+      items: items.map((item) => item.deviceAssetId),
+      hasNextPage,
+      total,
+    };
   }
 
   async get(auth: AuthDto, id: string): Promise<AssetResponseDto | SanitizedAssetResponseDto> {

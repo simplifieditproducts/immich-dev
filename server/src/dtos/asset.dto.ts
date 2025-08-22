@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
@@ -21,6 +21,30 @@ export class DeviceIdDto {
   @IsNotEmpty()
   @IsString()
   deviceId!: string;
+}
+
+export class GetAssetsDto {
+  /** Page number for pagination */
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page: number = 1;
+
+  /** Number of items per page */
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  @Type(() => Number)
+  size: number = 5000;
+}
+
+export class GetAssetsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  total!: number;
+  items!: string[];
+  hasNextPage!: boolean;
 }
 
 const hasGPS = (o: { latitude: undefined; longitude: undefined }) =>

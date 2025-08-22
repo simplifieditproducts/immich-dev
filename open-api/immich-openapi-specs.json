@@ -1555,6 +1555,62 @@
           "Assets"
         ]
       },
+      "get": {
+        "description": "Get all asset of current user that are in the database, ID only.",
+        "operationId": "getAllUserAssets",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 5000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAssetsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "getAllUserAssets",
+        "tags": [
+          "Assets"
+        ]
+      },
       "post": {
         "operationId": "uploadAsset",
         "parameters": [
@@ -10778,6 +10834,28 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "GetAssetsResponseDto": {
+        "properties": {
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNextPage",
+          "items",
+          "total"
+        ],
         "type": "object"
       },
       "ImageFormat": {

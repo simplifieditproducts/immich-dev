@@ -30,6 +30,7 @@ import {
   withTags,
 } from 'src/utils/database';
 import { globToSqlPattern } from 'src/utils/misc';
+import { PaginationOptions, paginationHelper } from 'src/utils/pagination';
 
 export type AssetStats = Record<AssetType, number>;
 
@@ -336,6 +337,33 @@ export class AssetRepository {
       .execute();
 
     return items.map((asset) => asset.deviceAssetId);
+  }
+
+  @GenerateSql({ params: [DummyValue.UUID] })
+  getNumberOfAssets(ownerId: string) {
+    const zero = sql.lit(0);
+    return this.db
+      .selectFrom('asset')
+      .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>(), zero).as('total'))
+      .where('ownerId', '=', asUuid(ownerId))
+      .where('visibility', '!=', AssetVisibility.Hidden)
+      .where('deletedAt', 'is', null)
+      .executeTakeFirstOrThrow();
+  }
+
+  @GenerateSql({ params: [{ take: 1, skip: 0 }, DummyValue.STRING] })
+  async getAll(pagination: PaginationOptions, ownerId: string) {
+    const items = await this.db
+      .selectFrom('asset')
+      .select(['deviceAssetId'])
+      .where('ownerId', '=', asUuid(ownerId))
+      .where('visibility', '!=', AssetVisibility.Hidden)
+      .where('deletedAt', 'is', null)
+      .offset(pagination.skip ?? 0)
+      .limit(pagination.take + 1)
+      .execute();
+
+    return paginationHelper(items, pagination.take);
   }
 
   @GenerateSql({ params: [DummyValue.UUID] })
