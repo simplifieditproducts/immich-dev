@@ -10269,8 +10269,7 @@
           }
         },
         "required": [
-          "deviceAssetIds",
-          "deviceId"
+          "deviceAssetIds"
         ],
         "type": "object"
       },

@@ -294,6 +294,18 @@ export class AssetRepository {
     return assets.map((asset) => asset.deviceAssetId);
   }
 
+  async checkExistingAssets(ownerId: string, deviceAssetIds: string[], deviceId?: string): Promise<string[]> {
+    const assets = await this.db
+      .selectFrom('asset')
+      .select(['deviceAssetId'])
+      .where('deviceAssetId', 'in', deviceAssetIds)
+      .$if(!!deviceId, (qb) => qb.where('deviceId', '=', deviceId!))
+      .where('ownerId', '=', asUuid(ownerId))
+      .execute();
+
+    return assets.map((asset) => asset.deviceAssetId);
+  }
+
   @GenerateSql({ params: [DummyValue.UUID, DummyValue.STRING] })
   getByLibraryIdAndOriginalPath(libraryId: string, originalPath: string) {
     return this.db

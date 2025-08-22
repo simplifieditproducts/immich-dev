@@ -267,10 +267,10 @@ export class AssetMediaService extends BaseService {
     auth: AuthDto,
     checkExistingAssetsDto: CheckExistingAssetsDto,
   ): Promise<CheckExistingAssetsResponseDto> {
-    const existingIds = await this.assetRepository.getByDeviceIds(
+    const existingIds = await this.assetRepository.checkExistingAssets(
       auth.user.id,
-      checkExistingAssetsDto.deviceId,
       checkExistingAssetsDto.deviceAssetIds,
+      checkExistingAssetsDto.deviceId,
     );
     return { existingIds };
   }

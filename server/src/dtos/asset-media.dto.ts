@@ -94,6 +94,7 @@ export class CheckExistingAssetsDto {
   @IsNotEmpty({ each: true })
   deviceAssetIds!: string[];
 
-  @IsNotEmpty()
-  deviceId!: string;
+  @Optional()
+  @IsString()
+  deviceId?: string;
 }
