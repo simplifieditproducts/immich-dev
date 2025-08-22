@@ -32,4 +32,7 @@ These are various important files in the codebase:
 - `web/src/lib/components/shared-components/side-bar/user-sidebar.svelte` defines the left bar items (these go in hamburger menu on mobile).
 - `server/src/services/search.service.ts` is where Kevin implemented filter extraction functionality for Smart Search.
 
+API changes we made in our fork compared to the [official API documentation](https://immich.app/docs/api):
+- The `checkExistingAssets` API function now permits the `deviceId` parameter to be optional. When `deviceId` is not included, the method returns all matching `deviceAssetIds` for the user regardless of `deviceId`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/1efe8565d48f304eb334f8f001c672ec892ba2b2).
+
 More documentation can be found [here](https://github.com/simplifieditproducts/immich-devops/tree/main/docs).
