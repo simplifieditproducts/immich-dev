@@ -5,6 +5,7 @@
   import { AppRoute } from '$lib/constants';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { searchStore } from '$lib/stores/search.svelte';
   import { handlePromiseError } from '$lib/utils';
   import { generateId } from '$lib/utils/generate-id';
@@ -19,11 +20,10 @@
   interface Props {
     value?: string;
     grayTheme: boolean;
-    inAppSearch?: boolean;
     searchQuery?: MetadataSearchDto | SmartSearchDto;
   }
 
-  let { value = $bindable(''), grayTheme, searchQuery = {}, inAppSearch = false }: Props = $props();
+  let { value = $bindable(''), grayTheme, searchQuery = {} }: Props = $props();
 
   let showClearIcon = $derived(value.length > 0);
 
@@ -43,11 +43,7 @@
   });
 
   const handleSearch = async (payload: SmartSearchDto | MetadataSearchDto) => {
-    let params = getMetadataSearchQuery(payload);
-    if (inAppSearch) {
-      params += '&inApp=true';
-    }
-
+    const params = getMetadataSearchQuery(payload);
     closeDropdown();
     searchStore.isSearchEnabled = false;
     await goto(`${AppRoute.SEARCH}?${params}`);
@@ -278,6 +274,7 @@
     </div>
 
     <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
+    {#if !$embeddedInApp}
     <div class="absolute inset-y-0 {showClearIcon ? 'sm:end-14' : 'sm:end-2'} -end-10.5 flex items-center ps-6 transition-all">
       <IconButton
         aria-label={$t('show_search_options')}
@@ -289,6 +286,7 @@
         variant="ghost"
       />
     </div>
+    {/if}
 
     <!-- Gavin changed this to not show "chip" on right side of mobile search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
     {#if isFocus && !usingMobileDevice}

@@ -11,7 +11,7 @@
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { AssetVisibility } from '@immich/sdk';
-  import { mdiArrowLeft, mdiPlus } from '@mdi/js';
+  import { mdiChevronLeft, mdiPlus } from '@mdi/js';
   import { onDestroy } from 'svelte';
   import { t } from 'svelte-i18n';
   import type { PageData } from './$types';
@@ -59,7 +59,7 @@
     <DownloadAction />
   </AssetSelectControlBar>
 {:else}
-  <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(AppRoute.SHARING)}>
+  <ControlAppBar showBackButton backIcon={mdiChevronLeft} onClose={() => goto(AppRoute.SHARING)}>
     {#snippet leading()}
       <p class="whitespace-nowrap text-immich-fg dark:text-immich-dark-fg">
         {data.partner.name}'s photos

@@ -49,7 +49,7 @@
     type SmartSearchDto,
   } from '@immich/sdk';
   import { Button, IconButton } from '@immich/ui';
-  import { mdiArrowLeft, mdiDotsVertical, mdiImageOffOutline, mdiLightbulbOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
+  import { mdiChevronLeft, mdiDotsVertical, mdiImageOffOutline, mdiLightbulbOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
   import { onDestroy, onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
@@ -477,7 +477,7 @@
       <div class="flex justify-center py-8">
         <button
           type="button"
-          class="bg-immich-primary dark:bg-immich-dark-primary text-white dark:text-black font-medium px-6 py-2 rounded-lg shadow-md hover:brightness-110 transition"
+          class="bg-primary text-white dark:text-black font-medium px-6 py-2 rounded-lg shadow-md hover:brightness-110 transition"
           onclick={async () => {
             if (hasActivatedPagination) {
               await loadNextPage();
@@ -584,7 +584,7 @@
       </div>
     {:else}
       <div class="fixed top-0 start-0 w-full">
-        <ControlAppBar onClose={onClose} backIcon={mdiArrowLeft}>
+        <ControlAppBar onClose={onClose} backIcon={mdiChevronLeft}>
           <div class="absolute bg-light"></div>
           <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
           <div class="w-full flex-1 sm:ps-4 px-2">
@@ -598,10 +598,10 @@
 
 {#if showNameFacesBanner}
 <div
-  class="sm:hidden fixed inset-0 top-14 z-10 bg-black/30"
+  class="sm:hidden fixed inset-0 top-15 z-10 bg-black/30"
   transition:fade={{ duration: 300 }}
 >
-  <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl border-t">
+  <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl">
     <div class="flex items-start gap-x-2">
       <Icon path={mdiLightbulbOutline} class="text-yellow-500 size-20" />
       <p class="font-medium text-secondary">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>

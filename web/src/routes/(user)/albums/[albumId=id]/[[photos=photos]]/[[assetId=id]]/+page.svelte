@@ -71,7 +71,7 @@
   } from '@immich/sdk';
   import { Button, IconButton, modalManager } from '@immich/ui';
   import {
-    mdiArrowLeft,
+    mdiChevronLeft,
     mdiCogOutline,
     mdiDeleteOutline,
     mdiDotsVertical,
@@ -614,7 +614,7 @@
       </AssetSelectControlBar>
     {:else}
       {#if viewMode === AlbumPageViewMode.VIEW}
-        <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(backUrl)}>
+        <ControlAppBar showBackButton backIcon={mdiChevronLeft} onClose={() => goto(backUrl)}>
           {#snippet trailing()}
             <CastButton />
 

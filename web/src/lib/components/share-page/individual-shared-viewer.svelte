@@ -14,7 +14,7 @@
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { addSharedLinkAssets, getAssetInfo, type SharedLinkResponseDto } from '@immich/sdk';
   import { IconButton } from '@immich/ui';
-  import { mdiArrowLeft, mdiFileImagePlusOutline, mdiFolderDownloadOutline, mdiSelectAll } from '@mdi/js';
+  import { mdiChevronLeft, mdiFileImagePlusOutline, mdiFolderDownloadOutline, mdiSelectAll } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import AssetViewer from '../asset-viewer/asset-viewer.svelte';
   import DownloadAction from '../photos-page/actions/download-action.svelte';
@@ -111,7 +111,7 @@
         {/if}
       </AssetSelectControlBar>
     {:else}
-      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiArrowLeft} showBackButton={false}>
+      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiChevronLeft} showBackButton={false}>
         {#snippet leading()}
           <ImmichLogoSmallLink />
         {/snippet}

@@ -54,8 +54,8 @@
   import {
     mdiAccountBoxOutline,
     mdiAccountMultipleCheckOutline,
-    mdiArrowLeft,
     mdiCalendarEditOutline,
+    mdiChevronLeft,
     mdiDotsVertical,
     mdiEyeOffOutline,
     mdiEyeOutline,
@@ -553,7 +553,7 @@
     </AssetSelectControlBar>
   {:else}
     {#if viewMode === PersonPageViewMode.VIEW_ASSETS}
-      <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(previousRoute)}>
+      <ControlAppBar showBackButton backIcon={mdiChevronLeft} onClose={() => goto(previousRoute)}>
         {#snippet trailing()}
           <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
             <MenuOption

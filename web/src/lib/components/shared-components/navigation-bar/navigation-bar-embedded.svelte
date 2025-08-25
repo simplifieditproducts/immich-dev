@@ -39,10 +39,10 @@
 
 <svelte:window bind:innerWidth />
 
-<nav id="dashboard-navbar" class="max-md:h-(--navbar-height-embedded-md) h-(--navbar-height-embedded) w-dvw text-sm bg-subtle">
+<nav id="dashboard-navbar" class="max-md:h-(--navbar-height-embedded-md) h-(--navbar-height-embedded) w-dvw text-sm">
   <SkipLink text={$t('skip_to_content')} />
   <div
-    class="grid h-full grid-cols-[--spacing(32)_auto] items-center sidebar:grid-cols-[--spacing(64)_auto] {noBorder
+    class="grid grid-cols-[--spacing(32)_auto] items-center sm:py-3 sidebar:grid-cols-[--spacing(64)_auto] {noBorder
       ? ''
       : 'border-b'}"
   >
@@ -53,6 +53,7 @@
       color="primary"
       variant="ghost"
       size="giant"
+      class="-ml-2"
       aria-label="Back"
       icon={mdiChevronLeft}
       onclick={() => {

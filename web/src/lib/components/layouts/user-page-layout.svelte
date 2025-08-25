@@ -60,13 +60,21 @@
     {hideNavbar ? 'max-md:pt-(--navbar-height-md)' : ''}
     {$embeddedInApp ? '' : 'grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]'}"
 >
-  <div class={$embeddedInApp ? 'absolute right-0' : ''}>
-  {#if sidebar}
-    {@render sidebar()}
+  {#snippet sidebarContent()}
+    {#if sidebar}
+      {@render sidebar()}
+    {:else}
+      <UserSidebar />
+    {/if}
+  {/snippet}
+
+  {#if $embeddedInApp}
+    <div class="absolute right-0">
+      {@render sidebarContent()}
+    </div>
   {:else}
-    <UserSidebar />
+    {@render sidebarContent()}
   {/if}
-  </div>
 
   <main class="relative">
     <div class="{scrollbarClass} absolute {hasTitleClass} w-full overflow-y-auto p-2" use:useActions={use}>
