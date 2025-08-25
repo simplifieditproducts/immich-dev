@@ -4,8 +4,10 @@
 
 <script lang="ts">
   import { useActions, type ActionArray } from '$lib/actions/use-actions';
+  import NavigationBarEmbedded from '$lib/components/shared-components/navigation-bar/navigation-bar-embedded.svelte';
   import NavigationBar from '$lib/components/shared-components/navigation-bar/navigation-bar.svelte';
   import UserSidebar from '$lib/components/shared-components/side-bar/user-sidebar.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { openFileUploadDialog } from '$lib/utils/file-uploader';
   import type { Snippet } from 'svelte';
 
@@ -41,23 +43,30 @@
 
 <header>
   {#if !hideNavbar}
-    <NavigationBar {showUploadButton} onUploadClick={() => openFileUploadDialog()} />
+    {#if $embeddedInApp}
+      <NavigationBarEmbedded {showUploadButton} onUploadClick={() => openFileUploadDialog()} />
+    {:else}
+      <NavigationBar {showUploadButton} onUploadClick={() => openFileUploadDialog()} />
+    {/if}
   {/if}
 
   {@render header?.()}
 </header>
 <div
   tabindex="-1"
-  class="relative z-0 grid grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]
+  class="relative z-0 grid
     {hideNavbar ? 'h-dvh' : 'h-[calc(100dvh-var(--navbar-height))]'}
     {hideNavbar ? 'pt-(--navbar-height)' : ''}
-    {hideNavbar ? 'max-md:pt-(--navbar-height-md)' : ''}"
+    {hideNavbar ? 'max-md:pt-(--navbar-height-md)' : ''}
+    {$embeddedInApp ? '' : 'grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]'}"
 >
+  <div class={$embeddedInApp ? 'absolute right-0' : ''}>
   {#if sidebar}
     {@render sidebar()}
   {:else}
     <UserSidebar />
   {/if}
+  </div>
 
   <main class="relative">
     <div class="{scrollbarClass} absolute {hasTitleClass} w-full overflow-y-auto p-2" use:useActions={use}>

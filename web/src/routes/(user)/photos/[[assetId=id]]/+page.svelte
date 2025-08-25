@@ -1,5 +1,6 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation';
+  import { page } from '$app/state';
   import Icon from '$lib/components/elements/icon.svelte';
   import UserPageLayout from '$lib/components/layouts/user-page-layout.svelte';
   import AddToAlbum from '$lib/components/photos-page/actions/add-to-album.svelte';
@@ -21,11 +22,12 @@
   import AssetSelectControlBar from '$lib/components/photos-page/asset-select-control-bar.svelte';
   import MemoryLane from '$lib/components/photos-page/memory-lane.svelte';
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
-  import { AssetAction } from '$lib/constants';
+  import { appId, AssetAction, QueryParameter } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
   import {
     updateStackedAssetInTimeline,
@@ -33,7 +35,6 @@
     type OnLink,
     type OnUnlink,
   } from '$lib/utils/actions';
-  import { appId } from '$lib/constants';
   import { AssetVisibility } from '@immich/sdk';
 
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
@@ -47,6 +48,11 @@
 
   const assetInteraction = new AssetInteraction();
 
+  // Kevin: Only update `$embeddedInApp` if the `inApp` query parameter is present
+  if (page.url.searchParams.has(QueryParameter.IN_APP)) {
+    $embeddedInApp = ['1', 'true'].includes(page.url.searchParams.get(QueryParameter.IN_APP) || '');
+  }
+  
   let selectedAssets = $derived(assetInteraction.selectedAssets);
   let isAssetStackSelected = $derived(selectedAssets.length === 1 && !!selectedAssets[0].stack);
   let isLinkActionAvailable = $derived.by(() => {

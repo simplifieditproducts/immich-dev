@@ -74,6 +74,9 @@
     --immich-dark-bg: 10 10 10;
     --immich-dark-fg: 229 231 235;
     --immich-dark-gray: 33 33 33;
+
+    /* overwrite */
+    --immich-ui-primary: 93 156 248;
   }
 
   *,
@@ -114,6 +117,8 @@
     /* Used by layouts to ensure proper spacing between navbar and content */
     --navbar-height: calc(4.5rem + 4px);
     --navbar-height-md: calc(4.5rem + 4px - 14px);
+    --navbar-height-embedded: calc(4.5rem);
+    --navbar-height-embedded-md: calc(4.5rem - 14px);
   }
 
   :root.dark {

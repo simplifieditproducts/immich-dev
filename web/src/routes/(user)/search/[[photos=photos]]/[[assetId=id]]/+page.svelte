@@ -28,7 +28,7 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
-  import { lang, locale } from '$lib/stores/preferences.store';
+  import { embeddedInApp, lang, locale } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { preferences, user } from '$lib/stores/user.store';
   import { handlePromiseError, sendMessageToApp } from '$lib/utils';
@@ -92,9 +92,13 @@
 
   type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query'>;
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
-  let inApp = $derived(['1', 'true'].includes(page.url.searchParams.get(QueryParameter.IN_APP) || ''));
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
+
+  // Kevin: Only update `$embeddedInApp` if the `inApp` query parameter is present
+  if (page.url.searchParams.has(QueryParameter.IN_APP)) {
+    $embeddedInApp = ['1', 'true'].includes(page.url.searchParams.get(QueryParameter.IN_APP) || '');
+  }
 
   // Normally, we would use $effect to react to changes in search terms, but we want to
   // avoid unnecessary updates when the search terms are updated by 'Filter Extraction'.
@@ -343,7 +347,7 @@
   };
 
   const onClose = async () => {
-    if (!(inApp && sendMessageToApp('CMD_CLOSE_WINDOW'))) {
+    if (!($embeddedInApp && sendMessageToApp('CMD_CLOSE_WINDOW'))) {
       await goto(previousRoute);
     }
   }
@@ -584,7 +588,7 @@
           <div class="absolute bg-light"></div>
           <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
           <div class="w-full flex-1 sm:ps-4 px-2">
-            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} inAppSearch={inApp} />
+            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} />
           </div>
         </ControlAppBar>
       </div>

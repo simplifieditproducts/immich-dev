@@ -61,6 +61,8 @@ export const videoViewerMuted = persisted<boolean>('video-viewer-muted', false, 
 
 export const isShowDetail = persisted<boolean>('info-opened', false, {});
 
+export const embeddedInApp = persisted<boolean>('embedded-in-app', false, {});
+
 export interface AlbumViewSettings {
   view: string;
   filter: string;
