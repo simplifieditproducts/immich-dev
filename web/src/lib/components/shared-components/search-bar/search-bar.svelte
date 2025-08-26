@@ -2,6 +2,8 @@
   import { goto } from '$app/navigation';
   import { focusOutside } from '$lib/actions/focus-outside';
   import { shortcuts } from '$lib/actions/shortcut';
+  import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
+  import MenuOption from '$lib/components/shared-components/context-menu/menu-option.svelte';
   import { AppRoute } from '$lib/constants';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
@@ -12,7 +14,7 @@
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import type { MetadataSearchDto, SmartSearchDto } from '@immich/sdk';
   import { IconButton, modalManager } from '@immich/ui';
-  import { mdiClose, mdiMagnify, mdiTune } from '@mdi/js';
+  import { mdiClose, mdiDotsVertical, mdiFaceRecognition, mdiImageMultiple, mdiMagnify, mdiTune } from '@mdi/js';
   import { onDestroy, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import SearchHistoryBox from './search-history-box.svelte';
@@ -274,8 +276,22 @@
     </div>
 
     <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
-    {#if !$embeddedInApp}
-    <div class="absolute inset-y-0 {showClearIcon ? 'sm:end-14' : 'sm:end-2'} -end-10.5 flex items-center ps-6 transition-all">
+    <div class="absolute inset-y-0 {!$embeddedInApp && (showClearIcon ? 'sm:end-14' : 'sm:end-2')} -end-10.5 flex items-center ps-6 transition-all">
+    {#if $embeddedInApp}
+      <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+        <MenuOption
+          icon={mdiFaceRecognition}
+          text="Edit People & Faces"
+          onClick={() => goto(AppRoute.PEOPLE)}
+        />
+        <hr />
+        <MenuOption
+          icon={mdiImageMultiple}
+          text="Browse Photos"
+          onClick={() => goto(AppRoute.PHOTOS)}
+        />
+      </ButtonContextMenu>
+    {:else}
       <IconButton
         aria-label={$t('show_search_options')}
         shape="round"
@@ -285,8 +301,8 @@
         color="secondary"
         variant="ghost"
       />
-    </div>
     {/if}
+    </div>
 
     <!-- Gavin changed this to not show "chip" on right side of mobile search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
     {#if isFocus && !usingMobileDevice}

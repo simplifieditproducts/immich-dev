@@ -55,12 +55,13 @@
       size="large"
       aria-label="Back"
       icon={mdiArrowBackIos}
+      class="-ml-1"
       onclick={() => {
         globalThis.history.back();
       }}
     />
 
-    <div class="flex justify-between gap-4 lg:gap-8 pe-3">
+    <div class="flex justify-between gap-4 lg:gap-8">
       <div class="hidden w-full max-w-5xl flex-1 tall:ps-0 sm:block">
         {#if $featureFlags.search}
           <SearchBar grayTheme={true} />

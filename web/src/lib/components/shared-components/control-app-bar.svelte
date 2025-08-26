@@ -69,9 +69,9 @@
     class={[
       'grid',
       multiRow && !$embeddedInApp && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
-      !multiRow && !$embeddedInApp && 'grid-cols-[2.5rem_1fr_10%] sm:grid-cols-[25%_50%_25%]',
+      !multiRow && !$embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem] sm:grid-cols-[25%_50%_25%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
-      $embeddedInApp && 'grid-cols-[2.5rem_1fr_0%]',
+      $embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem]',
       'place-items-center p-2 max-md:p-0 transition-all',
       tailwindClasses,
       forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-white dark:bg-immich-dark-gray',
@@ -87,6 +87,7 @@
           variant="ghost"
           icon={backIcon}
           size="large"
+          class="-ml-1"
         />
       {/if}
       {@render leading?.()}
@@ -96,7 +97,7 @@
       {@render children?.()}
     </div>
 
-    <div class="me-4 flex place-items-center gap-1 justify-self-end">
+    <div class="flex place-items-center gap-1 justify-self-end">
       {@render trailing?.()}
     </div>
   </nav>
