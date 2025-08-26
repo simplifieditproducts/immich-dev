@@ -42,6 +42,7 @@
     onReload?: (() => void) | undefined;
     pageHeaderOffset?: number;
     slidingWindowOffset?: number;
+    name?: string;
   }
 
   let {
@@ -60,9 +61,10 @@
     onReload = undefined,
     slidingWindowOffset = 0,
     pageHeaderOffset = 0,
+    name = 'default',
   }: Props = $props();
 
-  let { isViewing: isViewerOpen, asset: viewingAsset, setAssetId } = assetViewingStore;
+  let { dataSourceName, isViewing: isViewerOpen, asset: viewingAsset, setAssetId } = assetViewingStore;
 
   let geometry: CommonJustifiedLayout | undefined = $state();
 
@@ -163,6 +165,7 @@
   });
   const viewAssetHandler = async (asset: TimelineAsset) => {
     currentViewAssetIndex = assets.findIndex((a) => a.id == asset.id);
+    $dataSourceName = name; // Set the data source name to the current gallery viewer
     await setAssetId(assets[currentViewAssetIndex].id);
     await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
   };
@@ -337,7 +340,7 @@
         asset = await onNext();
       } else {
         if (currentViewAssetIndex >= assets.length - 1) {
-          return false;
+          currentViewAssetIndex = -1;
         }
 
         currentViewAssetIndex = currentViewAssetIndex + 1;
@@ -387,7 +390,7 @@
         asset = await onPrevious();
       } else {
         if (currentViewAssetIndex <= 0) {
-          return false;
+          currentViewAssetIndex = assets.length;
         }
 
         currentViewAssetIndex = currentViewAssetIndex - 1;
@@ -524,7 +527,7 @@
 {/if}
 
 <!-- Overlay Asset Viewer -->
-{#if $isViewerOpen}
+{#if $isViewerOpen && $dataSourceName === name}
   <Portal target="body">
     <AssetViewer
       asset={$viewingAsset}

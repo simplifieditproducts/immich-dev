@@ -522,6 +522,7 @@
       showArchiveIcon={true}
       {viewport}
       pageHeaderOffset={mobileDevice.pointerCoarse ? 86 : 54}
+      name="related-photos"
     />
   </section>
   {/if}
