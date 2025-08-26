@@ -37,7 +37,7 @@
   aria-label={ariaLabel}
   tabindex="-1"
   class="immich-scrollbar relative z-10 sidebar:w-[16rem] overflow-y-auto overflow-x-hidden transition-all duration-200 bg-light
-    {$embeddedInApp ? 'w-[min(100vw,16rem)] h-0' : 'w-0 pt-8'} {sidebarStore.isOpen ? ($embeddedInApp ? 'pt-8 h-full' : 'w-[min(100vw,16rem)]') : ''}"
+    {$embeddedInApp ? 'w-[min(100vw,16rem)] h-0' : 'w-0 pt-8'} {sidebarStore.isOpen ? ($embeddedInApp ? 'pt-3 h-full border rounded-lg' : 'w-[min(100vw,16rem)]') : ''}"
   class:shadow-2xl={isExpanded}
   class:dark:border-e-immich-dark-gray={isExpanded}
   class:border-r={isExpanded}
