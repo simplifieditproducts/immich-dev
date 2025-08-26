@@ -362,7 +362,7 @@
   const updateHeight = () => {
     const viewportHeight = window.visualViewport?.height;
     const isMobile = window.innerWidth < 768; // adjustable breakpoint
-    const topBarHeight = isMobile ? '4rem' : '6rem';
+    const topBarHeight = isMobile ? '3.5rem' : '5rem';
     height = viewportHeight ? `calc(${viewportHeight}px - ${topBarHeight})` : `calc(100vh - ${topBarHeight})`;
   };
   onMount(() => {
@@ -396,7 +396,7 @@
   Also, the text in the search chips is now truncated to prevent overflow.
 -->
 <div
-  class="mt-16 sm:mt-24 overflow-y-auto w-full"
+  class="mt-[3.5rem] sm:mt-20 overflow-y-auto w-full"
   style="height: {height};"
   bind:this={scrollingElement}
 >
@@ -600,7 +600,7 @@
 
 {#if showNameFacesBanner}
 <div
-  class="sm:hidden fixed inset-0 top-15 z-10 bg-black/30"
+  class="sm:hidden fixed inset-0 top-12 z-10 bg-black/30"
   transition:fade={{ duration: 300 }}
 >
   <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl">

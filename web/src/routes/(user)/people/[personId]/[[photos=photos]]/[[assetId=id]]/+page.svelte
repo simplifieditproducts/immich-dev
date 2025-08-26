@@ -121,6 +121,16 @@
     });
   });
 
+  // Using `goto` would pollute the history stack, if the previous route is `/people`,
+  // why not just go back?
+  const goToPreviousRoute = async () => {
+    if ((new URL(previousRoute)).pathname === AppRoute.PEOPLE) {
+      globalThis.history.back();
+    } else {
+      await goto(previousRoute);
+    }
+  }
+
   const handleEscape = async () => {
     if ($showAssetViewer) {
       return;
@@ -129,7 +139,7 @@
       assetInteraction.clearMultiselect();
       return;
     } else {
-      await goto(previousRoute);
+      await goToPreviousRoute();
       return;
     }
   };
@@ -172,7 +182,7 @@
         type: NotificationType.Info,
       });
 
-      await goto(previousRoute);
+      await goToPreviousRoute();
     } catch (error) {
       handleError(error, $t('errors.unable_to_hide_person'));
     }
@@ -552,7 +562,7 @@
     </AssetSelectControlBar>
   {:else}
     {#if viewMode === PersonPageViewMode.VIEW_ASSETS}
-      <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(previousRoute)}>
+      <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goToPreviousRoute()}>
         {#snippet trailing()}
           <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
             <MenuOption
