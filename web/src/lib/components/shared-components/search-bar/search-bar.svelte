@@ -278,7 +278,7 @@
     <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
     <div class="absolute inset-y-0 {!$embeddedInApp && (showClearIcon ? 'sm:end-14' : 'sm:end-2')} -end-10.5 flex items-center ps-6 transition-all">
     {#if $embeddedInApp}
-      <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+      <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')} offset={{ x: 0, y: 42 }}>
         <MenuOption
           icon={mdiFaceRecognition}
           text="Edit People & Faces"
