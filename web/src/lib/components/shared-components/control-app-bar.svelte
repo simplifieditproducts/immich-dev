@@ -69,9 +69,9 @@
     class={[
       'grid',
       multiRow && !$embeddedInApp && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
-      !multiRow && !$embeddedInApp && 'grid-cols-[2rem_1fr_10%] sm:grid-cols-[25%_50%_25%]',
+      !multiRow && !$embeddedInApp && 'grid-cols-[2.5rem_1fr_10%] sm:grid-cols-[25%_50%_25%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
-      $embeddedInApp && 'grid-cols-[2rem_1fr_0%]',
+      $embeddedInApp && 'grid-cols-[2.5rem_1fr_0%]',
       'place-items-center p-2 max-md:p-0 transition-all',
       tailwindClasses,
       forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-white dark:bg-immich-dark-gray',
@@ -86,8 +86,7 @@
           shape="round"
           variant="ghost"
           icon={backIcon}
-          size="giant"
-          class="-ml-2"
+          size="large"
         />
       {/if}
       {@render leading?.()}

@@ -30,7 +30,7 @@
     NotificationType,
     notificationController,
   } from '$lib/components/shared-components/notification/notification';
-  import { AppRoute, PersonPageViewMode, QueryParameter, SessionStorageKey } from '$lib/constants';
+  import { AppRoute, PersonPageViewMode, QueryParameter, SessionStorageKey, mdiArrowBackIos } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import PersonEditBirthDateModal from '$lib/modals/PersonEditBirthDateModal.svelte';
@@ -55,7 +55,6 @@
     mdiAccountBoxOutline,
     mdiAccountMultipleCheckOutline,
     mdiCalendarEditOutline,
-    mdiChevronLeft,
     mdiDotsVertical,
     mdiEyeOffOutline,
     mdiEyeOutline,
@@ -553,7 +552,7 @@
     </AssetSelectControlBar>
   {:else}
     {#if viewMode === PersonPageViewMode.VIEW_ASSETS}
-      <ControlAppBar showBackButton backIcon={mdiChevronLeft} onClose={() => goto(previousRoute)}>
+      <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(previousRoute)}>
         {#snippet trailing()}
           <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
             <MenuOption

@@ -22,7 +22,7 @@
   import GalleryViewer from '$lib/components/shared-components/gallery-viewer/gallery-viewer.svelte';
   import LoadingSpinner from '$lib/components/shared-components/loading-spinner.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
-  import { AppRoute, QueryParameter } from '$lib/constants';
+  import { AppRoute, mdiArrowBackIos, QueryParameter } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
@@ -49,7 +49,7 @@
     type SmartSearchDto,
   } from '@immich/sdk';
   import { Button, IconButton } from '@immich/ui';
-  import { mdiChevronLeft, mdiDotsVertical, mdiImageOffOutline, mdiLightbulbOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
+  import { mdiDotsVertical, mdiImageOffOutline, mdiLightbulbOutline, mdiPlus, mdiSelectAll } from '@mdi/js';
   import { onDestroy, onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
@@ -172,6 +172,7 @@
   };
 
   const handleSelectAll = () => {
+    assetInteraction.clearMultiselect();
     assetInteraction.selectAssets(searchResultAssets);
   };
 
@@ -474,7 +475,7 @@
       />
 
     {#if (!hasActivatedPagination && searchResultAssets.length > INITIAL_ASSET_LIMIT)}
-      <div class="flex justify-center py-8">
+      <div class="flex justify-center py-4">
         <button
           type="button"
           class="bg-primary text-white dark:text-black font-medium px-6 py-2 rounded-lg shadow-md hover:brightness-110 transition"
@@ -585,7 +586,7 @@
       </div>
     {:else}
       <div class="fixed top-0 start-0 w-full">
-        <ControlAppBar onClose={onClose} backIcon={mdiChevronLeft}>
+        <ControlAppBar onClose={onClose} backIcon={mdiArrowBackIos}>
           <div class="absolute bg-light"></div>
           <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
           <div class="w-full flex-1 sm:ps-4 px-2">

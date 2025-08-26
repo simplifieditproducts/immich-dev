@@ -32,7 +32,7 @@
     notificationController,
   } from '$lib/components/shared-components/notification/notification';
   import UserAvatar from '$lib/components/shared-components/user-avatar.svelte';
-  import { AlbumPageViewMode, AppRoute } from '$lib/constants';
+  import { AlbumPageViewMode, AppRoute, mdiArrowBackIos } from '$lib/constants';
   import { activityManager } from '$lib/managers/activity-manager.svelte';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
@@ -71,7 +71,6 @@
   } from '@immich/sdk';
   import { Button, IconButton, modalManager } from '@immich/ui';
   import {
-    mdiChevronLeft,
     mdiCogOutline,
     mdiDeleteOutline,
     mdiDotsVertical,
@@ -614,7 +613,7 @@
       </AssetSelectControlBar>
     {:else}
       {#if viewMode === AlbumPageViewMode.VIEW}
-        <ControlAppBar showBackButton backIcon={mdiChevronLeft} onClose={() => goto(backUrl)}>
+        <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(backUrl)}>
           {#snippet trailing()}
             <CastButton />
 

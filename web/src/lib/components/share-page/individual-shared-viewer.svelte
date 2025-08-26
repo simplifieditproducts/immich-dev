@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import type { Action } from '$lib/components/asset-viewer/actions/action';
   import ImmichLogoSmallLink from '$lib/components/shared-components/immich-logo-small-link.svelte';
-  import { AppRoute, AssetAction } from '$lib/constants';
+  import { AppRoute, AssetAction, mdiArrowBackIos } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import type { Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
@@ -14,7 +14,7 @@
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { addSharedLinkAssets, getAssetInfo, type SharedLinkResponseDto } from '@immich/sdk';
   import { IconButton } from '@immich/ui';
-  import { mdiChevronLeft, mdiFileImagePlusOutline, mdiFolderDownloadOutline, mdiSelectAll } from '@mdi/js';
+  import { mdiFileImagePlusOutline, mdiFolderDownloadOutline, mdiSelectAll } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import AssetViewer from '../asset-viewer/asset-viewer.svelte';
   import DownloadAction from '../photos-page/actions/download-action.svelte';
@@ -111,7 +111,7 @@
         {/if}
       </AssetSelectControlBar>
     {:else}
-      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiChevronLeft} showBackButton={false}>
+      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiArrowBackIos} showBackButton={false}>
         {#snippet leading()}
           <ImmichLogoSmallLink />
         {/snippet}

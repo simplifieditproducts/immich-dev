@@ -121,7 +121,7 @@
     }
     hideTimer = setTimeout(() => {
       controlsVisible = false;
-    }, 5000);
+    }, 3000);
   };
 
   const refreshStack = async () => {

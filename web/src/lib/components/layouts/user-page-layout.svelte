@@ -69,7 +69,7 @@
   {/snippet}
 
   {#if $embeddedInApp}
-    <div class="absolute right-0">
+    <div class="absolute right-2">
       {@render sidebarContent()}
     </div>
   {:else}

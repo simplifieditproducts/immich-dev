@@ -9,14 +9,14 @@
   import SkipLink from '$lib/components/elements/buttons/skip-link.svelte';
   import NotificationPanel from '$lib/components/shared-components/navigation-bar/notification-panel.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
-  import { AppRoute } from '$lib/constants';
+  import { AppRoute, mdiArrowBackIos } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { notificationManager } from '$lib/stores/notification-manager.svelte';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import { user } from '$lib/stores/user.store';
   import { Button, IconButton } from '@immich/ui';
-  import { mdiBellBadge, mdiBellOutline, mdiChevronLeft, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
+  import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import ThemeButton from '../theme-button.svelte';
   import UserAvatar from '../user-avatar.svelte';
@@ -52,10 +52,9 @@
       shape="round"
       color="primary"
       variant="ghost"
-      size="giant"
-      class="-ml-2"
+      size="large"
       aria-label="Back"
-      icon={mdiChevronLeft}
+      icon={mdiArrowBackIos}
       onclick={() => {
         globalThis.history.back();
       }}
