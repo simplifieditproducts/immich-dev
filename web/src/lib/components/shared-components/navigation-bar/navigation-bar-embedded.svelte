@@ -8,7 +8,6 @@
   import CastButton from '$lib/cast/cast-button.svelte';
   import SkipLink from '$lib/components/elements/buttons/skip-link.svelte';
   import NotificationPanel from '$lib/components/shared-components/navigation-bar/notification-panel.svelte';
-  import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
   import { AppRoute, mdiArrowBackIos } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { notificationManager } from '$lib/stores/notification-manager.svelte';
@@ -62,13 +61,7 @@
     />
 
     <div class="flex justify-between gap-4 lg:gap-8">
-      <div class="hidden w-full max-w-5xl flex-1 tall:ps-0 sm:block">
-        {#if $featureFlags.search}
-          <SearchBar grayTheme={true} />
-        {/if}
-      </div>
-
-      <section class="flex place-items-center justify-end gap-1 md:gap-2 w-full sm:w-auto">
+      <section class="flex place-items-center justify-end gap-1 md:gap-2 w-full">
         {#if $featureFlags.search}
           <IconButton
             color="secondary"
@@ -78,7 +71,6 @@
             icon={mdiMagnify}
             href={AppRoute.SEARCH}
             id="search-button"
-            class="sm:hidden"
             aria-label={$t('go_to_search')}
           />
         {/if}
