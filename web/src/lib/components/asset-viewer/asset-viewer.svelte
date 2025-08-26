@@ -110,6 +110,20 @@
 
   let zoomToggle = $state(() => void 0);
 
+  // Navigation controls auto-hide functionality
+  let controlsVisible = $state(true);
+  let hideTimer: ReturnType<typeof setTimeout>;
+
+  const resetHideTimer = () => {
+    clearTimeout(hideTimer);
+    if (!controlsVisible) {
+      controlsVisible = true;
+    }
+    hideTimer = setTimeout(() => {
+      controlsVisible = false;
+    }, 5000);
+  };
+
   const refreshStack = async () => {
     if (authManager.isSharedLink) {
       return;
@@ -147,6 +161,9 @@
   };
 
   onMount(async () => {
+    // Initialize auto-hide timer for navigation controls
+    resetHideTimer();
+
     unsubscribes.push(
       websocketEvents.on('on_upload_success', (asset) => onAssetUpdate({ event: 'upload', asset })),
       websocketEvents.on('on_asset_update', (asset) => onAssetUpdate({ event: 'update', asset })),
@@ -175,6 +192,8 @@
   });
 
   onDestroy(() => {
+    clearTimeout(hideTimer);
+
     if (slideshowStateUnsubscribe) {
       slideshowStateUnsubscribe();
     }
@@ -385,10 +404,18 @@
   class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden bg-black"
   use:focusTrap
   bind:this={assetViewerHtmlElement}
+  onclick={resetHideTimer}
+  onkeydown={resetHideTimer}
+  role="button"
+  tabindex="0"
 >
   <!-- Top navigation bar -->
   {#if $slideshowState === SlideshowState.None && !isShowEditor}
-    <div class="col-span-4 col-start-1 row-span-1 row-start-1 transition-transform">
+    <div 
+      class="col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
+      class:opacity-0={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <AssetViewerNavBar
         {asset}
         {album}
@@ -429,7 +456,11 @@
   {/if}
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
-    <div class="my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start">
+    <div 
+      class="my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
+      class:opacity-0={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <PreviousAssetAction onPreviousAsset={() => navigateAsset('previous')} />
     </div>
   {/if}
@@ -524,7 +555,11 @@
   </div>
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
-    <div class="my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end">
+    <div 
+      class="my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
+      class:opacity-0={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <NextAssetAction onNextAsset={() => navigateAsset('next')} />
     </div>
   {/if}
