@@ -173,7 +173,11 @@
 
   const handleSelectAll = () => {
     assetInteraction.clearMultiselect();
-    assetInteraction.selectAssets(searchResultAssets);
+    if (searchResultAssets.length > 0) {
+      assetInteraction.selectAssets(searchResultAssets);
+    } else {
+      assetInteraction.selectAssets(relatedPhotos);
+    }
   };
 
   async function onSearchQueryUpdate() {
