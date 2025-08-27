@@ -128,7 +128,7 @@
   >
     <CreateSharedLink />
     <SelectAllAssets {timelineManager} {assetInteraction} />
-    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
       <AddToAlbum />
       <AddToAlbum shared />
     </ButtonContextMenu>
@@ -140,7 +140,7 @@
           return { remove: false };
         })}
     ></FavoriteAction>
-    <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+    <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 8, y: 40 }}>
       <DownloadAction menuItem />
       {#if assetInteraction.selectedAssets.length > 1 || isAssetStackSelected}
         <StackAction

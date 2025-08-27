@@ -478,7 +478,7 @@
       <div class="flex justify-center py-4">
         <button
           type="button"
-          class="bg-primary text-white dark:text-black font-medium px-6 py-2 rounded-lg shadow-md hover:brightness-110 transition"
+          class="bg-immich-primary dark:bg-immich-dark-primary text-white dark:text-black font-medium px-6 py-2 rounded-lg shadow-md hover:brightness-110 transition"
           onclick={async () => {
             if (hasActivatedPagination) {
               await loadNextPage();
@@ -544,7 +544,7 @@
             icon={mdiSelectAll}
             onclick={handleSelectAll}
           />
-          <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+          <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
             <AddToAlbum {onAddToAlbum} />
             <AddToAlbum shared {onAddToAlbum} />
           </ButtonContextMenu>
@@ -560,7 +560,7 @@
             }}
           />
 
-          <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+          <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
             <DownloadAction menuItem />
             <ChangeDate menuItem />
             <ChangeDescription menuItem />

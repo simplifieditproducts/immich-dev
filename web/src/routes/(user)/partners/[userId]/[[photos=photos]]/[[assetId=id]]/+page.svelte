@@ -10,6 +10,7 @@
   import { AppRoute, mdiArrowBackIos } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { AssetVisibility } from '@immich/sdk';
   import { mdiPlus } from '@mdi/js';
   import { onDestroy } from 'svelte';
@@ -42,7 +43,7 @@
   };
 </script>
 
-<main class="relative h-dvh overflow-hidden px-2 md:px-6 max-md:pt-(--navbar-height-md) pt-(--navbar-height)">
+<main class="relative h-dvh overflow-hidden px-2 md:px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'}">
   <AssetGrid enableRouting={true} {timelineManager} {assetInteraction} onEscape={handleEscape} />
 </main>
 
@@ -52,7 +53,7 @@
     clearSelect={() => assetInteraction.clearMultiselect()}
   >
     <CreateSharedLink />
-    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
       <AddToAlbum />
       <AddToAlbum shared />
     </ButtonContextMenu>

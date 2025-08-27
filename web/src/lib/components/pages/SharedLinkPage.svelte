@@ -6,6 +6,7 @@
   import PasswordField from '$lib/components/shared-components/password-field.svelte';
   import ThemeButton from '$lib/components/shared-components/theme-button.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { user } from '$lib/stores/user.store';
   import { setSharedLink } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
@@ -70,7 +71,7 @@
 </svelte:head>
 {#if passwordRequired}
   <main
-    class="relative h-dvh overflow-hidden px-6 max-md:pt-(--navbar-height-md) pt-(--navbar-height) sm:px-12 md:px-24 lg:px-40"
+    class="relative h-dvh overflow-hidden px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'} sm:px-12 md:px-24 lg:px-40"
   >
     <div class="flex flex-col items-center justify-center mt-20">
       <div class="text-2xl font-bold text-immich-primary dark:text-immich-dark-primary">{$t('password_required')}</div>

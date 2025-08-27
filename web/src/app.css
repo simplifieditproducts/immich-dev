@@ -65,18 +65,18 @@
 @layer base {
   :root {
     /* light */
-    --immich-primary: 66 80 175;
+    --immich-primary: 0, 165, 237;
     --immich-bg: 255 255 255;
     --immich-fg: 0 0 0;
 
     /* dark */
-    --immich-dark-primary: 172 203 250;
+    --immich-dark-primary: 0, 165, 237;
     --immich-dark-bg: 10 10 10;
     --immich-dark-fg: 229 231 235;
     --immich-dark-gray: 33 33 33;
 
     /* overwrite */
-    --immich-ui-primary: 79 136 248;
+    --immich-ui-primary: 0, 165, 237;
   }
 
   *,
@@ -159,6 +159,12 @@
   body {
     margin: 0;
     color: #3a3a3a;
+  }
+
+  img {
+    -webkit-touch-callout: none; /* Prevents iOS image menu */
+    -webkit-user-select: none;   /* Prevents text/image selection */
+    user-select: none;
   }
 
   input:focus-visible {

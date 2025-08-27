@@ -56,8 +56,8 @@
   tabindex="-1"
   class="relative z-0 grid
     {hideNavbar ? 'h-dvh' : $embeddedInApp ? 'max-md:h-[calc(100dvh-var(--navbar-height-embedded-md))] h-[calc(100dvh-var(--navbar-height-embedded))]' : 'max-md:h-[calc(100dvh-var(--navbar-height-md))] h-[calc(100dvh-var(--navbar-height))]'}
-    {hideNavbar ? 'pt-(--navbar-height)' : ''}
-    {hideNavbar ? 'max-md:pt-(--navbar-height-md)' : ''}
+    {hideNavbar ? ($embeddedInApp ? 'pt-(--navbar-height-embedded)' : 'pt-(--navbar-height)') : ''}
+    {hideNavbar ? ($embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md)' : 'max-md:pt-(--navbar-height-md)') : ''}
     {$embeddedInApp ? '' : 'grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]'}"
 >
   {#snippet sidebarContent()}
