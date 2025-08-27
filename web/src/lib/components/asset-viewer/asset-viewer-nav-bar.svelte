@@ -111,7 +111,7 @@
 </script>
 
 <div
-  class="flex h-16 place-items-center justify-between bg-linear-to-b from-black/40 px-3 transition-transform duration-200"
+  class="flex h-12 place-items-center justify-between bg-linear-to-b from-black/40 transition-transform duration-200"
 >
   <div class="dark">
     {#if showCloseButton}
@@ -173,7 +173,7 @@
     {#if isOwner}
       <DeleteAction {asset} {onAction} {preAction} />
 
-      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical}>
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 8, y: 40 }}>
         {#if showSlideshow && !isLocked}
           <MenuOption icon={mdiPresentationPlay} text={$t('slideshow')} onClick={onPlaySlideshow} />
         {/if}

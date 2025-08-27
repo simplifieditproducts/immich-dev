@@ -118,7 +118,7 @@
     --navbar-height: calc(4.5rem + 4px);
     --navbar-height-md: calc(4.5rem + 4px - 14px);
     --navbar-height-embedded: calc(4.5rem);
-    --navbar-height-embedded-md: calc(4.5rem - 14px);
+    --navbar-height-embedded-md: calc(3rem);
   }
 
   :root.dark {

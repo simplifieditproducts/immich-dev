@@ -157,7 +157,7 @@
 
 {#if showControls}
   <div
-    class="m-4 flex gap-2 dark"
+    class="my-1 flex gap-2 dark"
     onmouseenter={() => (isOverControls = true)}
     onmouseleave={() => (isOverControls = false)}
     transition:fly={{ duration: 150 }}
