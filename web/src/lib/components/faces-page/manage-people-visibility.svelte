@@ -149,7 +149,7 @@
   </div>
 </div>
 
-<div class="flex flex-wrap gap-1 p-2 pb-8 md:px-8 mt-16">
+<div class="fixed top-16 inset-0 p-2 pb-8 md:px-8 overflow-y-auto">
   <PeopleInfiniteScroll {people} hasNextPage={true} {loadNextPage}>
     {#snippet children({ person })}
       {@const hidden = personIsHidden[person.id]}
