@@ -3,17 +3,20 @@
 </script>
 
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { clickOutside } from '$lib/actions/click-outside';
   import CastButton from '$lib/cast/cast-button.svelte';
   import SkipLink from '$lib/components/elements/buttons/skip-link.svelte';
   import NotificationPanel from '$lib/components/shared-components/navigation-bar/notification-panel.svelte';
-  import { AppRoute, mdiArrowBackIos } from '$lib/constants';
+  import { AppRoute, mdiArrowBackIos, QueryParameter } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { notificationManager } from '$lib/stores/notification-manager.svelte';
+  import { initialUrl } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import { user } from '$lib/stores/user.store';
+  import { isExternalUrl } from '$lib/utils/navigation';
   import { Button, IconButton } from '@immich/ui';
   import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { t } from 'svelte-i18n';
@@ -55,8 +58,9 @@
       aria-label="Back"
       icon={mdiArrowBackIos}
       class="-ml-1"
-      onclick={() => {
-        globalThis.history.back();
+      onclick={async () => {
+        const previousRoute = page.url.searchParams.get(QueryParameter.PREVIOUS_ROUTE);
+        await (previousRoute && !isExternalUrl(previousRoute) ? goto(previousRoute) : goto($initialUrl));
       }}
     />
 

@@ -1,7 +1,8 @@
 import { browser } from '$app/environment';
-import { Theme, defaultLang } from '$lib/constants';
+import { AppRoute, Theme, defaultLang } from '$lib/constants';
 import { getPreferredLocale } from '$lib/utils/i18n';
 import { persisted } from 'svelte-persisted-store';
+import { writable } from 'svelte/store';
 
 export interface ThemeSetting {
   value: Theme;
@@ -62,6 +63,8 @@ export const videoViewerMuted = persisted<boolean>('video-viewer-muted', false, 
 export const isShowDetail = persisted<boolean>('info-opened', false, {});
 
 export const embeddedInApp = persisted<boolean>('embedded-in-app', false, {});
+
+export const initialUrl = writable<string>(AppRoute.PHOTOS);
 
 export interface AlbumViewSettings {
   view: string;

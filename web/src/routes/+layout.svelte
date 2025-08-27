@@ -8,21 +8,18 @@
   import NavigationLoadingBar from '$lib/components/shared-components/navigation-loading-bar.svelte';
   import NotificationList from '$lib/components/shared-components/notification/notification-list.svelte';
   import UploadPanel from '$lib/components/shared-components/upload-panel.svelte';
+  import { appName } from '$lib/constants';
   import { eventManager } from '$lib/managers/event-manager.svelte';
-  import VersionAnnouncementModal from '$lib/modals/VersionAnnouncementModal.svelte';
+  import { initialUrl } from '$lib/stores/preferences.store';
   import { serverConfig } from '$lib/stores/server-config.store';
   import { user } from '$lib/stores/user.store';
   import {
     closeWebsocketConnection,
-    openWebsocketConnection,
-    websocketStore,
-    type ReleaseEvent,
+    openWebsocketConnection
   } from '$lib/stores/websocket';
   import { copyToClipboard } from '$lib/utils';
-  import { appName } from '$lib/constants';
   import { isAssetViewerRoute } from '$lib/utils/navigation';
-  import type { ServerVersionResponseDto } from '@immich/sdk';
-  import { modalManager, setTranslations } from '@immich/ui';
+  import { setTranslations } from '@immich/ui';
   import { onMount, type Snippet } from 'svelte';
   import { t } from 'svelte-i18n';
   import { run } from 'svelte/legacy';
@@ -52,6 +49,9 @@
     const element = document.querySelector('#stencil');
     element?.remove();
     // if the browser theme changes, changes the Immich theme too
+
+    // Save the initial URL when the app is first loaded
+    initialUrl.set(page.url.href);
   });
 
   eventManager.emit('app.init');
