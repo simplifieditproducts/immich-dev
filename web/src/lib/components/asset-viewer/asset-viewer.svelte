@@ -15,6 +15,7 @@
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
+  import { photoZoomState } from '$lib/stores/zoom-image.store';
   import { getAssetJobMessage, getSharedLink, handlePromiseError, sendMessageToApp } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { SlideshowHistory } from '$lib/utils/slideshow-history';
@@ -63,6 +64,7 @@
     onPrevious: () => Promise<HasAsset>;
     onRandom: () => Promise<{ id: string } | undefined>;
     copyImage?: () => Promise<void>;
+    animateOpacity?: boolean;
   }
 
   let {
@@ -81,7 +83,24 @@
     onPrevious,
     onRandom,
     copyImage = $bindable(),
+    animateOpacity = false,
   }: Props = $props();
+
+  const DISMISS_THRESHOLD = 100; // pixels to trigger dismiss
+  const MAX_DRAG_DISTANCE = 300; // maximum distance for opacity calculation
+  const MIN_SCALE = 0.3; // minimum scale when fully dragged
+  const MIN_OPACITY = 0.3; // minimum opacity when fully dragged
+
+  // Navigation controls auto-hide functionality
+  let controlsVisible = $state(true);
+
+  // Swipe to dismiss variables
+  let isDragging = $state(false);
+  let dragStartY = $state(0);
+  let dragCurrentY = $state(0);
+  let viewerTransform = $state(0);
+  let viewerOpacity = $state(1);
+  let viewerScale = $state(1);
 
   const { setAssetId } = assetViewingStore;
   const {
@@ -109,9 +128,6 @@
   let stack: StackResponseDto | null = $state(null);
 
   let zoomToggle = $state(() => void 0);
-
-  // Navigation controls auto-hide functionality
-  let controlsVisible = $state(true);
 
   const refreshStack = async () => {
     if (authManager.isSharedLink) {
@@ -235,6 +251,129 @@
     closeEditorCofirm(() => {
       isShowEditor = false;
     });
+  };
+
+  // Swipe to dismiss gesture handlers
+  const handleTouchStart = (e: TouchEvent) => {
+    if ($photoZoomState.currentZoom > 1) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const touches = (e as any).touches;
+    if (touches && touches.length === 1) {
+      isDragging = true;
+      dragStartY = touches[0].clientY;
+      dragCurrentY = dragStartY;
+    }
+  };
+
+  const handleMouseDown = (e: MouseEvent) => {
+    if ($photoZoomState.currentZoom > 1) {
+      return;
+    }
+
+    isDragging = true;
+    dragStartY = e.clientY;
+    dragCurrentY = dragStartY;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const touches = (e as any).touches;
+    if (!isDragging || !touches || touches.length !== 1) {
+      return;
+    }
+    
+    dragCurrentY = touches[0].clientY;
+    updateViewerPosition();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) {
+      return;
+    }
+    
+    dragCurrentY = e.clientY;
+    updateViewerPosition();
+  };
+
+  const updateViewerPosition = () => {
+    const deltaY = dragCurrentY - dragStartY;
+    
+    // Only allow downward swipes
+    if (deltaY > 0) {
+      controlsVisible = false; // Hide controls during drag
+
+      viewerTransform = deltaY;
+      
+      // Calculate opacity based on drag distance
+      const opacityReduction = Math.min(deltaY / MAX_DRAG_DISTANCE, 1 - MIN_OPACITY);
+      viewerOpacity = 1 - opacityReduction;
+      
+      // Calculate scale based on drag distance (shrink as it moves down)
+      const scaleReduction = Math.min(deltaY / MAX_DRAG_DISTANCE, 1 - MIN_SCALE);
+      viewerScale = 1 - scaleReduction;
+    } else {
+      viewerTransform = 0;
+      viewerOpacity = 1;
+      viewerScale = 1;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) {
+      return;
+    }
+    
+    const deltaY = dragCurrentY - dragStartY;
+    
+    if (deltaY > DISMISS_THRESHOLD) {
+      dismissViewer();
+    } else {
+      resetViewer();
+    }
+    
+    isDragging = false;
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging) {
+      return;
+    }
+    
+    const deltaY = dragCurrentY - dragStartY;
+    
+    if (deltaY > DISMISS_THRESHOLD) {
+      dismissViewer();
+    } else {
+      resetViewer();
+    }
+    
+    isDragging = false;
+  };
+
+  const dismissViewer = () => {
+    // Animate PhotoViewer to bottom of screen
+    viewerTransform = window.innerHeight;
+    viewerOpacity = MIN_OPACITY;
+    viewerScale = MIN_SCALE;
+    
+    // Close after animation
+    setTimeout(() => {
+      closeViewer();
+    }, 250);
+  };
+
+  const resetViewer = () => {
+    if (viewerTransform !== 0) {
+      controlsVisible = true;
+    }
+
+    // Reset position, opacity, and scale
+    viewerTransform = 0;
+    viewerOpacity = 1;
+    viewerScale = 1;
   };
 
   const navigateAsset = async (order?: 'previous' | 'next', e?: Event) => {
@@ -395,11 +534,18 @@
 
 <section
   id="immich-asset-viewer"
-  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden bg-black"
+  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden transition-color duration-300"
+  style="background-color: rgba(0, 0, 0, {animateOpacity ? viewerOpacity : 1});"
   use:focusTrap
   bind:this={assetViewerHtmlElement}
   onclick={() => controlsVisible = !controlsVisible}
   onkeydown={() => controlsVisible = true}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
+  onmousedown={handleMouseDown}
+  onmousemove={handleMouseMove}
+  onmouseup={handleMouseUp}
   role="button"
   tabindex="0"
 >
@@ -408,6 +554,7 @@
     <div 
       class="col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
       class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
     >
       <AssetViewerNavBar
@@ -453,6 +600,7 @@
     <div 
       class="my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
     >
       <PreviousAssetAction onPreviousAsset={() => navigateAsset('previous')} />
@@ -460,7 +608,7 @@
   {/if}
 
   <!-- Asset Viewer -->
-  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full">
+  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full transition-transform duration-300" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
     {#if previewStackedAsset}
       {#key previewStackedAsset.id}
         {#if previewStackedAsset.type === AssetTypeEnum.Image}
@@ -552,6 +700,7 @@
     <div 
       class="my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
     >
       <NextAssetAction onNextAsset={() => navigateAsset('next')} />

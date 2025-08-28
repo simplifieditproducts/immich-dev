@@ -16,6 +16,7 @@
 <IconButton
   color="secondary"
   variant="ghost"
+  size="large"
   shape="round"
   icon={mdiArrowLeft}
   aria-label={$t('go_back')}
