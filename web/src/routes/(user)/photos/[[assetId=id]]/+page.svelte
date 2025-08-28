@@ -22,13 +22,14 @@
   import AssetSelectControlBar from '$lib/components/photos-page/asset-select-control-bar.svelte';
   import MemoryLane from '$lib/components/photos-page/memory-lane.svelte';
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
-  import { appId, AssetAction, QueryParameter } from '$lib/constants';
+  import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
-  import { embeddedInApp } from '$lib/stores/preferences.store';
+  import { embeddedInApp, initialUrl } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
+  import { sendMessageToApp } from '$lib/utils';
   import {
     updateStackedAssetInTimeline,
     updateUnstackedAssetInTimeline,
@@ -36,10 +37,10 @@
     type OnUnlink,
   } from '$lib/utils/actions';
   import { AssetVisibility } from '@immich/sdk';
-
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
   import { onDestroy } from 'svelte';
   import { t } from 'svelte-i18n';
+  import { SvelteURL } from 'svelte/reactivity';
 
   let { isViewing: showAssetViewer } = assetViewingStore;
   const timelineManager = new TimelineManager();
@@ -89,13 +90,18 @@
     assetInteraction.clearMultiselect();
   };
 
+  const onBack = () => {
+    // Send 'CMD_CLOSE_WINDOW' if embedded in app and the initial URL is '/photos'
+    return $embeddedInApp && (new SvelteURL($initialUrl)).pathname === AppRoute.PHOTOS && sendMessageToApp('CMD_CLOSE_WINDOW');
+  }
+
   beforeNavigate(() => {
     isFaceEditMode.value = false;
   });
 </script>
 
 <!-- Gavin has made the 'Upload' Button visible only for admins -->
-<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false}>
+<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false} onBack={onBack}>
   <AssetGrid
     enableRouting={true}
     {timelineManager}
