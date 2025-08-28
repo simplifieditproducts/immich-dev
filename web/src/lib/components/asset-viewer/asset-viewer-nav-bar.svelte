@@ -112,6 +112,9 @@
 
 <div
   class="flex h-12 place-items-center justify-between bg-linear-to-b from-black/40 transition-transform duration-200"
+  onclick={(e) => e.stopPropagation()}
+  onkeydown={(e) => e.stopPropagation()}
+  role="none"
 >
   <div class="dark">
     {#if showCloseButton}

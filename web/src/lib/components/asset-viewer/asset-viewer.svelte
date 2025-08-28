@@ -112,17 +112,6 @@
 
   // Navigation controls auto-hide functionality
   let controlsVisible = $state(true);
-  let hideTimer: ReturnType<typeof setTimeout>;
-
-  const resetHideTimer = () => {
-    clearTimeout(hideTimer);
-    if (!controlsVisible) {
-      controlsVisible = true;
-    }
-    hideTimer = setTimeout(() => {
-      controlsVisible = false;
-    }, 3000);
-  };
 
   const refreshStack = async () => {
     if (authManager.isSharedLink) {
@@ -166,9 +155,6 @@
       sendMessageToApp('CMD_SETBGMODE_DARK');
     }
 
-    // Initialize auto-hide timer for navigation controls
-    resetHideTimer();
-
     unsubscribes.push(
       websocketEvents.on('on_upload_success', (asset) => onAssetUpdate({ event: 'upload', asset })),
       websocketEvents.on('on_asset_update', (asset) => onAssetUpdate({ event: 'update', asset })),
@@ -197,8 +183,6 @@
   });
 
   onDestroy(() => {
-    clearTimeout(hideTimer);
-
     if (slideshowStateUnsubscribe) {
       slideshowStateUnsubscribe();
     }
@@ -414,8 +398,8 @@
   class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden bg-black"
   use:focusTrap
   bind:this={assetViewerHtmlElement}
-  onclick={resetHideTimer}
-  onkeydown={resetHideTimer}
+  onclick={() => controlsVisible = !controlsVisible}
+  onkeydown={() => controlsVisible = true}
   role="button"
   tabindex="0"
 >
