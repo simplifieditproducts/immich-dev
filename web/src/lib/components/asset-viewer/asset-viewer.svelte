@@ -11,11 +11,11 @@
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import { closeEditorCofirm } from '$lib/stores/asset-editor.store';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
-  import { isShowDetail } from '$lib/stores/preferences.store';
+  import { embeddedInApp, isShowDetail } from '$lib/stores/preferences.store';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
-  import { getAssetJobMessage, getSharedLink, handlePromiseError } from '$lib/utils';
+  import { getAssetJobMessage, getSharedLink, handlePromiseError, sendMessageToApp } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { SlideshowHistory } from '$lib/utils/slideshow-history';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
@@ -161,6 +161,11 @@
   };
 
   onMount(async () => {
+    // Set the background of the native app to black.
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DARK');
+    }
+
     // Initialize auto-hide timer for navigation controls
     resetHideTimer();
 
@@ -207,6 +212,11 @@
     }
 
     activityManager.reset();
+
+    // Reset the background of the native app.
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DEFAULT');
+    }
   });
 
   const handleGetAllAlbums = async () => {
