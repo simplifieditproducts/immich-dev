@@ -33,6 +33,8 @@
     trailing,
   }: Props = $props();
 
+  let appBarBorder = $state('bg-light border border-transparent');
+
   const onScroll = () => {
     if (window.scrollY > 80) {
       appBarBorder = 'border border-gray-200 bg-gray-50 dark:border-gray-600';
@@ -71,6 +73,7 @@
       multiRow && !$embeddedInApp && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
       !multiRow && !$embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem] sm:grid-cols-[25%_50%_25%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
+      appBarBorder,
       $embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem]',
       'place-items-center p-2 max-md:p-0 transition-all',
       tailwindClasses,

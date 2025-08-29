@@ -98,22 +98,23 @@
 >
   <ControlAppBar onClose={onBack}>
     {#snippet leading()}
+    <div class="w-32">
       {#if hasSelection}
         {$t('selected_count', { values: { count: selectedPeople.length } })}
       {:else}
         {$t('merge_people')}
       {/if}
-      <div></div>
+    </div>
     {/snippet}
     {#snippet trailing()}
-      <Button leadingIcon={mdiMerge} size="small" shape="round" disabled={!hasSelection} onclick={handleMerge}>
+      <Button leadingIcon={mdiMerge} size="small" shape="round" disabled={!hasSelection} onclick={handleMerge} class="mr-2">
         {$t('merge')}
       </Button>
     {/snippet}
   </ControlAppBar>
-  <section class="px-[70px] pt-[100px]">
+  <section class="px-[70px] pt-[100px] pb-6">
     <section id="merge-face-selector">
-      <div class="mb-10 h-[200px] place-content-center place-items-center">
+      <div class="mb-16 h-[200px] place-content-center place-items-center">
         <p class="mb-4 text-center uppercase dark:text-white">{$t('choose_matching_people_to_merge')}</p>
 
         <div class="grid grid-flow-col-dense place-content-center place-items-center gap-4">

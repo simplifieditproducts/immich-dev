@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { AppRoute } from '$lib/constants';
-  import { AssetMediaSize, type AssetResponseDto } from '@immich/sdk';
-  import { placesViewSettings } from '$lib/stores/preferences.store';
-  import { type PlacesGroup, isPlacesGroupCollapsed, togglePlacesGroupCollapsing } from '$lib/utils/places-utils';
-  import { mdiChevronRight } from '@mdi/js';
   import Icon from '$lib/components/elements/icon.svelte';
-  import { t } from 'svelte-i18n';
+  import { AppRoute } from '$lib/constants';
+  import { placesViewSettings } from '$lib/stores/preferences.store';
   import { getAssetThumbnailUrl } from '$lib/utils';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
+  import { type PlacesGroup, isPlacesGroupCollapsed, togglePlacesGroupCollapsing } from '$lib/utils/places-utils';
+  import { AssetMediaSize, type AssetResponseDto } from '@immich/sdk';
+  import { mdiChevronRight } from '@mdi/js';
+  import { t } from 'svelte-i18n';
 
   interface Props {
     places: AssetResponseDto[];
@@ -25,7 +25,7 @@
     <button
       type="button"
       onclick={() => togglePlacesGroupCollapsing(group.id)}
-      class="w-fit mt-2 pt-2 pe-2 mb-2 dark:text-immich-dark-fg"
+      class="w-fit mt-2 pt-2 pe-2 mb-2 dark:text-immich-dark-fg text-left"
       aria-expanded={!isCollapsed}
     >
       <Icon path={mdiChevronRight} size="24" class="inline-block -mt-2.5 transition-all duration-250 {iconRotation}" />
