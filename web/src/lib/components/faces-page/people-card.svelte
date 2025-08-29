@@ -61,7 +61,7 @@
   <div>
     <input
       type="text"
-      class="bg-white border dark:bg-immich-dark-gray border-gray-300 placeholder-gray-400 text-center dark:border-gray-900 w-full rounded-full mt-3 py-1.5 px-3 text-sm text-immich-primary dark:text-immich-dark-primary"
+      class="bg-white border-b dark:bg-immich-dark-gray border-gray-300 placeholder-gray-400 text-center dark:border-gray-900 w-full  mt-3 py-1.5 font-medium px-3 text-sm text-immich-primary dark:text-immich-dark-primary focus:border-immich-primary focus:dark:border-immich-dark-primary"
       value={person.name}
       placeholder="Who is this?"
       use:shortcut={{ shortcut: { key: 'Enter' }, onShortcut: (e) => e.currentTarget.blur() }}
@@ -70,12 +70,12 @@
       oninput={(event) => onInput(event)}
     />  
   </div>       
-  <div class="flex mt-1.5">
-    <button type="button" class="flex-1 border rounded-l-full bg-gray-50 pl-3 pr-1 py-1 text-xs flex items-center gap-x-1 font-semibold truncate select-none hover:bg-gray-200 active:bg-gray-200 transition-colors duration-300 ease-in-out" onclick={onHidePerson}>
+  <div class="flex mt-2.5 text-gray-600 dark:text-gray-200">
+    <button type="button" class="flex-1 border rounded-l-full bg-gray-50 dark:bg-gray-800 dark:border-gray-600 pl-3 pr-1 py-1 text-xs flex items-center gap-x-1 font-semibold truncate select-none hover:bg-gray-200 active:bg-gray-200 dark:active:bg-gray-900 transition-colors duration-300 ease-in-out" onclick={onHidePerson}>
       <Icon path={mdiEyeOffOutline} size="20" class="hidden xs:block flex-none" /> <p class="flex-1 text-center">{$t('hide_person')}</p>
     </button>
     <ButtonContextMenu
-      buttonClass="rounded-l-none rounded-r-full border border-l-0 bg-gray-50 active:bg-gray-200 transition-colors duration-300 ease-in-out"
+      buttonClass="rounded-l-none rounded-r-full border border-l-0 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 active:bg-gray-200 dark:active:bg-gray-900 transition-colors duration-300 ease-in-out"
       color="secondary"
       size="small"
       icon={mdiDotsVertical}
