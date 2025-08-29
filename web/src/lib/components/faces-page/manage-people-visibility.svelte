@@ -83,10 +83,15 @@
           type: NotificationType.Info,
           message: $t('visibility_changed', { values: { count: successCount } }),
         });
-      }
 
-      for (const person of people) {
-        person.isHidden = personIsHidden[person.id];
+        // Update people array based on successful results
+        const successfulResults = new Set(results.filter(result => result.success).map(result => result.id));
+        const changedById = Object.fromEntries(changed.map(item => [item.id, item]));
+        for (const person of people) {
+          if (successfulResults.has(person.id) && changedById[person.id]) {
+            person.isHidden = changedById[person.id].isHidden;
+          }
+        }
       }
 
       onClose();
@@ -166,7 +171,7 @@
           url={getPeopleThumbnailUrl(person)}
           altText={person.name}
           widthStyle="100%"
-          hiddenIconClass="text-white group-hover:text-black transition-colors"
+          hiddenIconClass="text-white group-hover:text-primary transition-colors"
         />
         {#if person.name}
           <span class="absolute bottom-0 start-0 w-full select-text p-2 text-center font-medium text-sm text-gray-100 bg-black/30 backdrop-blur-sm">

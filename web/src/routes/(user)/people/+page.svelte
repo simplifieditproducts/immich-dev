@@ -26,8 +26,6 @@
   import { mdiAccountOff, mdiEyeOutline } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
-  import { quintOut } from 'svelte/easing';
-  import { fly } from 'svelte/transition';
   import type { PageData } from './$types';
 
   interface Props {
@@ -242,8 +240,8 @@
     await clearQueryParam(QueryParameter.SEARCHED_PEOPLE, $page.url);
   };
 
-  let people = $derived(data.people.people);
-  let visiblePeople = $derived(people.filter((people) => !people.isHidden));
+  let people = $state(data.people.people);
+  let visiblePeople = $derived(people.filter((person) => !person.isHidden));
   let countVisiblePeople = $derived(searchName ? searchedPeopleLocal.length : data.people.total - data.people.hidden);
   let showPeople = $derived(searchName ? searchedPeopleLocal : visiblePeople);
 
@@ -392,7 +390,6 @@
 {#if selectHidden}
   <dialog
     open
-    transition:fly={{ y: innerHeight, duration: 150, easing: quintOut, opacity: 0 }}
     class="absolute start-0 top-0 h-full w-full bg-light"
     aria-modal="true"
     aria-labelledby="manage-visibility-title"
