@@ -169,7 +169,7 @@
           hiddenIconClass="text-white group-hover:text-black transition-colors"
         />
         {#if person.name}
-          <span class="absolute bottom-2 start-0 w-full select-text px-1 text-center font-medium text-white">
+          <span class="absolute bottom-0 start-0 w-full select-text p-2 text-center font-medium text-sm text-gray-100 bg-black/30 backdrop-blur-sm">
             {person.name}
           </span>
         {/if}

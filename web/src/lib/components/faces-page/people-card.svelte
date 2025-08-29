@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { shortcut } from '$lib/actions/shortcut';
   import Icon from '$lib/components/elements/icon.svelte';
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
   import { AppRoute, QueryParameter } from '$lib/constants';
@@ -23,9 +24,12 @@
     onMergePeople: () => void;
     onHidePerson: () => void;
     onToggleFavorite: () => void;
+    onInputFocusIn: () => void;
+    onInputFocusOut: () => void;
+    onInput: (e: Event) => void;
   }
 
-  let { person, onSetBirthDate, onMergePeople, onHidePerson, onToggleFavorite }: Props = $props();
+  let { person, onSetBirthDate, onMergePeople, onHidePerson, onToggleFavorite, onInputFocusIn, onInputFocusOut, onInput }: Props = $props();
 </script>
 
 <div
@@ -37,7 +41,7 @@
     href="{AppRoute.PEOPLE}/{person.id}?{QueryParameter.PREVIOUS_ROUTE}={AppRoute.PEOPLE}"
     draggable="false"
   >
-    <div class="w-full h-full rounded-xl brightness-95 filter">
+    <div class="w-full h-full rounded-full brightness-95 filter">
       <ImageThumbnail
         shadow
         url={getPeopleThumbnailUrl(person)}
@@ -47,25 +51,39 @@
         circle
       />
       {#if person.isFavorite}
-        <div class="absolute top-4 start-4">
+        <div class="absolute top-6 start-6">
           <Icon path={mdiHeart} size="24" class="text-white" />
         </div>
       {/if}
     </div>
   </a>
 
-  <div class="absolute -bottom-10.5 end-0.5 z-1">
+  <div>
+    <input
+      type="text"
+      class="bg-white border dark:bg-immich-dark-gray border-gray-300 placeholder-gray-400 text-center dark:border-gray-900 w-full rounded-full mt-3 py-1.5 px-3 text-sm text-immich-primary dark:text-immich-dark-primary"
+      value={person.name}
+      placeholder="Who is this?"
+      use:shortcut={{ shortcut: { key: 'Enter' }, onShortcut: (e) => e.currentTarget.blur() }}
+      onfocusin={() => onInputFocusIn()}
+      onfocusout={() => onInputFocusOut()}
+      oninput={(event) => onInput(event)}
+    />  
+  </div>       
+  <div class="flex mt-1.5">
+    <button type="button" class="flex-1 border rounded-l-full bg-gray-50 pl-3 pr-1 py-1 text-xs flex items-center gap-x-1 font-semibold truncate select-none hover:bg-gray-200 active:bg-gray-200 transition-colors duration-300 ease-in-out" onclick={onHidePerson}>
+      <Icon path={mdiEyeOffOutline} size="20" class="hidden xs:block flex-none" /> <p class="flex-1 text-center">{$t('hide_person')}</p>
+    </button>
     <ButtonContextMenu
-      buttonClass="hover:opacity-100 opacity-70"
+      buttonClass="rounded-l-none rounded-r-full border border-l-0 bg-gray-50 active:bg-gray-200 transition-colors duration-300 ease-in-out"
       color="secondary"
       size="small"
       icon={mdiDotsVertical}
       title={$t('show_person_options')}
-      offset={{ x: 0, y: 32 }}
-    >
-      <MenuOption onClick={onHidePerson} icon={mdiEyeOffOutline} text={$t('hide_person')} />
-      <MenuOption onClick={onSetBirthDate} icon={mdiCalendarEditOutline} text={$t('set_date_of_birth')} />
+      offset={{ x: 0, y: 34 }}
+      >
       <MenuOption onClick={onMergePeople} icon={mdiAccountMultipleCheckOutline} text={$t('merge_people')} />
+      <MenuOption onClick={onSetBirthDate} icon={mdiCalendarEditOutline} text={$t('set_date_of_birth')} />
       <MenuOption
         onClick={onToggleFavorite}
         icon={person.isFavorite ? mdiHeartMinusOutline : mdiHeartOutline}

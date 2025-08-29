@@ -405,7 +405,7 @@
           }}
           use:listNavigation={suggestionContainer}
         >
-          <section class="flex w-64 sm:w-96 place-items-center border-black">
+          <section class="flex w-80 sm:w-96 place-items-center border-black">
             {#if isEditingName}
               <EditNameInput
                 {person}
@@ -416,7 +416,7 @@
                 {thumbnailData}
               />
             {:else}
-              <div class="relative">
+              <div class="relative py-px">
                 <button
                   type="button"
                   class="flex items-center justify-center"
@@ -432,9 +432,9 @@
                     heightStyle="3.375rem"
                   />
                   <div
-                    class="flex flex-col justify-center text-start px-4 text-immich-primary dark:text-immich-dark-primary"
+                    class="flex flex-col justify-center text-start px-4"
                   >
-                    <p class="w-40 sm:w-72 font-medium truncate">{person.name || $t('add_a_name')}</p>
+                    <p class="w-40 sm:w-72 truncate {person.name ? 'font-medium text-immich-primary dark:text-immich-dark-primary' : 'font-normal text-gray-400'}">{person.name || $t('add_a_name')}</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                       {$t('assets_count', { values: { count: numberOfAssets } })}
                     </p>
