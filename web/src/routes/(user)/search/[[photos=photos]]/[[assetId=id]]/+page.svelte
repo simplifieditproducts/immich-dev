@@ -603,7 +603,7 @@
 
 {#if showNameFacesBanner}
 <div
-  class="sm:hidden fixed inset-0 top-12 z-10 bg-black/30"
+  class="sm:hidden fixed inset-0 top-12.5 z-10 bg-black/30"
 >
   <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl">
     <div class="flex items-start gap-x-2">
