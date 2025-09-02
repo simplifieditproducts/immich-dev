@@ -608,7 +608,7 @@
   {/if}
 
   <!-- Asset Viewer -->
-  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full transition-transform duration-300" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
+  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
     {#if previewStackedAsset}
       {#key previewStackedAsset.id}
         {#if previewStackedAsset.type === AssetTypeEnum.Image}
