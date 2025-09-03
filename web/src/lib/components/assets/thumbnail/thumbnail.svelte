@@ -225,7 +225,7 @@
   <!-- Outline on focus -->
   <div
     class={[
-      'pointer-events-none absolute z-1 size-full outline-hidden',
+      'pointer-events-none absolute z-1 size-full outline-hidden outline-4 -outline-offset-4 outline-transparent',
       { 'rounded-xl': selected },
     ]}
     data-outline
