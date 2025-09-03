@@ -530,7 +530,6 @@
 {#if $isViewerOpen && $dataSourceName === name}
   <Portal target="body">
     <AssetViewer
-      animateOpacity={true}
       asset={$viewingAsset}
       onAction={handleAction}
       onPrevious={handlePrevious}
