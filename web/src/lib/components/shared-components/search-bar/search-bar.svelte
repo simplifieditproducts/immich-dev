@@ -23,9 +23,10 @@
     value?: string;
     grayTheme: boolean;
     searchQuery?: MetadataSearchDto | SmartSearchDto;
+    onMoreClick?: (event: MouseEvent) => void;
   }
 
-  let { value = $bindable(''), grayTheme, searchQuery = {} }: Props = $props();
+  let { value = $bindable(''), grayTheme, searchQuery = {}, onMoreClick }: Props = $props();
 
   let showClearIcon = $derived(value.length > 0);
 
@@ -278,7 +279,7 @@
     <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
     <div class="absolute inset-y-0 {!$embeddedInApp && (showClearIcon ? 'sm:end-14' : 'sm:end-2')} -end-10.5 flex items-center ps-6 transition-all">
     {#if $embeddedInApp}
-      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }} onButtonClick={onMoreClick}>
         <MenuOption
           icon={mdiFaceRecognition}
           text="Edit People & Faces"

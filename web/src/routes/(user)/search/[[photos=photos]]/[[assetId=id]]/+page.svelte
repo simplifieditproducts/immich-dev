@@ -593,7 +593,7 @@
           <div class="absolute bg-light"></div>
           <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
           <div class="w-full flex-1 sm:ps-4 px-2">
-            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} />
+            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} onMoreClick={() => (showNameFacesBanner = false)} />
           </div>
         </ControlAppBar>
       </div>
@@ -604,8 +604,14 @@
 {#if showNameFacesBanner}
 <div
   class="sm:hidden fixed inset-0 top-12.5 z-10 bg-black/30"
+  onclick={() => (showNameFacesBanner = false)}
+  role="none"
 >
-  <div class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl">
+  <div
+    class="w-full bg-immich-bg dark:bg-immich-dark-bg px-4 py-5 shadow-2xl"
+    onclick="{(e) => e.stopPropagation()}"
+    role="none"
+  >
     <div class="flex items-start gap-x-2">
       <Icon path={mdiLightbulbOutline} class="text-yellow-500 size-20" />
       <p class="font-medium text-secondary">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>
