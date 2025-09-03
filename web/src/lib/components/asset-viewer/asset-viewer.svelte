@@ -329,7 +329,7 @@
     const deltaY = dragCurrentY - dragStartY;
     
     if (deltaY > DISMISS_THRESHOLD) {
-      dismissViewer();
+      closeViewer();
     } else {
       resetViewer();
     }
@@ -345,7 +345,7 @@
     const deltaY = dragCurrentY - dragStartY;
     
     if (deltaY > DISMISS_THRESHOLD) {
-      dismissViewer();
+      closeViewer();
     } else {
       resetViewer();
     }
@@ -353,6 +353,7 @@
     isDragging = false;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const dismissViewer = () => {
     // Animate PhotoViewer to bottom of screen
     viewerTransform = window.innerHeight;
