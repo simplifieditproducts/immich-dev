@@ -28,7 +28,7 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
-  import { embeddedInApp, lang, locale } from '$lib/stores/preferences.store';
+  import { embeddedInApp, lang, locale, postponeNamingPeopleUntil } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { preferences, user } from '$lib/stores/user.store';
   import { handlePromiseError, sendMessageToApp } from '$lib/utils';
@@ -373,6 +373,13 @@
     window.visualViewport?.addEventListener('resize', updateHeight);
     window.addEventListener('resize', updateHeight);
 
+    // Check if naming people banner should be postponed
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    if ($postponeNamingPeopleUntil && $postponeNamingPeopleUntil > currentTimestamp) {
+      // Banner is postponed, keep showNameFacesBanner as false
+      return;
+    }
+
     // Fetch number of unnamed people for the banner.
     getNumberOfPeople().then(({ total, unnamed }) => {
       showNameFacesBanner = (total > 0 && total === unnamed);
@@ -617,7 +624,11 @@
       <p class="font-medium text-secondary">We found <span class="text-primary font-bold">{numberOfUnnamedPeople}</span> new people in your photos. Name the ones you recognize to improve photo search.</p>
     </div>
     <div class="flex items-center justify-end">
-      <Button variant="ghost" onclick={() => (showNameFacesBanner = false)}>Maybe Later</Button>
+      <Button variant="ghost" onclick={() => {
+        // Postpone naming people banner for one day
+        $postponeNamingPeopleUntil = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+        showNameFacesBanner = false;
+      }}>Maybe Later</Button>
       <Button onclick={() => goto('/people')}>Start Naming</Button>
     </div>
   </div>

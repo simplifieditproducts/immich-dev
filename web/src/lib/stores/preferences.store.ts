@@ -64,6 +64,8 @@ export const isShowDetail = persisted<boolean>('info-opened', false, {});
 
 export const embeddedInApp = persisted<boolean>('embedded-in-app', false, {});
 
+export const postponeNamingPeopleUntil = persisted<number>('postpone-naming-people-until', 0, {});
+
 export const initialUrl = writable<string>(AppRoute.PHOTOS);
 
 export interface AlbumViewSettings {
