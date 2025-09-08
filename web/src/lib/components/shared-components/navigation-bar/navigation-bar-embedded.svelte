@@ -156,7 +156,7 @@
         >
           <button
             type="button"
-            class="flex ps-2"
+            class="flex pe-2"
             onclick={() => (shouldShowAccountInfoPanel = !shouldShowAccountInfoPanel)}
             title={`${$user.name} (${$user.email})`}
           >
