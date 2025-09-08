@@ -35,6 +35,7 @@ These are various important files in the codebase:
 API changes we made in our fork compared to the [official API documentation](https://immich.app/docs/api):
 - The `checkExistingAssets` API function now permits the `deviceId` parameter to be optional. When `deviceId` is not included, the method returns all matching `deviceAssetIds` for the user regardless of `deviceId`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/1efe8565d48f304eb334f8f001c672ec892ba2b2).
 - The `getAllUserAssets` API function has been added to paginate all existing `deviceAssetIds` for the current user regardless of `deviceId`. It can be used with `GET /api/assets?page=1&size=5000`, which allows a maximum of 5000 `deviceAssetIds` per request. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/b2b5d28f68d748e7b9c30a614bd89138a16ceded).
+- The `login` API function now returns `quotaSizeInBytes` and `quotaUsageInBytes`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/15161f1d1b51f759fe8b85ee8b94ac4368524f23).
 
 Communication between the Immich app and the native app is handled via `postMessage`:
 - The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
