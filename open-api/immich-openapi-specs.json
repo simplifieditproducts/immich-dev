@@ -11150,6 +11150,12 @@
           "profileImagePath": {
             "type": "string"
           },
+          "quotaSizeInBytes": {
+            "type": "number"
+          },
+          "quotaUsageInBytes": {
+            "type": "number"
+          },
           "shouldChangePassword": {
             "type": "boolean"
           },
@@ -11166,6 +11172,8 @@
           "isOnboarded",
           "name",
           "profileImagePath",
+          "quotaSizeInBytes",
+          "quotaUsageInBytes",
           "shouldChangePassword",
           "userEmail",
           "userId"

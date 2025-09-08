@@ -41,6 +41,8 @@ export class LoginResponseDto {
   isAdmin!: boolean;
   shouldChangePassword!: boolean;
   isOnboarded!: boolean;
+  quotaSizeInBytes!: number;
+  quotaUsageInBytes!: number;
 }
 
 export function mapLoginResponse(entity: UserAdmin, accessToken: string): LoginResponseDto {
@@ -57,6 +59,8 @@ export function mapLoginResponse(entity: UserAdmin, accessToken: string): LoginR
     profileImagePath: entity.profileImagePath,
     shouldChangePassword: entity.shouldChangePassword,
     isOnboarded: onboardingMetadata?.isOnboarded ?? false,
+    quotaSizeInBytes: entity.quotaSizeInBytes ?? 0,
+    quotaUsageInBytes: entity.quotaUsageInBytes ?? 0,
   };
 }
 
