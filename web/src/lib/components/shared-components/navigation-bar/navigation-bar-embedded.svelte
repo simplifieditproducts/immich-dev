@@ -42,7 +42,7 @@
 <nav id="dashboard-navbar" class="max-sm:h-(--navbar-height-embedded-md) h-(--navbar-height-embedded) w-dvw text-sm">
   <SkipLink text={$t('skip_to_content')} />
   <div
-    class="grid grid-cols-[--spacing(32)_auto] items-center sm:py-3 sidebar:grid-cols-[--spacing(64)_auto] {noBorder
+    class="grid grid-cols-[--spacing(32)_auto] items-center sm:px-2 sm:py-3 sidebar:grid-cols-[--spacing(64)_auto] {noBorder
       ? ''
       : 'border-b'}"
   >
