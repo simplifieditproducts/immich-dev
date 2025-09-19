@@ -75,7 +75,7 @@ export class AssetBulkUploadCheckItem {
   @IsNotEmpty()
   id!: string;
 
-  /** base64 or hex encoded sha1 hash */
+  /** base64 or hex encoded xxHash64 hash */
   @IsString()
   @IsNotEmpty()
   checksum!: string;

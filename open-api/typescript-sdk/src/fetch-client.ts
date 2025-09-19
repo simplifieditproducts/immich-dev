@@ -315,7 +315,7 @@ export type TagResponseDto = {
     value: string;
 };
 export type AssetResponseDto = {
-    /** base64 encoded sha1 hash */
+    /** base64 encoded xxHash64 hash */
     checksum: string;
     deviceAssetId: string;
     deviceId: string;
@@ -466,7 +466,7 @@ export type AssetBulkUpdateDto = {
     visibility?: AssetVisibility;
 };
 export type AssetBulkUploadCheckItem = {
-    /** base64 or hex encoded sha1 hash */
+    /** base64 or hex encoded xxHash64 hash */
     checksum: string;
     id: string;
 };

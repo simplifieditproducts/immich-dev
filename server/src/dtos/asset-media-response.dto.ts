@@ -9,6 +9,7 @@ export class AssetMediaResponseDto {
   @ValidateEnum({ enum: AssetMediaStatus, name: 'AssetMediaStatus' })
   status!: AssetMediaStatus;
   id!: string;
+  checksum?: string;
 }
 
 export enum AssetUploadAction {

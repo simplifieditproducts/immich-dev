@@ -79,7 +79,7 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   tags?: TagResponseDto[];
   people?: PersonWithFacesResponseDto[];
   unassignedFaces?: AssetFaceWithoutPersonResponseDto[];
-  /**base64 encoded sha1 hash */
+  /**base64 encoded xxHash64 hash */
   checksum!: string;
   stack?: AssetStackResponseDto | null;
   duplicateId?: string | null;

@@ -1633,7 +1633,7 @@
           {
             "name": "x-immich-checksum",
             "in": "header",
-            "description": "sha1 checksum that can be used for duplicate detection before the file is uploaded",
+            "description": "xxHash64 checksum that can be used for duplicate detection before the file is uploaded",
             "required": false,
             "schema": {
               "type": "string"
@@ -9437,7 +9437,7 @@
       "AssetBulkUploadCheckItem": {
         "properties": {
           "checksum": {
-            "description": "base64 or hex encoded sha1 hash",
+            "description": "base64 or hex encoded xxHash64 hash",
             "type": "string"
           },
           "id": {
@@ -9906,6 +9906,9 @@
       },
       "AssetMediaResponseDto": {
         "properties": {
+          "checksum": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -9949,7 +9952,7 @@
       "AssetResponseDto": {
         "properties": {
           "checksum": {
-            "description": "base64 encoded sha1 hash",
+            "description": "base64 encoded xxHash64 hash",
             "type": "string"
           },
           "deviceAssetId": {

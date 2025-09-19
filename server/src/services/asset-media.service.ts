@@ -150,7 +150,7 @@ export class AssetMediaService extends BaseService {
 
       await this.userRepository.updateUsage(auth.user.id, file.size);
 
-      return { id: asset.id, status: AssetMediaStatus.CREATED };
+      return { id: asset.id, status: AssetMediaStatus.CREATED, checksum: file.checksum.toString('hex').toUpperCase() };
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
     }

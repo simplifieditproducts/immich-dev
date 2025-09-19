@@ -91,7 +91,7 @@ export class AssetTable {
   encodedVideoPath!: string | null;
 
   @Column({ type: 'bytea', index: true })
-  checksum!: Buffer; // sha1 checksum
+  checksum!: Buffer; // xxHash64 checksum
 
   @ForeignKeyColumn(() => AssetTable, { nullable: true, onUpdate: 'CASCADE', onDelete: 'SET NULL' })
   livePhotoVideoId!: string | null;

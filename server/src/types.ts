@@ -394,7 +394,7 @@ export interface VectorUpdateResult {
 }
 
 export interface ImmichFile extends Express.Multer.File {
-  /** sha1 hash of file */
+  /** xxHash64 hash of file */
   uuid: string;
   checksum: Buffer;
 }
