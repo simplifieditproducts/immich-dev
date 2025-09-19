@@ -3,6 +3,7 @@ import { Insertable, Kysely, NotNull, Selectable, UpdateResult, Updateable, sql 
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { isEmpty, isUndefined, omitBy } from 'lodash';
 import { InjectKysely } from 'nestjs-kysely';
+import { type Buffer } from 'node:buffer';
 import { Stack } from 'src/database';
 import { Chunked, ChunkedArray, DummyValue, GenerateSql } from 'src/decorators';
 import { AssetFileType, AssetOrder, AssetStatus, AssetType, AssetVisibility } from 'src/enum';
@@ -30,7 +31,7 @@ import {
   withTags,
 } from 'src/utils/database';
 import { globToSqlPattern } from 'src/utils/misc';
-import { PaginationOptions, paginationHelper } from 'src/utils/pagination';
+import { PaginationOptions, paginationHelper, type PaginationResult } from 'src/utils/pagination';
 
 export type AssetStats = Record<AssetType, number>;
 
@@ -901,5 +902,25 @@ export class AssetRepository {
       .executeTakeFirstOrThrow();
 
     return count;
+  }
+
+  async adminGetNumberOfAssets(): Promise<number> {
+    const { count } = await this.db
+      .selectFrom('asset')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirstOrThrow();
+
+    return count;
+  }
+
+  @GenerateSql({ params: [{ take: 1, skip: 0 }, DummyValue.STRING] })
+  async adminGetAll(pagination: PaginationOptions): Promise<PaginationResult<{ id: string; originalPath: string; checksum: Buffer }>> {
+    const items = await this.db
+      .selectFrom('asset')
+      .select(['id', 'originalPath', 'checksum'])
+      .offset(pagination.skip ?? 0)
+      .limit(pagination.take + 1)
+      .execute();
+    return paginationHelper(items, pagination.take);
   }
 }
