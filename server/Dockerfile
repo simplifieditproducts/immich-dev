@@ -80,6 +80,7 @@ RUN npm run build
 RUN npm prune --omit=dev --omit=optional
 COPY --from=dev /usr/src/app/server/node_modules/@img ./node_modules/@img
 COPY --from=dev /usr/src/app/server/node_modules/exiftool-vendored.pl ./node_modules/exiftool-vendored.pl
+COPY --from=dev /usr/src/app/server/node_modules/@node-rs ./node_modules/@node-rs
 
 # web build
 FROM node:22.16.0-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679f9b7b298eaa2f1ed8b7e AS web
