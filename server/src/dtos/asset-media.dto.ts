@@ -68,7 +68,10 @@ export class AssetMediaCreateDto extends AssetMediaBase {
   [UploadFieldName.SIDECAR_DATA]?: any;
 }
 
-export class AssetMediaReplaceDto extends AssetMediaBase {}
+export class AssetMediaReplaceDto extends AssetMediaBase {
+  @ValidateBoolean({ optional: true })
+  skipReprocess?: boolean;
+}
 
 export class AssetBulkUploadCheckItem {
   @IsString()

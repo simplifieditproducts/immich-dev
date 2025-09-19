@@ -165,7 +165,7 @@ export class AssetMediaService extends BaseService {
   ): Promise<AssetMediaResponseDto> {
     try {
       await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: [id] });
-      const asset = await this.assetRepository.getById(id);
+      const asset = await this.assetRepository.getById(id, { exifInfo: dto.skipReprocess ?? false });
 
       if (!asset) {
         throw new Error('Asset not found');
@@ -175,16 +175,28 @@ export class AssetMediaService extends BaseService {
 
       await this.replaceFileData(asset.id, dto, file, sidecarFile?.originalPath);
 
-      // Next, create a backup copy of the existing record. The db record has already been updated above,
-      // but the local variable holds the original file data paths.
-      const copiedPhoto = await this.createCopy(asset);
-      // and immediate trash it
-      await this.assetRepository.updateAll([copiedPhoto.id], { deletedAt: new Date(), status: AssetStatus.Trashed });
-      await this.eventRepository.emit('AssetTrash', { assetId: copiedPhoto.id, userId: auth.user.id });
+      if (dto.skipReprocess) {
 
-      await this.userRepository.updateUsage(auth.user.id, file.size);
+        // Simply delete the old original file from the disk
+        await this.jobRepository.queue({ name: JobName.FileDelete, data: { files: [asset.originalPath] } });
 
-      return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id };
+        const delta = file.size - (asset.exifInfo?.fileSizeInByte || 0);
+        await this.userRepository.updateUsage(auth.user.id, delta);
+
+        return { status: AssetMediaStatus.REPLACED, id: asset.id };
+      } else {
+
+        // Next, create a backup copy of the existing record. The db record has already been updated above,
+        // but the local variable holds the original file data paths.
+        const copiedPhoto = await this.createCopy(asset);
+        // and immediate trash it
+        await this.assetRepository.updateAll([copiedPhoto.id], { deletedAt: new Date(), status: AssetStatus.Trashed });
+        await this.eventRepository.emit('AssetTrash', { assetId: copiedPhoto.id, userId: auth.user.id });
+
+        await this.userRepository.updateUsage(auth.user.id, file.size);
+
+        return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id };
+      }
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
     }
@@ -365,10 +377,14 @@ export class AssetMediaService extends BaseService {
 
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size });
-    await this.jobRepository.queue({
-      name: JobName.AssetExtractMetadata,
-      data: { id: assetId, source: 'upload' },
-    });
+
+    // Don't reprocess if skipReprocess is true
+    if (!dto.skipReprocess) {
+      await this.jobRepository.queue({
+        name: JobName.AssetExtractMetadata,
+        data: { id: assetId, source: 'upload' },
+      });
+    }
   }
 
   /**

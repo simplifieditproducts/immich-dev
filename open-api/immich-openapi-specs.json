@@ -9893,6 +9893,9 @@
           },
           "filename": {
             "type": "string"
+          },
+          "skipReprocess": {
+            "type": "boolean"
           }
         },
         "required": [
