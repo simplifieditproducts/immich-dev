@@ -23,6 +23,7 @@ import {
 import { AuthDto } from 'src/dtos/auth.dto';
 import { AssetStatus, AssetType, AssetVisibility, CacheControl, JobName, Permission, StorageFolder } from 'src/enum';
 import { AuthRequest } from 'src/middleware/auth.guard';
+import { ImmichTags } from 'src/repositories/metadata.repository';
 import { BaseService } from 'src/services/base.service';
 import { UploadFile } from 'src/types';
 import { requireUploadAccess } from 'src/utils/access';
@@ -169,6 +170,10 @@ export class AssetMediaService extends BaseService {
 
       if (!asset) {
         throw new Error('Asset not found');
+      }
+
+      if (asset.type !== AssetType.Image && dto.skipReprocess) {
+        throw new BadRequestException('skipReprocess only works for images');
       }
 
       this.requireQuota(auth, file.size);
@@ -376,15 +381,34 @@ export class AssetMediaService extends BaseService {
     });
 
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
-    await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size });
-
-    // Don't reprocess if skipReprocess is true
+    
     if (!dto.skipReprocess) {
+      await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size });
       await this.jobRepository.queue({
         name: JobName.AssetExtractMetadata,
         data: { id: assetId, source: 'upload' },
       });
+    } else {
+      // BUG: works for images only, videos are not handled
+      // Update the dimensions and file size in the exif record
+      const exifTags = await this.metadataRepository.readTags(file.originalPath);
+      const { width, height } = this.getImageDimensions(exifTags);
+      await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size, exifImageWidth: width, exifImageHeight: height });
     }
+  }
+
+  // This method is copied from metadata.service.ts
+  private getImageDimensions(exifTags: ImmichTags): { width?: number; height?: number } {
+    /*
+     * The "true" values for width and height are a bit hidden, depending on the camera model and file format.
+     * For RAW images in the CR2 or RAF format, the "ImageSize" value seems to be correct,
+     * but ImageWidth and ImageHeight are not correct (they contain the dimensions of the preview image).
+     */
+    let [width, height] = exifTags.ImageSize?.split('x').map((dim) => Number.parseInt(dim) || undefined) || [];
+    if (!width || !height) {
+      [width, height] = [exifTags.ImageWidth, exifTags.ImageHeight];
+    }
+    return { width, height };
   }
 
   /**
