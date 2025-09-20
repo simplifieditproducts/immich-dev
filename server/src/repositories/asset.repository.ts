@@ -908,6 +908,7 @@ export class AssetRepository {
     const { count } = await this.db
       .selectFrom('asset')
       .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(sql`length(checksum)`, '=', 20)
       .executeTakeFirstOrThrow();
 
     return count;
@@ -918,6 +919,7 @@ export class AssetRepository {
     const items = await this.db
       .selectFrom('asset')
       .select(['id', 'originalPath', 'checksum'])
+      .where(sql`length(checksum)`, '=', 20)
       .offset(pagination.skip ?? 0)
       .limit(pagination.take + 1)
       .execute();
