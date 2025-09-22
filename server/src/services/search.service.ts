@@ -111,20 +111,20 @@ export class SearchService extends BaseService {
   }
 
   async extractFilters(auth: AuthDto, dto: SmartSearchDto, filterExtraction: {modelName: string, prompt: string, cacheEnabled: boolean}): Promise<SmartSearchDto> {
-    console.log(
+    this.logger.log(
       "Extracting filters for search:",
       Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
     );
 
     // check if user has already specified all of the related filters.
     if (dto.personIds?.length && dto.country && dto.state && dto.city && dto.takenBefore && dto.takenAfter) {
-      console.log("User has specified all of the related filters. There is no need to extract them from the query.");
+      this.logger.log("User has specified all of the related filters. There is no need to extract them from the query.");
       return dto;
     }
 
     // if the query is empty, we cannot extract filters.
     if (!dto.query || dto.query.trim() === "") {
-      console.log("Query is empty, cannot extract filters.");
+      this.logger.log("Query is empty, cannot extract filters.");
       return dto;
     }
 
@@ -145,8 +145,8 @@ export class SearchService extends BaseService {
       .replaceAll('$PEOPLE_NAMES', peopleNames)
       .replaceAll('$BIRTHDAY', ""); // TODO: add birthday information if needed
 
-    console.debug("Filter extraction model:", filterExtraction.modelName);
-    console.debug("Filter extraction prompt:", prompt);
+    this.logger.log(`Filter extraction model: ${filterExtraction.modelName}`);
+    this.logger.debug(`Filter extraction prompt: ${prompt}`);
 
     // use GPT to extract filters from the query.
     const openai = new OpenAI({
@@ -160,7 +160,7 @@ export class SearchService extends BaseService {
       const cacheVal = filterExtraction.cacheEnabled ? await this.redisRepository.get(cacheKey) : null;
       if (cacheVal) {
         data = JSON.parse(cacheVal);
-        console.log("Filter extraction response loaded from cache:", data);
+        this.logger.log("Filter extraction response loaded from cache:", data);
       }
 
       else {
@@ -176,17 +176,17 @@ export class SearchService extends BaseService {
           },
         });
         const endTime = Date.now();
-        console.log(`Filter extraction API call took ${endTime - startTime}ms`);
+        this.logger.log(`Filter extraction API call took ${endTime - startTime}ms`);
 
         data = response.output_parsed;
         if (!data) {
-          console.error("No data returned from filter extraction:", response);
+          this.logger.error("No data returned from filter extraction:", response);
           return dto;
         }
 
         // cache the response
         await this.redisRepository.set(cacheKey, JSON.stringify(data), FILTER_EXTRACTION_CACHE_TTL.as('seconds'));
-        console.log("Filter extraction raw response:", data);
+        this.logger.log("Filter extraction raw response:", data);
       }
 
       // filter data, unset any fields with value undefined or null or empty string
@@ -223,12 +223,12 @@ export class SearchService extends BaseService {
         city: dto.city || data.city 
       };
 
-      console.log(
+      this.logger.log(
         "Updated search filters:",
         Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
       );
     } catch (error) {
-      console.error("Error extracting filters from query:", {
+      this.logger.error("Error extracting filters from query:", {
         query: dto.query,
         modelName: filterExtraction.modelName,
         prompt,
