@@ -461,31 +461,35 @@ export class PersonService extends BaseService {
 
   @OnJob({ name: JobName.FacialRecognition, queue: QueueName.FacialRecognition })
   async handleRecognizeFaces({ id, deferred }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
+    this.logger.log(`[FacialRecognition] Starting facial recognition for face ${id} ${deferred ? '(deferred)' : ''}`);
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isFacialRecognitionEnabled(machineLearning)) {
+      this.logger.log('[FacialRecognition] Skipping facial recognition since it is disabled');
       return JobStatus.Skipped;
     }
 
     const face = await this.personRepository.getFaceForFacialRecognitionJob(id);
     if (!face || !face.asset) {
-      this.logger.warn(`Face ${id} not found`);
+      this.logger.warn(`[FacialRecognition] Face ${id} not found`);
       return JobStatus.Failed;
     }
 
     if (face.sourceType !== SourceType.MachineLearning) {
-      this.logger.warn(`Skipping face ${id} due to source ${face.sourceType}`);
+      this.logger.warn(`[FacialRecognition] Skipping face ${id} due to source ${face.sourceType}`);
       return JobStatus.Skipped;
     }
 
     if (!face.faceSearch?.embedding) {
-      this.logger.warn(`Face ${id} does not have an embedding`);
+      this.logger.warn(`[FacialRecognition] Face ${id} does not have an embedding`);
       return JobStatus.Failed;
     }
 
     if (face.personId) {
-      this.logger.debug(`Face ${id} already has a person assigned`);
+      this.logger.log(`[FacialRecognition] Face ${id} already has a person assigned`);
       return JobStatus.Skipped;
     }
+
+    this.logger.log(`[FacialRecognition] Matching face ${id} is being processed`);
 
     const matches = await this.searchRepository.searchFaces({
       userIds: [face.asset.ownerId],
@@ -497,23 +501,26 @@ export class PersonService extends BaseService {
 
     // `matches` also includes the face itself
     if (machineLearning.facialRecognition.minFaces > 1 && matches.length <= 1) {
-      this.logger.debug(`Face ${id} only matched the face itself, skipping`);
+      this.logger.log(`[FacialRecognition] Face ${id} only matched the face itself, skipping`);
       return JobStatus.Skipped;
     }
 
-    this.logger.debug(`Face ${id} has ${matches.length} matches`);
+    this.logger.log(`[FacialRecognition] Face ${id} has ${matches.length} matches`);
 
     const isCore =
       matches.length >= machineLearning.facialRecognition.minFaces &&
       face.asset.visibility === AssetVisibility.Timeline;
     if (!isCore && !deferred) {
-      this.logger.debug(`Deferring non-core face ${id} for later processing`);
+      this.logger.log(`[FacialRecognition] Deferring non-core face ${id} for later processing`);
       await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred: true } });
       return JobStatus.Skipped;
     }
 
+    this.logger.log(`[FacialRecognition] Matching face ${id} to person`);
+
     let personId = matches.find((match) => match.personId)?.personId;
     if (!personId) {
+      this.logger.log(`[FacialRecognition] Face ${id} does not have a person assigned, searching for matches`);
       const matchWithPerson = await this.searchRepository.searchFaces({
         userIds: [face.asset.ownerId],
         embedding: face.faceSearch.embedding,
@@ -524,20 +531,24 @@ export class PersonService extends BaseService {
       });
 
       if (matchWithPerson.length > 0) {
+        this.logger.log(`[FacialRecognition] Face ${id} found many matching person, pick the first ${matchWithPerson[0].personId}`);
         personId = matchWithPerson[0].personId;
       }
     }
 
     if (isCore && !personId) {
-      this.logger.log(`Creating new person for face ${id}`);
+      this.logger.log(`[FacialRecognition] Creating new person for face ${id}`);
       const newPerson = await this.personRepository.create({ ownerId: face.asset.ownerId, faceAssetId: face.id });
+      this.logger.log(`[FacialRecognition] Created new person ${newPerson.id} for face ${id}`);
       await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
       personId = newPerson.id;
+      this.logger.log(`[FacialRecognition] Queued thumbnail generation for person ${newPerson.id}`);
     }
 
     if (personId) {
-      this.logger.debug(`Assigning face ${id} to person ${personId}`);
+      this.logger.log(`[FacialRecognition] Assigning face ${id} to person ${personId}`);
       await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
+      this.logger.log(`[FacialRecognition] Assigned face ${id} to person ${personId}`);
     }
 
     return JobStatus.Success;
