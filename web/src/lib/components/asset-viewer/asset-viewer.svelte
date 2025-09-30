@@ -96,8 +96,11 @@
 
   // Swipe to dismiss variables
   let isDragging = $state(false);
+  let isDismissing = $state(undefined as boolean | undefined);
   let dragStartY = $state(0);
   let dragCurrentY = $state(0);
+  let dragStartX = $state(0);
+  let dragCurrentX = $state(0);  
   let viewerTransform = $state(0);
   let viewerOpacity = $state(1);
   let viewerScale = $state(1);
@@ -263,7 +266,9 @@
     const touches = (e as any).touches;
     if (touches && touches.length === 1) {
       isDragging = true;
+      dragStartX = touches[0].clientX;
       dragStartY = touches[0].clientY;
+      dragCurrentX = dragStartX;
       dragCurrentY = dragStartY;
     }
   };
@@ -274,7 +279,9 @@
     }
 
     isDragging = true;
+    dragStartX = e.clientX;
     dragStartY = e.clientY;
+    dragCurrentX = dragStartX;
     dragCurrentY = dragStartY;
   };
 
@@ -284,7 +291,7 @@
     if (!isDragging || !touches || touches.length !== 1) {
       return;
     }
-    
+    dragCurrentX = touches[0].clientX;
     dragCurrentY = touches[0].clientY;
     updateViewerPosition();
   };
@@ -299,10 +306,22 @@
   };
 
   const updateViewerPosition = () => {
+    const deltaX = dragCurrentX - dragStartX;
     const deltaY = dragCurrentY - dragStartY;
+
+    // Lock the direction to vertical or horizontal based on initial movement
+    if (isDismissing === undefined) {
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+        isDismissing = true; // Vertical drag
+      } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        isDismissing = false; // Horizontal drag
+      } else {
+        return; // Not enough movement to determine direction
+      }
+    }
     
     // Only allow downward swipes
-    if (deltaY > 0) {
+    if (deltaY > 0 && isDismissing) {
       controlsVisible = false; // Hide controls during drag
 
       viewerTransform = deltaY;
@@ -328,13 +347,14 @@
     
     const deltaY = dragCurrentY - dragStartY;
     
-    if (deltaY > DISMISS_THRESHOLD) {
+    if (isDismissing && deltaY > DISMISS_THRESHOLD) {
       dismissViewer();
     } else {
       resetViewer();
     }
     
     isDragging = false;
+    isDismissing = undefined;
   };
 
   const handleMouseUp = () => {
@@ -344,13 +364,14 @@
     
     const deltaY = dragCurrentY - dragStartY;
     
-    if (deltaY > DISMISS_THRESHOLD) {
+    if (isDismissing && deltaY > DISMISS_THRESHOLD) {
       dismissViewer();
     } else {
       resetViewer();
     }
     
     isDragging = false;
+    isDismissing = undefined;
   };
 
   const dismissViewer = () => {
