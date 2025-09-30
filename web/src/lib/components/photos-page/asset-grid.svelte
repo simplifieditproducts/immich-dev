@@ -450,7 +450,7 @@
     } else {
       notificationController.show({
         type: NotificationType.Info,
-        message: "This is already the first asset.",
+        message: "This is already the first photo.",
       });
     }
 
@@ -470,7 +470,7 @@
     } else {
       notificationController.show({
         type: NotificationType.Info,
-        message: "This is already the last asset.",
+        message: "This is already the last photo.",
       });
     }
 
