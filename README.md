@@ -43,5 +43,7 @@ Communication between the Immich app and the native app is handled via `postMess
 - The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
 - The `CMD_SETBGMODE_DARK` message instructs the native app to set the app’s background to dark (black).
 - The `CMD_SETBGMODE_DEFAULT` message instructs the native app to reset the background to its default.
+- The `CMD_DOWNLOAD_ASSETS` message instructs the native app to download a list of assets. It comes with a list of assets in JSON format; the `id` field of each asset will always be present, while the other fields could be null if the download is initialized from the timeline view.
+- (Optional) The `CMD_DOWNLOAD_ALBUM` message instructs the native app to download an album. Currently, this command is not sent as the 'Download' button is hidden from end users.
 
 More documentation can be found [here](https://github.com/simplifieditproducts/immich-devops/tree/main/docs).
