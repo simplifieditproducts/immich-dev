@@ -10,6 +10,7 @@
   } from '$lib/components/photos-page/actions/focus-actions';
   import Skeleton from '$lib/components/photos-page/skeleton.svelte';
   import ChangeDate from '$lib/components/shared-components/change-date.svelte';
+  import { notificationController, NotificationType } from '$lib/components/shared-components/notification/notification';
   import Scrubber from '$lib/components/shared-components/scrubber/scrubber.svelte';
   import { AppRoute, AssetAction } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
@@ -446,6 +447,11 @@
       const asset = await getAssetInfo({ ...authManager.params, id: laterAsset.id });
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: laterAsset.id });
+    } else {
+      notificationController.show({
+        type: NotificationType.Info,
+        message: "This is already the first asset.",
+      });
     }
 
     release();
@@ -461,6 +467,11 @@
       const asset = await getAssetInfo({ ...authManager.params, id: earlierAsset.id });
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: earlierAsset.id });
+    } else {
+      notificationController.show({
+        type: NotificationType.Info,
+        message: "This is already the last asset.",
+      });
     }
 
     release();

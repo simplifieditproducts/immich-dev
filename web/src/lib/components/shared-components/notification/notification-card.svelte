@@ -75,7 +75,7 @@
   transition:fade={{ duration: 250 }}
   style:background-color={backgroundColor[notification.type]}
   style:border-color={borderColor[notification.type]}
-  class="border mb-4 min-h-[80px] w-[300px] rounded-2xl p-4 shadow-md {hoverStyle}"
+  class="border mb-4 min-h-[80px] w-[300px] rounded-2xl p-4 pt-2 shadow-md {hoverStyle}"
   onclick={handleClick}
   onkeydown={handleClick}
 >
