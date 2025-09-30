@@ -661,6 +661,9 @@
                 onclick={handleStartSlideshow}
                 icon={mdiPresentationPlay}
               />
+
+              <!-- Kevin has made 'Download' button visible only for admins -->
+              {#if $user.isAdmin}
               <IconButton
                 shape="round"
                 variant="ghost"
@@ -669,6 +672,7 @@
                 onclick={handleDownloadAlbum}
                 icon={mdiFolderDownloadOutline}
               />
+              {/if}
             {/if}
 
             {#if isOwned}

@@ -7,8 +7,9 @@
   import type { Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { dragAndDropFilesStore } from '$lib/stores/drag-and-drop-files.store';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { handlePromiseError } from '$lib/utils';
-  import { cancelMultiselect, downloadArchive } from '$lib/utils/asset-utils';
+  import { cancelMultiselect, downloadArchive, downloadAssetsViaApp } from '$lib/utils/asset-utils';
   import { fileUploadHandler, openFileUploadDialog } from '$lib/utils/file-uploader';
   import { handleError } from '$lib/utils/handle-error';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
@@ -44,6 +45,12 @@
   });
 
   const downloadAssets = async () => {
+    // If embedded in app, use the app's download functionality
+    if ($embeddedInApp) {
+      downloadAssetsViaApp(assets);
+      return;
+    }
+
     await downloadArchive(`immich-shared.zip`, { assetIds: assets.map((asset) => asset.id) });
   };
 

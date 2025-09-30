@@ -368,7 +368,7 @@ export const sendMessageToApp = (data: string) => {
     // Android
     window.Android.postMessage(data);
   } else {
-    console.warn("No native bridge available");
+    console.warn("No native bridge available. Message not sent:", data);
     return false;
   }
   return true;

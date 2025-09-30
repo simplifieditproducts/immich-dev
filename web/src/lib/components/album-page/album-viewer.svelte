@@ -11,11 +11,11 @@
   import { embeddedInApp } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { handlePromiseError } from '$lib/utils';
-  import { cancelMultiselect, downloadAlbum } from '$lib/utils/asset-utils';
+  import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { fileUploadHandler, openFileUploadDialog } from '$lib/utils/file-uploader';
   import type { AlbumResponseDto, SharedLinkResponseDto, UserResponseDto } from '@immich/sdk';
   import { IconButton } from '@immich/ui';
-  import { mdiFileImagePlusOutline, mdiFolderDownloadOutline } from '@mdi/js';
+  import { mdiFileImagePlusOutline } from '@mdi/js';
   import { onDestroy } from 'svelte';
   import { t } from 'svelte-i18n';
   import DownloadAction from '../photos-page/actions/download-action.svelte';
@@ -119,7 +119,8 @@
           />
         {/if}
 
-        {#if album.assetCount > 0 && sharedLink.allowDownload}
+        <!-- Kevin has made 'Download' button invisible in shared album -->
+        <!-- {#if album.assetCount > 0 && sharedLink.allowDownload}
           <IconButton
             shape="round"
             color="secondary"
@@ -128,7 +129,8 @@
             onclick={() => downloadAlbum(album)}
             icon={mdiFolderDownloadOutline}
           />
-        {/if}
+        {/if} -->
+        
         {#if sharedLink.showMetadata && $featureFlags.loaded && $featureFlags.map}
           <AlbumMap {album} />
         {/if}

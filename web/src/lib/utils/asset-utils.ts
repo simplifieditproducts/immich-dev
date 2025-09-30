@@ -8,8 +8,9 @@ import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
 import { assetsSnapshot } from '$lib/managers/timeline-manager/utils.svelte';
 import type { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
 import { isSelectingAllAssets } from '$lib/stores/assets-store.svelte';
+import { embeddedInApp } from '$lib/stores/preferences.store';
 import { preferences } from '$lib/stores/user.store';
-import { downloadRequest, withError } from '$lib/utils';
+import { downloadRequest, sendMessageToApp, withError } from '$lib/utils';
 import { getByteUnitString } from '$lib/utils/byte-units';
 import { getFormatter } from '$lib/utils/i18n';
 import { navigate } from '$lib/utils/navigation';
@@ -121,6 +122,13 @@ export const removeTag = async ({
 };
 
 export const downloadAlbum = async (album: AlbumResponseDto) => {
+
+  // If embedded in app, use the app's download functionality
+  if (get(embeddedInApp)) {
+    downloadAlbumViaApp(album);
+    return;
+  }
+
   await downloadArchive(`${album.albumName}.zip`, {
     albumId: album.id,
   });
@@ -150,6 +158,24 @@ export const downloadUrl = (url: string, filename: string) => {
   anchor.remove();
 
   URL.revokeObjectURL(url);
+};
+
+// Sends a download request to the native app when in embedded mode
+export const downloadAssetsViaApp = (assets: TimelineAsset[]) => {
+
+  // The 'id' field will always be present while the other fields may be undefined
+  const assetList = assets.map(a => {
+    return { id: a.id, originalFileName: a.originalFileName, deviceAssetId: a.deviceAssetId, fileSizeInByte: a.fileSizeInByte };
+  });
+
+  sendMessageToApp('CMD_DOWNLOAD_ASSETS ' + JSON.stringify({ assets: assetList }));
+};
+
+// Sends a download request to the native app when in embedded mode
+export const downloadAlbumViaApp = (album: AlbumResponseDto) => {
+  const albumData = { id: album.id, albumName: album.albumName, assetCount: album.assetCount, description: album.description, createdAt: album.createdAt };
+
+  sendMessageToApp('CMD_DOWNLOAD_ALBUM ' + JSON.stringify({ album: albumData }));
 };
 
 export const downloadArchive = async (fileName: string, options: Omit<DownloadInfoDto, 'archiveSize'>) => {
@@ -209,6 +235,7 @@ export const downloadFile = async (asset: AssetResponseDto) => {
     {
       filename: asset.originalFileName,
       id: asset.id,
+      deviceAssetId: asset.deviceAssetId,
       size: asset.exifInfo?.fileSizeInByte || 0,
     },
   ];
@@ -224,8 +251,17 @@ export const downloadFile = async (asset: AssetResponseDto) => {
         filename: motionAsset.originalFileName,
         id: asset.livePhotoVideoId,
         size: motionAsset.exifInfo?.fileSizeInByte || 0,
+        deviceAssetId: motionAsset.deviceAssetId,
       });
     }
+  }
+
+  // If the web app is in embedded mode, send assets to native app for downloading instead.
+  if (get(embeddedInApp)) {
+    downloadAssetsViaApp(assets.map(a => {
+      return { id: a.id, originalFileName: a.filename, deviceAssetId: a.deviceAssetId, fileSizeInByte: a.size } as TimelineAsset;
+    }));
+    return;
   }
 
   const queryParams = asQueryString(authManager.params);
