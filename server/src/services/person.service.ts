@@ -466,24 +466,27 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }
 
+    // Kevin: wrap in try-catch to avoid the whole queue being stuck.
+    // The job will be marked as failed, and can be retried later.
+    try {
     const face = await this.personRepository.getFaceForFacialRecognitionJob(id);
     if (!face || !face.asset) {
-      this.logger.warn(`[FacialRecognition] Face ${id} not found`);
+      this.logger.warn(`Face ${id} not found`);
       return JobStatus.Failed;
     }
 
     if (face.sourceType !== SourceType.MachineLearning) {
-      this.logger.warn(`[FacialRecognition] Skipping face ${id} due to source ${face.sourceType}`);
+      this.logger.warn(`Skipping face ${id} due to source ${face.sourceType}`);
       return JobStatus.Skipped;
     }
 
     if (!face.faceSearch?.embedding) {
-      this.logger.warn(`[FacialRecognition] Face ${id} does not have an embedding`);
+      this.logger.warn(`Face ${id} does not have an embedding`);
       return JobStatus.Failed;
     }
 
     if (face.personId) {
-      this.logger.debug(`[FacialRecognition] Face ${id} already has a person assigned`);
+      this.logger.debug(`Face ${id} already has a person assigned`);
       return JobStatus.Skipped;
     }
 
@@ -497,17 +500,17 @@ export class PersonService extends BaseService {
 
     // `matches` also includes the face itself
     if (machineLearning.facialRecognition.minFaces > 1 && matches.length <= 1) {
-      this.logger.log(`[FacialRecognition] Face ${id} only matched the face itself, skipping`);
+      this.logger.debug(`Face ${id} only matched the face itself, skipping`);
       return JobStatus.Skipped;
     }
 
-    this.logger.debug(`[FacialRecognition] Face ${id} has ${matches.length} matches`);
+    this.logger.debug(`Face ${id} has ${matches.length} matches`);
 
     const isCore =
       matches.length >= machineLearning.facialRecognition.minFaces &&
       face.asset.visibility === AssetVisibility.Timeline;
     if (!isCore && !deferred) {
-      this.logger.log(`[FacialRecognition] Deferring non-core face ${id} for later processing`);
+      this.logger.debug(`Deferring non-core face ${id} for later processing`);
       await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred: true } });
       return JobStatus.Skipped;
     }
@@ -529,15 +532,19 @@ export class PersonService extends BaseService {
     }
 
     if (isCore && !personId) {
-      this.logger.log(`[FacialRecognition] Creating new person for face ${id}`);
+      this.logger.log(`Creating new person for face ${id}`);
       const newPerson = await this.personRepository.create({ ownerId: face.asset.ownerId, faceAssetId: face.id });
       await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
       personId = newPerson.id;
     }
 
     if (personId) {
-      this.logger.log(`[FacialRecognition] Assigning face ${id} to person ${personId}`);
+      this.logger.debug(`Assigning face ${id} to person ${personId}`);
       await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
+    }
+    } catch (error: Error | any) {
+      this.logger.error(`Unable to process face ${id} : ${error}`, error?.stack);
+      return JobStatus.Failed;
     }
 
     return JobStatus.Success;
