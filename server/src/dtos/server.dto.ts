@@ -1,4 +1,5 @@
 import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 import { SemVer } from 'semver';
 import { SystemConfigThemeDto } from 'src/dtos/system-config.dto';
 
@@ -131,6 +132,13 @@ export class ServerStatsResponseDto {
     ],
   })
   usageByUser: UsageByUserDto[] = [];
+}
+
+export class SimpleServerStatsDto {
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['picturekeeper', 'ultimatebackup'])
+  appName: string = 'picturekeeper';
 }
 
 export class SimpleServerStatsResponseDto {

@@ -156,8 +156,8 @@ export class ServerService extends BaseService {
     return serverStats;
   }
 
-  async getSimpleStatistics(): Promise<SimpleServerStatsResponseDto> {
-    return await this.assetRepository.getAssetStats();
+  async getSimpleStatistics(appName: string): Promise<SimpleServerStatsResponseDto> {
+    return await this.assetRepository.getAssetStats(appName);
   }
 
   getSupportedMediaTypes(): ServerMediaTypesResponseDto {

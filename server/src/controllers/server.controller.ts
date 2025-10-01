@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Put, Query } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
+import { AuthDto } from 'src/dtos/auth.dto';
 import { LicenseKeyDto, LicenseResponseDto } from 'src/dtos/license.dto';
 import {
   ServerAboutResponseDto,
@@ -13,11 +14,12 @@ import {
   ServerThemeDto,
   ServerVersionHistoryResponseDto,
   ServerVersionResponseDto,
+  SimpleServerStatsDto,
   SimpleServerStatsResponseDto,
 } from 'src/dtos/server.dto';
 import { VersionCheckStateResponseDto } from 'src/dtos/system-metadata.dto';
 import { Permission } from 'src/enum';
-import { Authenticated } from 'src/middleware/auth.guard';
+import { Auth, Authenticated } from 'src/middleware/auth.guard';
 import { ServerService } from 'src/services/server.service';
 import { SystemMetadataService } from 'src/services/system-metadata.service';
 import { VersionService } from 'src/services/version.service';
@@ -87,8 +89,8 @@ export class ServerController {
 
   @Get('simple-statistics')
   @Authenticated({ permission: Permission.ServerStatistics, admin: true })
-  getSimpleServerStatistics(): Promise<SimpleServerStatsResponseDto> {
-    return this.service.getSimpleStatistics();
+  getSimpleServerStatistics(@Auth() auth: AuthDto, @Query() dto: SimpleServerStatsDto): Promise<SimpleServerStatsResponseDto> {
+    return this.service.getSimpleStatistics(dto.appName);
   }
 
   @Get('media-types')

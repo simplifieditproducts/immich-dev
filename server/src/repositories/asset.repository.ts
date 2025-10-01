@@ -537,11 +537,12 @@ export class AssetRepository {
   }
 
   @GenerateSql()
-  getAssetStats() {
+  getAssetStats(appName: string) {
     return this.db
-      .selectFrom('asset')
+      .selectFrom('user')
+      .leftJoin('asset', (join) => join.onRef('asset.ownerId', '=', 'user.id').on('asset.deletedAt', 'is', null))
       .leftJoin('asset_exif', 'asset_exif.assetId', 'asset.id')
-      .where('asset.deletedAt', 'is', null)
+      .where('user.email', 'like', appName === 'ultimatebackup' ? '%-user@ubdrive.net' : '%-user@pk.com')
       .select((eb) => [
         eb.fn
           .countAll<number>()

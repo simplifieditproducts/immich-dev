@@ -5914,7 +5914,21 @@
     "/server/simple-statistics": {
       "get": {
         "operationId": "getSimpleServerStatistics",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "appName",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "default": "picturekeeper",
+              "type": "string",
+              "enum": [
+                "picturekeeper",
+                "ultimatebackup"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
