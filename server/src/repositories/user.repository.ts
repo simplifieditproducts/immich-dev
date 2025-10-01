@@ -10,12 +10,13 @@ import { DB } from 'src/schema';
 import { UserMetadataTable } from 'src/schema/tables/user-metadata.table';
 import { UserTable } from 'src/schema/tables/user.table';
 import { UserMetadata, UserMetadataItem } from 'src/types';
-import { asUuid } from 'src/utils/database';
+import { anyUuid, asUuid } from 'src/utils/database';
 
 type Upsert = Insertable<UserMetadataTable>;
 
 export interface UserListFilter {
   id?: string;
+  ids?: string[];
   withDeleted?: boolean;
 }
 
@@ -163,13 +164,14 @@ export class UserRepository {
     { name: 'with deleted', params: [{ withDeleted: true }] },
     { name: 'without deleted', params: [{ withDeleted: false }] },
   )
-  getList({ id, withDeleted }: UserListFilter = {}) {
+  getList({ id, ids, withDeleted }: UserListFilter = {}) {
     return this.db
       .selectFrom('user')
       .select(columns.userAdmin)
       .select(withMetadata)
       .$if(!withDeleted, (eb) => eb.where('user.deletedAt', 'is', null))
       .$if(!!id, (eb) => eb.where('user.id', '=', id!))
+      .$if(!!ids, (eb) => eb.where('user.id', '=', anyUuid(ids!)))
       .orderBy('createdAt', 'desc')
       .execute();
   }

@@ -355,6 +355,18 @@
             }
           },
           {
+            "name": "ids",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "withDeleted",
             "required": false,
             "in": "query",
