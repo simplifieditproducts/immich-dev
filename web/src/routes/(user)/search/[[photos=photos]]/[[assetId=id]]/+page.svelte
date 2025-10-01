@@ -537,76 +537,75 @@
     />
   </section>
   {/if}
-
-  <section>
-    {#if assetInteraction.selectionActive}
-      <div class="fixed top-0 start-0 w-full">
-        <AssetSelectControlBar
-          assets={assetInteraction.selectedAssets}
-          clearSelect={() => cancelMultiselect(assetInteraction)}
-        >
-          <CreateSharedLink />
-          <IconButton
-            shape="round"
-            color="secondary"
-            variant="ghost"
-            aria-label={$t('select_all')}
-            icon={mdiSelectAll}
-            onclick={handleSelectAll}
-          />
-          <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
-            <AddToAlbum {onAddToAlbum} />
-            <AddToAlbum shared {onAddToAlbum} />
-          </ButtonContextMenu>
-          <FavoriteAction
-            removeFavorite={assetInteraction.isAllFavorite}
-            onFavorite={(ids, isFavorite) => {
-              for (const id of ids) {
-                const asset = searchResultAssets.find((asset) => asset.id === id);
-                if (asset) {
-                  asset.isFavorite = isFavorite;
-                }
-              }
-            }}
-          />
-
-          <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
-            <DownloadAction menuItem />
-            <ChangeDate menuItem />
-            <ChangeDescription menuItem />
-            <ChangeLocation menuItem />
-            <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
-            {#if $user.isAdmin}
-              <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
-              {#if assetInteraction.isAllUserOwned}
-                <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
-              {/if}
-              {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
-                <TagAction menuItem />
-              {/if}
-            {/if}
-            <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
-            <!-- Kevin has made 'Refresh thumbnails' and 'Refresh metadata' buttons visible only for admins -->
-            {#if $user.isAdmin}
-              <hr />
-              <AssetJobActions />
-            {/if}
-          </ButtonContextMenu>
-        </AssetSelectControlBar>
-      </div>
-    {:else}
-      <div class="fixed top-0 start-0 w-full">
-        <ControlAppBar onClose={onClose} backIcon={mdiArrowBackIos}>
-          <div class="absolute bg-light"></div>
-          <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
-          <div class="w-full flex-1 sm:ps-4 px-2">
-            <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} onMoreClick={() => (showNameFacesBanner = false)} />
-          </div>
-        </ControlAppBar>
-      </div>
-    {/if}
-  </section>
 </section>
+</div>
+
+{#if assetInteraction.selectionActive}
+  <div class="fixed top-0 start-0 w-full">
+    <AssetSelectControlBar
+      assets={assetInteraction.selectedAssets}
+      clearSelect={() => cancelMultiselect(assetInteraction)}
+    >
+      <CreateSharedLink />
+      <IconButton
+        shape="round"
+        color="secondary"
+        variant="ghost"
+        aria-label={$t('select_all')}
+        icon={mdiSelectAll}
+        onclick={handleSelectAll}
+      />
+      <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
+        <AddToAlbum {onAddToAlbum} />
+        <AddToAlbum shared {onAddToAlbum} />
+      </ButtonContextMenu>
+      <FavoriteAction
+        removeFavorite={assetInteraction.isAllFavorite}
+        onFavorite={(ids, isFavorite) => {
+          for (const id of ids) {
+            const asset = searchResultAssets.find((asset) => asset.id === id);
+            if (asset) {
+              asset.isFavorite = isFavorite;
+            }
+          }
+        }}
+      />
+
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
+        <DownloadAction menuItem />
+        <ChangeDate menuItem />
+        <ChangeDescription menuItem />
+        <ChangeLocation menuItem />
+        <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+        {#if $user.isAdmin}
+          <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} />
+          {#if assetInteraction.isAllUserOwned}
+            <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+          {/if}
+          {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
+            <TagAction menuItem />
+          {/if}
+        {/if}
+        <DeleteAssets menuItem {onAssetDelete} onUndoDelete={onSearchQueryUpdate} />
+        <!-- Kevin has made 'Refresh thumbnails' and 'Refresh metadata' buttons visible only for admins -->
+        {#if $user.isAdmin}
+          <hr />
+          <AssetJobActions />
+        {/if}
+      </ButtonContextMenu>
+    </AssetSelectControlBar>
+  </div>
+{:else}
+  <div class="fixed top-0 start-0 w-full">
+    <ControlAppBar onClose={onClose} backIcon={mdiArrowBackIos}>
+      <div class="absolute bg-light"></div>
+      <!-- Kevin added a query parameter to hide the 'Back' icon on the search bar. -->
+      <div class="w-full flex-1 sm:ps-4 px-2">
+        <SearchBar grayTheme={false} value={terms?.query ?? ''} searchQuery={terms} onMoreClick={() => (showNameFacesBanner = false)} />
+      </div>
+    </ControlAppBar>
+  </div>
+{/if}
 
 {#if showNameFacesBanner}
 <div
@@ -634,5 +633,3 @@
   </div>
 </div>
 {/if}
-
-</div>
