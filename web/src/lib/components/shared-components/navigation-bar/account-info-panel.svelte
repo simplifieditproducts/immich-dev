@@ -62,7 +62,7 @@
         {$user.name}
       </p>
       {#if $user.isAdmin}
-        <p class="text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
+        <p class="text-center text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
       {/if}
     </div>
 
@@ -85,7 +85,7 @@
       </Button>
       {#if $user.isAdmin}
         <Button
-          href={AppRoute.ADMIN_USERS}
+          href={AppRoute.ADMIN_JOBS}
           onclick={onClose}
           shape="round"
           variant="ghost"
