@@ -536,6 +536,41 @@ export class AssetRepository {
       .executeTakeFirstOrThrow();
   }
 
+  @GenerateSql()
+  getAssetStats() {
+    return this.db
+      .selectFrom('asset')
+      .leftJoin('asset_exif', 'asset_exif.assetId', 'asset.id')
+      .where('asset.deletedAt', 'is', null)
+      .select((eb) => [
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.and([
+              eb('asset.type', '=', sql.lit(AssetType.Image)),
+              eb('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden)),
+            ]),
+          )
+          .as('photos'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.and([
+              eb('asset.type', '=', sql.lit(AssetType.Video)),
+              eb('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden)),
+            ]),
+          )
+          .as('videos'),
+        eb.fn
+          .coalesce(
+            eb.fn.sum<number>('asset_exif.fileSizeInByte').filterWhere('asset.libraryId', 'is', null),
+            eb.lit(0),
+          )
+          .as('usage'),
+      ])
+      .executeTakeFirstOrThrow();
+  }
+
   getRandom(userIds: string[], take: number) {
     return this.db
       .selectFrom('asset')

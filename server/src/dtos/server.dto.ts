@@ -133,6 +133,17 @@ export class ServerStatsResponseDto {
   usageByUser: UsageByUserDto[] = [];
 }
 
+export class SimpleServerStatsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  photos = 0;
+
+  @ApiProperty({ type: 'integer' })
+  videos = 0;
+
+  @ApiProperty({ type: 'integer', format: 'int64' })
+  usage = 0;
+}
+
 export class ServerMediaTypesResponseDto {
   video!: string[];
   image!: string[];

@@ -5911,6 +5911,38 @@
         ]
       }
     },
+    "/server/simple-statistics": {
+      "get": {
+        "operationId": "getSimpleServerStatistics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleServerStatsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Server"
+        ]
+      }
+    },
     "/server/statistics": {
       "get": {
         "operationId": "getServerStatistics",
@@ -13538,6 +13570,29 @@
           "email",
           "name",
           "password"
+        ],
+        "type": "object"
+      },
+      "SimpleServerStatsResponseDto": {
+        "properties": {
+          "photos": {
+            "default": 0,
+            "type": "integer"
+          },
+          "usage": {
+            "default": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "videos": {
+            "default": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "photos",
+          "usage",
+          "videos"
         ],
         "type": "object"
       },

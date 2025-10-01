@@ -12,6 +12,7 @@ import {
   ServerPingResponse,
   ServerStatsResponseDto,
   ServerStorageResponseDto,
+  SimpleServerStatsResponseDto,
   UsageByUserDto,
 } from 'src/dtos/server.dto';
 import { StorageFolder, SystemMetadataKey } from 'src/enum';
@@ -153,6 +154,10 @@ export class ServerService extends BaseService {
     }
 
     return serverStats;
+  }
+
+  async getSimpleStatistics(): Promise<SimpleServerStatsResponseDto> {
+    return await this.assetRepository.getAssetStats();
   }
 
   getSupportedMediaTypes(): ServerMediaTypesResponseDto {

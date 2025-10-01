@@ -13,6 +13,7 @@ import {
   ServerThemeDto,
   ServerVersionHistoryResponseDto,
   ServerVersionResponseDto,
+  SimpleServerStatsResponseDto,
 } from 'src/dtos/server.dto';
 import { VersionCheckStateResponseDto } from 'src/dtos/system-metadata.dto';
 import { Permission } from 'src/enum';
@@ -82,6 +83,12 @@ export class ServerController {
   @Authenticated({ permission: Permission.ServerStatistics, admin: true })
   getServerStatistics(): Promise<ServerStatsResponseDto> {
     return this.service.getStatistics();
+  }
+
+  @Get('simple-statistics')
+  @Authenticated({ permission: Permission.ServerStatistics, admin: true })
+  getSimpleServerStatistics(): Promise<SimpleServerStatsResponseDto> {
+    return this.service.getSimpleStatistics();
   }
 
   @Get('media-types')
