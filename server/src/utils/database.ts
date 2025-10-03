@@ -1,3 +1,4 @@
+import fs from 'fs';
 import {
   DeduplicateJoinsPlugin,
   Expression,
@@ -107,6 +108,17 @@ export const getKyselyConfig = (
             const lastParam = event.query && event.query.parameters?.length > 0 ? event.query.parameters[event.query.parameters.length - 1] : 'unknown filename';
             console.log(`Skip duplicate asset ${lastParam}. Detail: ${error?.detail || 'N/A'}`);
             return;
+        }
+
+        // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
+        // our deployment scripts can detect it and restart the microservice container.
+        if (error?.code === 'CONNECTION_DESTROYED') {
+          const tempFile = '/tmp/immich_connection_destroyed';
+          try {
+            fs.writeFileSync(tempFile, new Date().toISOString());
+          } catch (err) {
+            console.warn('Failed to write connection destroyed marker file:', err);
+          }
         }
 
         console.error('Query failed :', {

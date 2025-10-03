@@ -466,9 +466,6 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }
 
-    // Kevin: wrap in try-catch to avoid the whole queue being stuck.
-    // The job will be marked as failed, and can be retried later.
-    try {
     const face = await this.personRepository.getFaceForFacialRecognitionJob(id);
     if (!face || !face.asset) {
       this.logger.warn(`Face ${id} not found`);
@@ -541,10 +538,6 @@ export class PersonService extends BaseService {
     if (personId) {
       this.logger.debug(`Assigning face ${id} to person ${personId}`);
       await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
-    }
-    } catch (error: Error | any) {
-      this.logger.error(`Unable to process face ${id} : ${error}`, error?.stack);
-      return JobStatus.Failed;
     }
 
     return JobStatus.Success;
