@@ -1,4 +1,3 @@
-import fs from 'fs';
 import {
   DeduplicateJoinsPlugin,
   Expression,
@@ -14,6 +13,7 @@ import {
 } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { writeFileSync } from 'node:fs';
 import { parse } from 'pg-connection-string';
 import postgres, { Notice } from 'postgres';
 import { columns, Exif, Person } from 'src/database';
@@ -115,7 +115,7 @@ export const getKyselyConfig = (
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
           const tempFile = '/tmp/immich_connection_destroyed';
           try {
-            fs.writeFileSync(tempFile, new Date().toISOString());
+            writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
           } catch (err) {
             console.warn('Failed to write connection destroyed marker file:', err);
           }
