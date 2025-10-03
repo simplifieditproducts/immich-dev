@@ -113,7 +113,7 @@ export const getKyselyConfig = (
         // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
         // our deployment scripts can detect it and restart the microservice container.
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
-          const tempFile = '/tmp/immich_connection_destroyed';
+          const tempFile = '/tmp/immich/connection_destroyed';
           try {
             writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
           } catch (err) {
