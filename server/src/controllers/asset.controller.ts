@@ -46,12 +46,12 @@ export class AssetController {
   }
 
   /**
-   * Get all asset of current user that are in the database, ID only.
+   * Get all assets of current user that are in the database.
    */
   @Get()
   @ApiOperation({
     summary: 'getAllUserAssets',
-    description: 'Get all asset of current user that are in the database, ID only.',
+    description: 'Get all assets of current user that are in the database.',
   })
   @Authenticated()
   getAllUserAssets(@Auth() auth: AuthDto, @Query() options: GetAssetsDto): Promise<GetAssetsResponseDto> {

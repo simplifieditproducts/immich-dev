@@ -43,7 +43,7 @@ export class GetAssetsDto {
 export class GetAssetsResponseDto {
   @ApiProperty({ type: 'integer' })
   total!: number;
-  items!: string[];
+  items!: { deviceAssetId: string; checksum: string; }[];
   hasNextPage!: boolean;
 }
 

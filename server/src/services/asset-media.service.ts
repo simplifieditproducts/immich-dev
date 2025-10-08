@@ -28,6 +28,7 @@ import { BaseService } from 'src/services/base.service';
 import { UploadFile } from 'src/types';
 import { requireUploadAccess } from 'src/utils/access';
 import { asRequest, getAssetFiles, onBeforeLink } from 'src/utils/asset.util';
+import { hexOrBufferToBase64 } from 'src/utils/bytes';
 import { ASSET_CHECKSUM_CONSTRAINT } from 'src/utils/database';
 import { getFilenameExtension, getFileNameWithoutExtension, ImmichFileResponse } from 'src/utils/file';
 import { mimeTypes } from 'src/utils/mime-types';
@@ -151,7 +152,7 @@ export class AssetMediaService extends BaseService {
 
       await this.userRepository.updateUsage(auth.user.id, file.size);
 
-      return { id: asset.id, status: AssetMediaStatus.CREATED, checksum: file.checksum.toString('hex').toUpperCase() };
+      return { id: asset.id, status: AssetMediaStatus.CREATED, checksum: hexOrBufferToBase64(file.checksum) };
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
     }

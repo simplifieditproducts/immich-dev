@@ -21,6 +21,7 @@ import { BaseService } from 'src/services/base.service';
 import { ISidecarWriteJob, JobItem, JobOf } from 'src/types';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getAssetFiles, getMyPartnerIds, onAfterUnlink, onBeforeLink, onBeforeUnlink } from 'src/utils/asset.util';
+import { hexOrBufferToBase64 } from 'src/utils/bytes';
 
 @Injectable()
 export class AssetService extends BaseService {
@@ -57,7 +58,9 @@ export class AssetService extends BaseService {
     const { total } = await this.assetRepository.getNumberOfAssets(auth.user.id);
 
     return {
-      items: items.map((item) => item.deviceAssetId),
+      items: items.map((item) => {
+        return { deviceAssetId: item.deviceAssetId, checksum: hexOrBufferToBase64(item.checksum) };
+      }),
       hasNextPage,
       total,
     };

@@ -1568,7 +1568,7 @@
         ]
       },
       "get": {
-        "description": "Get all asset of current user that are in the database, ID only.",
+        "description": "Get all assets of current user that are in the database.",
         "operationId": "getAllUserAssets",
         "parameters": [
           {
@@ -10907,7 +10907,19 @@
           },
           "items": {
             "items": {
-              "type": "string"
+              "properties": {
+                "checksum": {
+                  "type": "string"
+                },
+                "deviceAssetId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "deviceAssetId",
+                "checksum"
+              ],
+              "type": "object"
             },
             "type": "array"
           },
