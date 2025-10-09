@@ -573,7 +573,7 @@
   <!-- Top navigation bar -->
   {#if $slideshowState === SlideshowState.None && !isShowEditor}
     <div 
-      class="col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
+      class="z-2 col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
       class:opacity-0={!controlsVisible}
       class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
@@ -619,7 +619,7 @@
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
     <div 
-      class="my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
+      class="z-1 my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
       class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
@@ -629,7 +629,7 @@
   {/if}
 
   <!-- Asset Viewer -->
-  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
+  <div class="z-0 relative col-start-1 col-span-4 row-start-1 row-span-full" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
     {#if previewStackedAsset}
       {#key previewStackedAsset.id}
         {#if previewStackedAsset.type === AssetTypeEnum.Image}
@@ -719,7 +719,7 @@
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
     <div 
-      class="my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
+      class="z-1 my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
       class:pointer-events-none={!controlsVisible}
       class:opacity-100={controlsVisible}
