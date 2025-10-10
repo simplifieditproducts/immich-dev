@@ -179,7 +179,7 @@ export class AssetMediaService extends BaseService {
 
       this.requireQuota(auth, file.size);
 
-      await this.replaceFileData(asset.id, dto, file, sidecarFile?.originalPath);
+      await this.replaceFileData(asset, dto, file, sidecarFile?.originalPath);
 
       if (dto.skipReprocess) {
 
@@ -357,13 +357,13 @@ export class AssetMediaService extends BaseService {
    * job is queued to update these derived properties.
    */
   private async replaceFileData(
-    assetId: string,
+    asset: any,
     dto: AssetMediaReplaceDto,
     file: UploadFile,
     sidecarPath?: string,
   ): Promise<void> {
     await this.assetRepository.update({
-      id: assetId,
+      id: asset.id,
 
       checksum: file.checksum,
       originalPath: file.originalPath,
@@ -383,18 +383,39 @@ export class AssetMediaService extends BaseService {
 
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     
-    if (!dto.skipReprocess) {
-      await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size });
+    // If the asset's orientation is larger than 1, it means the asset was uploaded by an older version
+    // of mobile app that did not adjust the EXIF properly, hence we will need to reprocess the metadata
+    // and also regenerate the thumbnails.
+    if (!dto.skipReprocess || Number(asset.exifInfo?.orientation ?? 0) > 1) {
+      await this.assetRepository.upsertExif({ assetId: asset.id, fileSizeInByte: file.size });
       await this.jobRepository.queue({
         name: JobName.AssetExtractMetadata,
-        data: { id: assetId, source: 'upload' },
+        data: { id: asset.id, source: 'upload' },
       });
     } else {
       // BUG: works for images only, videos are not handled
-      // Update the dimensions and file size in the exif record
+      // Update the dimensions, orientation, and file size in the exif record
       const exifTags = await this.metadataRepository.readTags(file.originalPath);
       const { width, height } = this.getImageDimensions(exifTags);
-      await this.assetRepository.upsertExif({ assetId, fileSizeInByte: file.size, exifImageWidth: width, exifImageHeight: height });
+      const validate = <T>(value: T): NonNullable<T> | null => {
+        // handle lists of numbers
+        if (Array.isArray(value)) {
+          value = value[0];
+        }
+
+        if (typeof value === 'string') {
+          // string means a failure to parse a number, throw out result
+          return null;
+        }
+
+        if (typeof value === 'number' && (Number.isNaN(value) || !Number.isFinite(value))) {
+          return null;
+        }
+
+        return value ?? null;
+      };
+
+      await this.assetRepository.upsertExif({ assetId: asset.id, fileSizeInByte: file.size, exifImageWidth: width, exifImageHeight: height, orientation: validate(exifTags.Orientation)?.toString() ?? null});
     }
   }
 
