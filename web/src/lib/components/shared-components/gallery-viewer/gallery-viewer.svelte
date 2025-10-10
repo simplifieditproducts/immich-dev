@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { shortcuts, type ShortcutOptions } from '$lib/actions/shortcut';
-  import type { Action } from '$lib/components/asset-viewer/actions/action';
+  import type { Action, OnAction } from '$lib/components/asset-viewer/actions/action';
   import Thumbnail from '$lib/components/assets/thumbnail/thumbnail.svelte';
   import { AppRoute, AssetAction } from '$lib/constants';
   import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
@@ -36,6 +36,7 @@
     onIntersected?: (() => void) | undefined;
     showAssetName?: boolean;
     isShowDeleteConfirmation?: boolean;
+    onAction?: OnAction | undefined;
     onPrevious?: (() => Promise<{ id: string } | undefined>) | undefined;
     onNext?: (() => Promise<{ id: string } | undefined>) | undefined;
     onRandom?: (() => Promise<{ id: string } | undefined>) | undefined;
@@ -55,6 +56,7 @@
     onIntersected = undefined,
     showAssetName = false,
     isShowDeleteConfirmation = $bindable(false),
+    onAction = undefined,
     onPrevious = undefined,
     onNext = undefined,
     onRandom = undefined,
@@ -435,6 +437,8 @@
         break;
       }
     }
+
+    onAction?.(action);
   };
 
   const assetMouseEventHandler = (asset: TimelineAsset | null) => {

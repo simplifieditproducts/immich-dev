@@ -22,7 +22,7 @@
   import GalleryViewer from '$lib/components/shared-components/gallery-viewer/gallery-viewer.svelte';
   import LoadingSpinner from '$lib/components/shared-components/loading-spinner.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
-  import { AppRoute, mdiArrowBackIos, QueryParameter } from '$lib/constants';
+  import { AppRoute, AssetAction, mdiArrowBackIos, QueryParameter } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
@@ -474,6 +474,21 @@
         assets={hasActivatedPagination ? searchResultAssets : searchResultAssets.slice(0, INITIAL_ASSET_LIMIT)}
         {assetInteraction}
         scrollingElement={scrollingElement}
+        onAction={(action) => {
+          if (!hasActivatedPagination) {
+            switch (action.type) {
+              case AssetAction.ARCHIVE:
+              case AssetAction.DELETE:
+              case AssetAction.TRASH: {
+                searchResultAssets.splice(
+                  searchResultAssets.findIndex((currentAsset) => currentAsset.id === action.asset.id),
+                  1,
+                );
+                break;
+              }
+            }
+          }
+        }}
         onIntersected={async () => {
           if (hasActivatedPagination) {
             await loadNextPage();
