@@ -56,7 +56,7 @@ export class AssetMediaService extends BaseService {
       return;
     }
 
-    return { id: assetId, status: AssetMediaStatus.DUPLICATE };
+    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum: checksum };
   }
 
   canUploadFile({ auth, fieldName, file }: UploadRequest): true {
@@ -342,7 +342,7 @@ export class AssetMediaService extends BaseService {
         this.logger.error(`Error locating duplicate for checksum constraint`);
         throw new InternalServerErrorException();
       }
-      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId };
+      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId, checksum: hexOrBufferToBase64(file.checksum) };
     }
 
     this.logger.error(`Error uploading file ${error}`, error?.stack);

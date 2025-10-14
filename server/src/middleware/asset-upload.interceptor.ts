@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { of } from 'rxjs';
 import { AssetMediaResponseDto, AssetMediaStatus } from 'src/dtos/asset-media-response.dto';
 import { ImmichHeader } from 'src/enum';
+import { hexOrBufferToBase64 } from 'src/utils/bytes';
 import { AuthenticatedRequest } from 'src/middleware/auth.guard';
 import { AssetMediaService } from 'src/services/asset-media.service';
 import { fromMaybeArray } from 'src/utils/request';
@@ -19,7 +20,7 @@ export class AssetUploadInterceptor implements NestInterceptor {
     const response = await this.service.getUploadAssetIdByChecksum(req.user, checksum);
     if (response) {
       res.status(200);
-      return of({ status: AssetMediaStatus.DUPLICATE, id: response.id });
+      return of({ status: AssetMediaStatus.DUPLICATE, id: response.id, checksum: checksum });
     }
 
     return next.handle();
