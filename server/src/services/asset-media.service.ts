@@ -56,7 +56,7 @@ export class AssetMediaService extends BaseService {
       return;
     }
 
-    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum: checksum };
+    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum };
   }
 
   canUploadFile({ auth, fieldName, file }: UploadRequest): true {
