@@ -56,7 +56,7 @@ export class AssetMediaService extends BaseService {
       return;
     }
 
-    return { id: assetId, status: AssetMediaStatus.DUPLICATE };
+    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum: checksum };
   }
 
   canUploadFile({ auth, fieldName, file }: UploadRequest): true {
@@ -189,7 +189,7 @@ export class AssetMediaService extends BaseService {
         const delta = file.size - (asset.exifInfo?.fileSizeInByte || 0);
         await this.userRepository.updateUsage(auth.user.id, delta);
 
-        return { status: AssetMediaStatus.REPLACED, id: asset.id };
+        return { status: AssetMediaStatus.REPLACED, id: asset.id, checksum: hexOrBufferToBase64(file.checksum) };
       } else {
 
         // Next, create a backup copy of the existing record. The db record has already been updated above,
@@ -201,7 +201,7 @@ export class AssetMediaService extends BaseService {
 
         await this.userRepository.updateUsage(auth.user.id, file.size);
 
-        return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id };
+        return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id, checksum: hexOrBufferToBase64(file.checksum) };
       }
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
@@ -342,7 +342,7 @@ export class AssetMediaService extends BaseService {
         this.logger.error(`Error locating duplicate for checksum constraint`);
         throw new InternalServerErrorException();
       }
-      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId };
+      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId, checksum: hexOrBufferToBase64(file.checksum) };
     }
 
     this.logger.error(`Error uploading file ${error}`, error?.stack);

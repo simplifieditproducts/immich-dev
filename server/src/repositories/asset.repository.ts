@@ -356,7 +356,7 @@ export class AssetRepository {
   async getAll(pagination: PaginationOptions, ownerId: string) {
     const items = await this.db
       .selectFrom('asset')
-      .select(['deviceAssetId', 'checksum'])
+      .select(['deviceAssetId', 'checksum', 'id'])
       .where('ownerId', '=', asUuid(ownerId))
       .where('visibility', '!=', AssetVisibility.Hidden)
       .where('deletedAt', 'is', null)
