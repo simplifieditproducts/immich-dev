@@ -10913,11 +10913,15 @@
                 },
                 "deviceAssetId": {
                   "type": "string"
+                },
+                "id": {
+                  "type": "string"
                 }
               },
               "required": [
                 "deviceAssetId",
-                "checksum"
+                "checksum",
+                "id"
               ],
               "type": "object"
             },
