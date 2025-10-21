@@ -1568,9 +1568,18 @@
         ]
       },
       "get": {
-        "description": "Get all assets of current user that are in the database.",
+        "description": "Get all assets belonging to the current user and matching the provided `deviceId`",
         "operationId": "getAllUserAssets",
         "parameters": [
+          {
+            "name": "deviceId",
+            "required": false,
+            "in": "query",
+            "description": "If provided, only return results matching this `deviceId`",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,

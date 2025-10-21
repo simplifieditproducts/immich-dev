@@ -54,7 +54,7 @@ export class AssetService extends BaseService {
       take: size,
       skip: (page - 1) * size,
     };
-    const { items, hasNextPage } = await this.assetRepository.getAll(pagination, auth.user.id);
+    const { items, hasNextPage } = await this.assetRepository.getAll(pagination, auth.user.id, dto.deviceId);
     const { total } = await this.assetRepository.getNumberOfAssets(auth.user.id);
 
     return {

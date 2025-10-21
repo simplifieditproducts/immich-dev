@@ -38,6 +38,11 @@ export class GetAssetsDto {
   @Max(5000)
   @Type(() => Number)
   size: number = 5000;
+
+  /** If provided, only return results matching this `deviceId` */
+  @Optional()
+  @IsString()
+  deviceId?: string;
 }
 
 export class GetAssetsResponseDto {

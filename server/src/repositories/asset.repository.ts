@@ -353,13 +353,20 @@ export class AssetRepository {
   }
 
   @GenerateSql({ params: [{ take: 1, skip: 0 }, DummyValue.STRING] })
-  async getAll(pagination: PaginationOptions, ownerId: string) {
-    const items = await this.db
+  async getAll(pagination: PaginationOptions, ownerId: string, deviceId?: string) {
+    let query = this.db
       .selectFrom('asset')
       .select(['deviceAssetId', 'checksum', 'id'])
       .where('ownerId', '=', asUuid(ownerId))
       .where('visibility', '!=', AssetVisibility.Hidden)
-      .where('deletedAt', 'is', null)
+      .where('deletedAt', 'is', null);
+
+    // Filter by `deviceId` if one is provided.
+    if (deviceId) {
+      query = query.where('deviceId', '=', deviceId);
+    }
+
+    const items = await query
       .offset(pagination.skip ?? 0)
       .limit(pagination.take + 1)
       .execute();
