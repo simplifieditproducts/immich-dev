@@ -59,7 +59,7 @@ export class AssetService extends BaseService {
 
     return {
       items: items.map((item) => {
-        return { deviceAssetId: item.deviceAssetId, checksum: hexOrBufferToBase64(item.checksum), id: item.id };
+        return { deviceAssetId: item.deviceAssetId, deviceId: item.deviceId, checksum: hexOrBufferToBase64(item.checksum), id: item.id };
       }),
       hasNextPage,
       total,
