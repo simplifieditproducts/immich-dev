@@ -161,12 +161,37 @@ export const downloadUrl = (url: string, filename: string) => {
 };
 
 // Sends a download request to the native app when in embedded mode
-export const downloadAssetsViaApp = (assets: TimelineAsset[]) => {
+export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
+  // Fetch missing info for incomplete assets
+  const enrichedAssets = await Promise.all(
+    assets.map(async (a) => {
+      if (a.originalFileName && a.fileSizeInByte) return a;
 
-  // The 'id' field will always be present while the other fields may be undefined
-  const assetList = assets.map(a => {
-    return { id: a.id, originalFileName: a.originalFileName, deviceAssetId: a.deviceAssetId, fileSizeInByte: a.fileSizeInByte };
-  });
+      try {
+        const info = await getAssetInfo({ ...authManager.params, id: a.id });
+        return {
+          ...a,
+          originalFileName: a.originalFileName ?? info.originalFileName ?? `asset-${a.id}.jpg`,
+          deviceAssetId: a.deviceAssetId ?? info.deviceAssetId ?? null,
+          fileSizeInByte: a.fileSizeInByte ?? info.exifInfo?.fileSizeInByte ?? 0,
+        };
+      } catch {
+        // fallback if request fails
+        return {
+          ...a,
+          originalFileName: a.originalFileName ?? `asset-${a.id}.jpg`,
+          fileSizeInByte: a.fileSizeInByte ?? 0,
+        };
+      }
+    })
+  );
+
+  const assetList = enrichedAssets.map((a) => ({
+    id: a.id,
+    originalFileName: a.originalFileName,
+    deviceAssetId: a.deviceAssetId,
+    fileSizeInByte: a.fileSizeInByte,
+  }));
 
   sendMessageToApp('CMD_DOWNLOAD_ASSETS ' + JSON.stringify({ assets: assetList }));
 };
