@@ -52,7 +52,7 @@ export class ServerController {
   }
 
   @Get('ping')
-  pingServer(): ServerPingResponse {
+  pingServer(): Promise<ServerPingResponse> {
     return this.service.ping();
   }
 

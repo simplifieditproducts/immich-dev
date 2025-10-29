@@ -77,7 +77,15 @@ export class ServerService extends BaseService {
     return serverInfo;
   }
 
-  ping(): ServerPingResponse {
+  async ping(): Promise<ServerPingResponse> {
+    // Check if database is responding
+    try {
+      await this.versionRepository.getLatest();
+    } catch (error) {
+      this.logger.error('Database health check failed', error);
+      throw new BadRequestException('Database is not responding');
+    }
+
     return { res: 'pong' };
   }
 
