@@ -488,7 +488,9 @@ export class MetadataService extends BaseService {
   }
 
   private isMotionPhoto(asset: { type: AssetType }, tags: ImmichTags): boolean {
-    return asset.type === AssetType.Image && !!(tags.MotionPhoto || tags.MicroVideo);
+    // Kevin: disable motion photo support for now
+    // return asset.type === AssetType.Image && !!(tags.MotionPhoto || tags.MicroVideo);
+    return false;
   }
 
   private async applyMotionPhotos(asset: Asset, tags: ImmichTags, dates: Dates, stats: Stats) {
