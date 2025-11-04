@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EndpointLifecycle } from 'src/decorators';
+import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { AssetResponseDto } from 'src/dtos/asset-response.dto';
 import {
   AssetBulkDeleteDto,
@@ -10,6 +11,7 @@ import {
   AssetStatsResponseDto,
   DeviceIdDto,
   GetAssetsDto,
+  GetAssetsInfoResponseDto,
   GetAssetsResponseDto,
   RandomAssetsDto,
   UpdateAssetDto,
@@ -89,6 +91,14 @@ export class AssetController {
   @Authenticated({ permission: Permission.AssetRead, sharedLink: true })
   getAssetInfo(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto): Promise<AssetResponseDto> {
     return this.service.get(auth, id) as Promise<AssetResponseDto>;
+  }
+
+  @Post('info')
+  @Authenticated({ permission: Permission.AssetRead })
+  async getAssetsInfo(@Auth() auth: AuthDto, @Body() dto: BulkIdsDto): Promise<GetAssetsInfoResponseDto> {
+    return {
+      items: await this.service.getAssetsInfo(auth, dto),
+    };
   }
 
   @Put(':id')

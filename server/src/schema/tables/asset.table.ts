@@ -63,6 +63,9 @@ export class AssetTable {
   @Column()
   deviceAssetId!: string;
 
+  @Column({ nullable: true })
+  deviceFilePath!: string | null;
+
   @ForeignKeyColumn(() => UserTable, { onDelete: 'CASCADE', onUpdate: 'CASCADE', nullable: false })
   ownerId!: string;
 
@@ -83,6 +86,9 @@ export class AssetTable {
 
   @Column({ type: 'boolean', default: false })
   isFavorite!: Generated<boolean>;
+
+  @Column({ type: 'boolean', default: false })
+  isOriginalQuality!: Generated<boolean>;
 
   @Column({ type: 'character varying', nullable: true })
   duration!: string | null;

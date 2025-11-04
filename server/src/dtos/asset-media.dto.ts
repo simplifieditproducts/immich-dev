@@ -30,6 +30,10 @@ class AssetMediaBase {
   @IsString()
   deviceAssetId!: string;
 
+  @Optional()
+  @IsString()
+  deviceFilePath?: string;
+
   @IsNotEmpty()
   @IsString()
   deviceId!: string;
@@ -47,6 +51,9 @@ class AssetMediaBase {
   @Optional()
   @IsString()
   filename?: string;
+
+  @ValidateBoolean({ optional: true })
+  isOriginalQuality?: boolean;
 
   // The properties below are added to correctly generate the API docs
   // and client SDKs. Validation should be handled in the controller.

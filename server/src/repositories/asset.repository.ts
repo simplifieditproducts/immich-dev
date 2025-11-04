@@ -262,8 +262,13 @@ export class AssetRepository {
 
   @GenerateSql({ params: [[DummyValue.UUID]] })
   @ChunkedArray()
-  getByIds(ids: string[]) {
-    return this.db.selectFrom('asset').selectAll('asset').where('asset.id', '=', anyUuid(ids)).execute();
+  getByIds(ids: string[], { exifInfo }: { exifInfo?: boolean } = {}) {
+    return this.db
+      .selectFrom('asset')
+      .selectAll('asset')
+      .where('asset.id', '=', anyUuid(ids))
+      .$if(!!exifInfo, withExif)
+      .execute();
   }
 
   @GenerateSql({ params: [[DummyValue.UUID]] })
@@ -356,7 +361,7 @@ export class AssetRepository {
   async getAll(pagination: PaginationOptions, ownerId: string) {
     const items = await this.db
       .selectFrom('asset')
-      .select(['deviceAssetId', 'deviceId', 'checksum', 'id'])
+      .select(['deviceAssetId', 'deviceFilePath', 'deviceId', 'checksum', 'isOriginalQuality', 'id'])
       .where('ownerId', '=', asUuid(ownerId))
       .where('visibility', '!=', AssetVisibility.Hidden)
       .where('deletedAt', 'is', null)
@@ -537,12 +542,11 @@ export class AssetRepository {
   }
 
   @GenerateSql()
-  getAssetStats(appName: string) {
+  getAssetCount(sourceApp: string) {
     return this.db
       .selectFrom('user')
       .leftJoin('asset', (join) => join.onRef('asset.ownerId', '=', 'user.id').on('asset.deletedAt', 'is', null))
-      .leftJoin('asset_exif', 'asset_exif.assetId', 'asset.id')
-      .where('user.email', 'like', appName === 'ultimatebackup' ? '%-user@ubdrive.net' : '%-user@pk.com')
+      .where('user.sourceApp', '=', sourceApp)
       .select((eb) => [
         eb.fn
           .countAll<number>()
@@ -562,12 +566,6 @@ export class AssetRepository {
             ]),
           )
           .as('videos'),
-        eb.fn
-          .coalesce(
-            eb.fn.sum<number>('asset_exif.fileSizeInByte').filterWhere('asset.libraryId', 'is', null),
-            eb.lit(0),
-          )
-          .as('usage'),
       ])
       .executeTakeFirstOrThrow();
   }

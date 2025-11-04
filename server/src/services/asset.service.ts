@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { DateTime, Duration } from 'luxon';
 import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { OnJob } from 'src/decorators';
+import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { AssetResponseDto, MapAsset, SanitizedAssetResponseDto, mapAsset } from 'src/dtos/asset-response.dto';
 import {
   AssetBulkDeleteDto,
@@ -59,7 +60,7 @@ export class AssetService extends BaseService {
 
     return {
       items: items.map((item) => {
-        return { deviceAssetId: item.deviceAssetId, deviceId: item.deviceId, checksum: hexOrBufferToBase64(item.checksum), id: item.id };
+        return { deviceAssetId: item.deviceAssetId, deviceFilePath: item.deviceFilePath, deviceId: item.deviceId, checksum: hexOrBufferToBase64(item.checksum), isOriginalQuality: item.isOriginalQuality, id: item.id };
       }),
       hasNextPage,
       total,
@@ -96,6 +97,15 @@ export class AssetService extends BaseService {
     }
 
     return data;
+  }
+
+  async getAssetsInfo(auth: AuthDto, dto: BulkIdsDto): Promise<AssetResponseDto[]> {
+    await this.requireAccess({ auth, permission: Permission.AssetRead, ids: dto.ids });
+
+    const assets = await this.assetRepository.getByIds(dto.ids, { exifInfo: true });
+    return assets.map((asset: MapAsset) => {
+      return mapAsset(asset, { auth });
+    });
   }
 
   async update(auth: AuthDto, id: string, dto: UpdateAssetDto): Promise<AssetResponseDto> {

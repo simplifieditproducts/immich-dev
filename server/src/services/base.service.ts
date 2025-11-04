@@ -217,6 +217,11 @@ export class BaseService {
     if (payload.storageLabel) {
       payload.storageLabel = sanitize(payload.storageLabel.replaceAll('.', ''));
     }
+    if (payload.email.endsWith('@pk.com')) {
+      payload.sourceApp = 'picturekeeper';
+    } else if (payload.email.endsWith('@ubdrive.net')) {
+      payload.sourceApp = 'ultimatebackup';
+    }
 
     return this.userRepository.create(payload);
   }

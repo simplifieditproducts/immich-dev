@@ -1858,6 +1858,48 @@
         ]
       }
     },
+    "/assets/info": {
+      "post": {
+        "operationId": "getAssetsInfo",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIdsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAssetsInfoResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
     "/assets/jobs": {
       "post": {
         "operationId": "runAssetJobs",
@@ -5916,7 +5958,7 @@
         "operationId": "getSimpleServerStatistics",
         "parameters": [
           {
-            "name": "appName",
+            "name": "sourceApp",
             "required": true,
             "in": "query",
             "schema": {
@@ -9881,6 +9923,9 @@
           "deviceAssetId": {
             "type": "string"
           },
+          "deviceFilePath": {
+            "type": "string"
+          },
           "deviceId": {
             "type": "string"
           },
@@ -9899,6 +9944,9 @@
             "type": "string"
           },
           "isFavorite": {
+            "type": "boolean"
+          },
+          "isOriginalQuality": {
             "type": "boolean"
           },
           "livePhotoVideoId": {
@@ -9935,6 +9983,9 @@
           "deviceAssetId": {
             "type": "string"
           },
+          "deviceFilePath": {
+            "type": "string"
+          },
           "deviceId": {
             "type": "string"
           },
@@ -9951,6 +10002,9 @@
           },
           "filename": {
             "type": "string"
+          },
+          "isOriginalQuality": {
+            "type": "boolean"
           },
           "skipReprocess": {
             "type": "boolean"
@@ -10019,6 +10073,10 @@
           "deviceAssetId": {
             "type": "string"
           },
+          "deviceFilePath": {
+            "nullable": true,
+            "type": "string"
+          },
           "deviceId": {
             "type": "string"
           },
@@ -10057,6 +10115,9 @@
             "type": "boolean"
           },
           "isOffline": {
+            "type": "boolean"
+          },
+          "isOriginalQuality": {
             "type": "boolean"
           },
           "isTrashed": {
@@ -10161,6 +10222,7 @@
           "isArchived",
           "isFavorite",
           "isOffline",
+          "isOriginalQuality",
           "isTrashed",
           "localDateTime",
           "originalFileName",
@@ -10900,6 +10962,20 @@
         },
         "type": "object"
       },
+      "GetAssetsInfoResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssetResponseDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "GetAssetsResponseDto": {
         "properties": {
           "hasNextPage": {
@@ -10914,17 +10990,26 @@
                 "deviceAssetId": {
                   "type": "string"
                 },
+                "deviceFilePath": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "deviceId": {
                   "type": "string"
                 },
                 "id": {
                   "type": "string"
+                },
+                "isOriginalQuality": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "deviceAssetId",
+                "deviceFilePath",
                 "deviceId",
                 "checksum",
+                "isOriginalQuality",
                 "id"
               ],
               "type": "object"
@@ -13609,13 +13694,22 @@
       },
       "SimpleServerStatsResponseDto": {
         "properties": {
+          "diskTotal": {
+            "default": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "diskUsed": {
+            "default": 0,
+            "format": "int64",
+            "type": "integer"
+          },
           "photos": {
             "default": 0,
             "type": "integer"
           },
-          "usage": {
+          "users": {
             "default": 0,
-            "format": "int64",
             "type": "integer"
           },
           "videos": {
@@ -13624,8 +13718,10 @@
           }
         },
         "required": [
+          "diskTotal",
+          "diskUsed",
           "photos",
-          "usage",
+          "users",
           "videos"
         ],
         "type": "object"

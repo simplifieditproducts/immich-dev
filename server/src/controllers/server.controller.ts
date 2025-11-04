@@ -90,7 +90,7 @@ export class ServerController {
   @Get('simple-statistics')
   @Authenticated({ permission: Permission.ServerStatistics, admin: true })
   getSimpleServerStatistics(@Auth() auth: AuthDto, @Query() dto: SimpleServerStatsDto): Promise<SimpleServerStatsResponseDto> {
-    return this.service.getSimpleStatistics(dto.appName);
+    return this.service.getSimpleStatistics(dto.sourceApp);
   }
 
   @Get('media-types')

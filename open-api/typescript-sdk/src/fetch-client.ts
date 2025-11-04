@@ -354,6 +354,9 @@ export type AssetResponseDto = {
     updatedAt: string;
     visibility: AssetVisibility;
 };
+export type GetAssetsInfoResponseDto = {
+    items: AssetResponseDto[];
+};
 export type AlbumResponseDto = {
     albumName: string;
     albumThumbnailAssetId: string | null;
@@ -2121,6 +2124,20 @@ export function getAssetInfo({ id, key, slug }: {
     }))}`, {
         ...opts
     }));
+}
+export function getAssetsInfo({ ids }: {
+    ids: string[];
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: GetAssetsInfoResponseDto;
+    }>("/assets/info", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: {
+            ids
+        }
+    })));
 }
 export function updateAsset({ id, updateAssetDto }: {
     id: string;

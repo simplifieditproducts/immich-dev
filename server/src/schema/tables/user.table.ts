@@ -81,4 +81,7 @@ export class UserTable {
 
   @UpdateIdColumn({ index: true })
   updateId!: Generated<string>;
+
+  @Column({ nullable: true, index: true })
+  sourceApp!: string | null;
 }

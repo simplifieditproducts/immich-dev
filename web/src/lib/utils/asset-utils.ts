@@ -23,6 +23,7 @@ import {
   deleteAssets,
   deleteStacks,
   getAssetInfo,
+  getAssetsInfo,
   getBaseUrl,
   getDownloadInfo,
   getStack,
@@ -162,36 +163,36 @@ export const downloadUrl = (url: string, filename: string) => {
 
 // Sends a download request to the native app when in embedded mode
 export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
-  // Fetch missing info for incomplete assets
-  const enrichedAssets = await Promise.all(
-    assets.map(async (a) => {
-      if (a.originalFileName && a.fileSizeInByte) return a;
+  let assetList = [];
 
-      try {
-        const info = await getAssetInfo({ ...authManager.params, id: a.id });
-        return {
-          ...a,
-          originalFileName: a.originalFileName ?? info.originalFileName ?? `asset-${a.id}.jpg`,
-          deviceAssetId: a.deviceAssetId ?? info.deviceAssetId ?? null,
-          fileSizeInByte: a.fileSizeInByte ?? info.exifInfo?.fileSizeInByte ?? 0,
-        };
-      } catch {
-        // fallback if request fails
-        return {
-          ...a,
-          originalFileName: a.originalFileName ?? `asset-${a.id}.jpg`,
-          fileSizeInByte: a.fileSizeInByte ?? 0,
-        };
-      }
-    })
-  );
+  if (assets.some(a => !a.originalFileName || !a.fileSizeInByte)) {
+    // Fetch assets info for incomplete assets
+    const assetIds = assets.map(a => a.id);
+    const [error, assetsInfo] = await withError(() => getAssetsInfo({ ids: assetIds }));
+    if (error) {
+      const $t = get(t);
+      handleError(error, $t('errors.unable_to_download_files'));
+      return;
+    }
 
-  const assetList = enrichedAssets.map((a) => ({
-    id: a.id,
-    originalFileName: a.originalFileName,
-    deviceAssetId: a.deviceAssetId,
-    fileSizeInByte: a.fileSizeInByte,
-  }));
+    if (!assetsInfo) {
+      return;
+    }
+
+    assetList = assetsInfo.items.map((a) => ({
+      id: a.id,
+      originalFileName: a.originalFileName,
+      deviceAssetId: a.deviceAssetId,
+      fileSizeInByte: a.exifInfo?.fileSizeInByte ?? 0,
+    }));
+  } else {
+    assetList = assets.map(a => ({
+      id: a.id,
+      originalFileName: a.originalFileName,
+      deviceAssetId: a.deviceAssetId,
+      fileSizeInByte: a.fileSizeInByte,
+    }));
+  }
 
   sendMessageToApp('CMD_DOWNLOAD_ASSETS ' + JSON.stringify({ assets: assetList }));
 };

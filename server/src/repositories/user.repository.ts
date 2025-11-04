@@ -230,6 +230,16 @@ export class UserRepository {
   }
 
   @GenerateSql()
+  getUserCount(sourceApp: string) {
+    return this.db
+      .selectFrom('user')
+      .where('user.sourceApp', '=', sourceApp)
+      .where('user.deletedAt', 'is', null)
+      .select((eb) => eb.fn.countAll<number>().as('users'))
+      .executeTakeFirstOrThrow();
+  }
+
+  @GenerateSql()
   getUserStats() {
     return this.db
       .selectFrom('user')

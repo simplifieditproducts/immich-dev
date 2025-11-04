@@ -13,6 +13,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
+import { AssetResponseDto } from 'src/dtos/asset-response.dto';
 import { AssetType, AssetVisibility } from 'src/enum';
 import { AssetStats } from 'src/repositories/asset.repository';
 import { Optional, ValidateBoolean, ValidateEnum, ValidateUUID } from 'src/validation';
@@ -43,9 +44,13 @@ export class GetAssetsDto {
 export class GetAssetsResponseDto {
   @ApiProperty({ type: 'integer' })
   total!: number;
-  items!: { deviceAssetId: string; deviceId: string; checksum: string; id: string }[];
+  items!: { deviceAssetId: string; deviceFilePath: string | null; deviceId: string; checksum: string; isOriginalQuality: boolean; id: string }[];
   hasNextPage!: boolean;
 }
+
+export class GetAssetsInfoResponseDto {
+  items!: AssetResponseDto[];
+};
 
 const hasGPS = (o: { latitude: undefined; longitude: undefined }) =>
   o.latitude !== undefined || o.longitude !== undefined;

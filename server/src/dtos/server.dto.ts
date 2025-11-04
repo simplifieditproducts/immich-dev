@@ -138,10 +138,13 @@ export class SimpleServerStatsDto {
   @IsNotEmpty()
   @IsString()
   @IsIn(['picturekeeper', 'ultimatebackup'])
-  appName: string = 'picturekeeper';
+  sourceApp: string = 'picturekeeper';
 }
 
 export class SimpleServerStatsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  users = 0;
+
   @ApiProperty({ type: 'integer' })
   photos = 0;
 
@@ -149,7 +152,10 @@ export class SimpleServerStatsResponseDto {
   videos = 0;
 
   @ApiProperty({ type: 'integer', format: 'int64' })
-  usage = 0;
+  diskUsed = 0;
+
+  @ApiProperty({ type: 'integer', format: 'int64' })
+  diskTotal = 0;
 }
 
 export class ServerMediaTypesResponseDto {

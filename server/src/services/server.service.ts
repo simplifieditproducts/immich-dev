@@ -164,8 +164,16 @@ export class ServerService extends BaseService {
     return serverStats;
   }
 
-  async getSimpleStatistics(appName: string): Promise<SimpleServerStatsResponseDto> {
-    return await this.assetRepository.getAssetStats(appName);
+  async getSimpleStatistics(sourceApp: string): Promise<SimpleServerStatsResponseDto> {
+    const libraryBase = StorageCore.getBaseFolder(StorageFolder.Library);
+    const diskInfo = await this.storageRepository.checkDiskUsage(libraryBase);
+
+    return {
+      ...await this.userRepository.getUserCount(sourceApp),
+      ...await this.assetRepository.getAssetCount(sourceApp),
+      diskUsed: diskInfo.total - diskInfo.free,
+      diskTotal: diskInfo.total,
+    };
   }
 
   getSupportedMediaTypes(): ServerMediaTypesResponseDto {

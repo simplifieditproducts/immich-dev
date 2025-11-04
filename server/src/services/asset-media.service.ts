@@ -371,11 +371,13 @@ export class AssetMediaService extends BaseService {
       originalFileName: file.originalName,
 
       deviceAssetId: dto.deviceAssetId,
+      deviceFilePath: dto.deviceFilePath,
       deviceId: dto.deviceId,
       fileCreatedAt: dto.fileCreatedAt,
       fileModifiedAt: dto.fileModifiedAt,
       localDateTime: dto.fileCreatedAt,
       duration: dto.duration || null,
+      isOriginalQuality: dto.isOriginalQuality,
 
       livePhotoVideoId: null,
       sidecarPath: sidecarPath || null,
@@ -470,6 +472,7 @@ export class AssetMediaService extends BaseService {
       originalPath: file.originalPath,
 
       deviceAssetId: dto.deviceAssetId,
+      deviceFilePath: dto.deviceFilePath,
       deviceId: dto.deviceId,
 
       fileCreatedAt: dto.fileCreatedAt,
@@ -478,6 +481,7 @@ export class AssetMediaService extends BaseService {
 
       type: mimeTypes.assetType(file.originalPath),
       isFavorite: dto.isFavorite,
+      isOriginalQuality: dto.isOriginalQuality,
       duration: dto.duration || null,
       visibility: dto.visibility ?? AssetVisibility.Timeline,
       livePhotoVideoId: dto.livePhotoVideoId,
