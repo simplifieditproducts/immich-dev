@@ -38,6 +38,8 @@ API changes we made in our fork compared to the [official API documentation](htt
 - The `login` API function now returns `quotaSizeInBytes` and `quotaUsageInBytes`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/15161f1d1b51f759fe8b85ee8b94ac4368524f23).
 - The `uploadAsset` API function now returns the `checksum` of the asset if it is accepted. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/4f28651d4fd28d9cab849a22f6c213f37bc6602f).
 - The `replaceAsset` API function now has an optional boolean parameter `skipReprocess` which will prevent the server from recreating thumbnails and detecting faces on the new asset. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/c531d8c6bf94f241c63a2568cee969edfadc15ea).
+- The `uploadAsset` and `replaceAsset` API functions now accept two additional parameters: `deviceFilePath` (optional) and `isOriginalQuality` (defaults to `false`). The `deviceFilePath` parameter tracks the asset's file path on the user's device, while `isOriginalQuality` indicates whether the asset is in original quality. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
+- The `getAssetsInfo` API function has been added to accept a list of asset IDs and return the asset info for each of them. This API supports the 'Download' feature, which requires fetching asset info in bulk. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 
 Communication between the Immich app and the native app is handled via `postMessage`:
 - The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
