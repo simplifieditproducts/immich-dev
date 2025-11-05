@@ -4,7 +4,7 @@
   import Sidebar from '$lib/components/sidebar/sidebar.svelte';
   import { recentAlbumsDropdown } from '$lib/stores/preferences.store';
   import { featureFlags } from '$lib/stores/server-config.store';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import {
     mdiAccount,
     mdiAccountMultiple,
@@ -33,7 +33,6 @@
   import { t } from 'svelte-i18n';
   import { fly } from 'svelte/transition';
   import SideBarLink from './side-bar-link.svelte';
-  import { user } from '$lib/stores/user.store';
 
   let isArchiveSelected: boolean = $state(false);
   let isFavoritesSelected: boolean = $state(false);
@@ -80,12 +79,15 @@
     <SideBarLink title={$t('shared_links')} routeId="/(user)/shared-links" icon={mdiLink} />
   {/if}
 
-  <SideBarLink
-    title={$t('sharing')}
-    routeId="/(user)/sharing"
-    icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
-    bind:isSelected={isSharingSelected}
-  ></SideBarLink>
+  <!-- Kevin has made 'Sharing' option visible only for admins. -->
+  {#if $user.isAdmin}
+    <SideBarLink
+      title={$t('sharing')}
+      routeId="/(user)/sharing"
+      icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
+      bind:isSelected={isSharingSelected}
+    ></SideBarLink>
+  {/if}
 
   <p class="text-xs p-6 dark:text-immich-dark-fg">{$t('library').toUpperCase()}</p>
 

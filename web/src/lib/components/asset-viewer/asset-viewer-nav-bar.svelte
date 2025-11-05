@@ -124,7 +124,7 @@
   <div class="flex gap-2 overflow-x-auto dark" data-testid="asset-viewer-navbar-actions">
     <CastButton />
 
-    {#if !asset.isTrashed && $user && !isLocked}
+    {#if !asset.isTrashed && $user && $user.isAdmin && !isLocked}
       <ShareAction {asset} />
     {/if}
     {#if asset.isOffline}
@@ -189,7 +189,9 @@
             <RestoreAction {asset} {onAction} />
           {:else}
             <AddToAlbumAction {asset} {onAction} />
-            <AddToAlbumAction {asset} {onAction} shared />
+            {#if $user.isAdmin}
+              <AddToAlbumAction {asset} {onAction} shared />
+            {/if}
           {/if}
         {/if}
 
@@ -210,7 +212,7 @@
           {#if person}
             <SetFeaturedPhotoAction {asset} {person} />
           {/if}
-          {#if asset.type === AssetTypeEnum.Image && !isLocked}
+          {#if asset.type === AssetTypeEnum.Image && !isLocked && $user.isAdmin}
             <SetProfilePictureAction {asset} />
           {/if}
 

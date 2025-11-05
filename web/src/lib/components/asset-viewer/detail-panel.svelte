@@ -35,10 +35,12 @@
     mdiClose,
     mdiEye,
     mdiEyeOff,
+    mdiImageCheckOutline,
     mdiImageOutline,
+    mdiImageSizeSelectLarge,
     mdiInformationOutline,
     mdiPencil,
-    mdiPlus,
+    mdiPlus
   } from '@mdi/js';
   import { DateTime } from 'luxon';
   import { t } from 'svelte-i18n';
@@ -304,6 +306,23 @@
     {:else}
       <p class="text-sm">{$t('no_exif_info_available').toUpperCase()}</p>
     {/if}
+
+    <div class="flex gap-4 py-4">
+      <div>
+        <Icon path={asset.isOriginalQuality ? mdiImageCheckOutline : mdiImageSizeSelectLarge} size="24" />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <p class="font-medium">
+          {asset.isOriginalQuality ? 'Original Quality' : 'Compressed'}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {asset.isOriginalQuality 
+            ? 'Full resolution, unmodified file' 
+            : 'Optimized for storage and streaming'}
+        </p>
+      </div>    
+    </div>
 
     {#if dateTime}
       <button

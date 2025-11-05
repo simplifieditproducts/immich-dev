@@ -258,7 +258,7 @@
 
   // Swipe to dismiss gesture handlers
   const handleTouchStart = (e: TouchEvent) => {
-    if ($photoZoomState.currentZoom > 1) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
       return;
     }
 
@@ -274,7 +274,7 @@
   };
 
   const handleMouseDown = (e: MouseEvent) => {
-    if ($photoZoomState.currentZoom > 1) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
       return;
     }
 
@@ -732,7 +732,7 @@
     <div
       transition:fly={{ duration: 150 }}
       id="detail-panel"
-      class="row-start-1 row-span-4 w-[360px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
+      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-[360px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
       translate="yes"
     >
       <DetailPanel {asset} currentAlbum={album} albums={appearsInAlbums} onClose={() => ($isShowDetail = false)} />

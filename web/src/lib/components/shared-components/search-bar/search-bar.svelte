@@ -14,7 +14,7 @@
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import type { MetadataSearchDto, SmartSearchDto } from '@immich/sdk';
   import { IconButton, modalManager } from '@immich/ui';
-  import { mdiClose, mdiDotsVertical, mdiFaceRecognition, mdiImageMultiple, mdiMagnify, mdiTune } from '@mdi/js';
+  import { mdiClose, mdiDotsVertical, mdiFaceRecognition, mdiMagnify, mdiTune } from '@mdi/js';
   import { onDestroy, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import SearchHistoryBox from './search-history-box.svelte';
@@ -284,12 +284,6 @@
           icon={mdiFaceRecognition}
           text="Edit People & Faces"
           onClick={() => goto(AppRoute.PEOPLE)}
-        />
-        <hr />
-        <MenuOption
-          icon={mdiImageMultiple}
-          text="Browse Photos"
-          onClick={() => goto(AppRoute.PHOTOS)}
         />
       </ButtonContextMenu>
     {:else}

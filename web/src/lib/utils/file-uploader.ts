@@ -143,6 +143,7 @@ async function fileUploader({
       fileCreatedAt,
       fileModifiedAt: new Date(assetFile.lastModified).toISOString(),
       isFavorite: 'false',
+      isOriginalQuality: 'true',
       duration: '0:00:00.000000',
       assetData: new File([assetFile], assetFile.name),
     })) {

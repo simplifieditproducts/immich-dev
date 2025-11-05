@@ -142,7 +142,7 @@
       class="flex pt-7 pb-5 max-md:pt-5 max-md:pb-3 h-6 place-items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm"
       style:width={dayGroup.width + 'px'}
     >
-      {#if !singleSelect && ((hoveredDayGroup === dayGroup.groupTitle && isMouseOverGroup) || assetInteraction.selectedGroup.has(dayGroup.groupTitle))}
+      {#if assetInteraction.selectedAssets.length > 0}
         <div
           transition:fly={{ x: -24, duration: 200, opacity: 0.5 }}
           class="inline-block pe-2 hover:cursor-pointer"
