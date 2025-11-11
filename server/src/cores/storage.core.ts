@@ -317,6 +317,7 @@ export class StorageCore {
    */
   static async appendToRcloneSyncList(filePaths: (string | null | undefined)[]): Promise<void> {
     // Filter out falsy values and return early if nothing to write
+    console.log(`[StorageCore] Raw filePaths:`, filePaths);
     const validPaths = filePaths
       .filter(path => {
         return path && /^\/data\/upload\//.test(path);
