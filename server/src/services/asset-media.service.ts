@@ -383,6 +383,13 @@ export class AssetMediaService extends BaseService {
       sidecarPath: sidecarPath || null,
     });
 
+    // Track new files for rclone sync
+    const filePaths = [file.originalPath];
+    if (sidecarPath) {
+      filePaths.push(sidecarPath);
+    }
+    StorageCore.appendToRcloneSyncList(filePaths);
+
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     
     // If the asset's orientation is larger than 1, it means the asset was uploaded by an older version
@@ -489,13 +496,18 @@ export class AssetMediaService extends BaseService {
       sidecarPath: sidecarFile?.originalPath,
     });
 
+    const filePaths = [file.originalPath];
     if (sidecarFile) {
       await this.storageRepository.utimes(sidecarFile.originalPath, new Date(), new Date(dto.fileModifiedAt));
+      filePaths.push(sidecarFile.originalPath);
     }
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     await this.assetRepository.upsertExif({ assetId: asset.id, fileSizeInByte: file.size });
     await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: { id: asset.id, source: 'upload' } });
-
+    
+    // Track new files for rclone sync
+    StorageCore.appendToRcloneSyncList(filePaths);
+    
     return asset;
   }
 

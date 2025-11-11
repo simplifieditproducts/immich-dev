@@ -107,6 +107,9 @@ export class StorageService extends BaseService {
       }
     }
 
+    // Track deleted files for rclone sync
+    StorageCore.appendToRcloneSyncList(files);
+
     return JobStatus.Success;
   }
 
