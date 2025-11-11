@@ -316,19 +316,20 @@ export class StorageCore {
    * @param filePaths The file paths to append to the list
    */
   static async appendToRcloneSyncList(filePaths: (string | null | undefined)[]): Promise<void> {
+    // This folder is '/usr/src/app/upload' in production, and is '/data' in local development
+    const dataFolder = APP_MEDIA_LOCATION;
+
     // Filter out falsy values and return early if nothing to write
-    console.log(`[StorageCore] Raw filePaths:`, filePaths);
     const validPaths = filePaths
       .filter(path => {
-        return path && /^\/data\/upload\//.test(path);
+        return path && new RegExp(`^${dataFolder}\/upload\/`).test(path);
       })
-      .map(path => path!.slice(6) + '\n');
+      .map(path => path!.slice(dataFolder.length + 1) + '\n');
     if (validPaths.length === 0) {
       return;
     }
     
-    const syncListPath = join(APP_MEDIA_LOCATION, 'rclone-sync-files.list');
-    console.log(`[StorageCore] Appending ${validPaths.length} path(s) to rclone sync list: ${syncListPath}`);
+    const syncListPath = join(dataFolder, 'rclone-sync-files.list');
     try {
       await fs.appendFile(syncListPath, validPaths.join(''), 'utf8');
     } catch (error) {
