@@ -327,6 +327,7 @@ export class StorageCore {
     }
     
     const syncListPath = join(APP_MEDIA_LOCATION, 'rclone-sync-files.list');
+    console.log(`[StorageCore] Appending ${validPaths.length} path(s) to rclone sync list: ${syncListPath}`);
     try {
       await fs.appendFile(syncListPath, validPaths.join(''), 'utf8');
     } catch (error) {
