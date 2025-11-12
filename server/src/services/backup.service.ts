@@ -70,6 +70,10 @@ export class BackupService extends BaseService {
 
   @OnJob({ name: JobName.DatabaseBackup, queue: QueueName.BackupDatabase })
   async handleBackupDatabase(): Promise<JobStatus> {
+    // When CONNECTION_DESTROYED happens, this script didn't get a chance to cleanup temporary files.
+    // So we run cleanup at the start of the next backup.
+    await this.cleanupDatabaseBackups();
+
     this.logger.debug(`Database Backup Started`);
     const { database } = this.configRepository.getEnv();
     const config = database.config;
