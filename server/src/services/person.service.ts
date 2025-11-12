@@ -527,6 +527,8 @@ export class PersonService extends BaseService {
         return JobStatus.Skipped;
       }
 
+      this.logger.log(`Start facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
+
       let personId = matches.find((match) => match.personId)?.personId;
       if (!personId) {
         const matchWithPerson = await this.searchRepository.searchFaces({
@@ -554,6 +556,8 @@ export class PersonService extends BaseService {
         this.logger.debug(`Assigning face ${id} to person ${personId}`);
         await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
       }
+
+      this.logger.log(`Finish facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
 
       return JobStatus.Success;
     } finally {
