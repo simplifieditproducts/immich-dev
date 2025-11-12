@@ -121,7 +121,9 @@ export class PersonRepository {
   getAllFaces(options: GetAllFacesOptions = {}) {
     return this.db
       .selectFrom('asset_face')
+      .innerJoin('asset', 'asset.id', 'asset_face.assetId')
       .selectAll('asset_face')
+      .select('asset.ownerId as ownerId')
       .$if(options.personId === null, (qb) => qb.where('asset_face.personId', 'is', null))
       .$if(!!options.personId, (qb) => qb.where('asset_face.personId', '=', options.personId!))
       .$if(!!options.sourceType, (qb) => qb.where('asset_face.sourceType', '=', options.sourceType!))

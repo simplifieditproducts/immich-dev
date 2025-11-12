@@ -162,8 +162,6 @@ export interface VideoInterfaces {
 export type ConcurrentQueueName = Exclude<
   QueueName,
   | QueueName.StorageTemplateMigration
-  | QueueName.FacialRecognition
-  | QueueName.DuplicateDetection
   | QueueName.BackupDatabase
 >;
 
@@ -225,6 +223,7 @@ export interface ISidecarWriteJob extends IEntityJob {
 
 export interface IDeferrableJob extends IEntityJob {
   deferred?: boolean;
+  userId?: string;
 }
 
 export interface INightlyJob extends IBaseJob {
@@ -324,7 +323,7 @@ export type JobItem =
 
   // Duplicate Detection
   | { name: JobName.AssetDetectDuplicatesQueueAll; data: IBaseJob }
-  | { name: JobName.AssetDetectDuplicates; data: IEntityJob }
+  | { name: JobName.AssetDetectDuplicates; data: IDeferrableJob }
 
   // Memories
   | { name: JobName.MemoryCleanup; data?: IBaseJob }

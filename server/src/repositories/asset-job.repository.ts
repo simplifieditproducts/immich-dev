@@ -140,7 +140,7 @@ export class AssetJobRepository {
   streamForSearchDuplicates(force?: boolean) {
     return this.db
       .selectFrom('asset')
-      .select(['asset.id'])
+      .select(['asset.id', 'asset.ownerId'])
       .where('asset.deletedAt', 'is', null)
       .innerJoin('smart_search', 'asset.id', 'smart_search.assetId')
       .$call(withDefaultVisibility)
@@ -176,7 +176,7 @@ export class AssetJobRepository {
   getForDetectFacesJob(id: string) {
     return this.db
       .selectFrom('asset')
-      .select(['asset.id', 'asset.visibility'])
+      .select(['asset.id', 'asset.visibility', 'asset.ownerId'])
       .$call(withExifInner)
       .select((eb) => withFaces(eb, true))
       .select((eb) => withFiles(eb, AssetFileType.Preview))

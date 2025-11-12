@@ -263,9 +263,7 @@ export class JobService extends BaseService {
 
   private isConcurrentQueue(name: QueueName): name is ConcurrentQueueName {
     return ![
-      QueueName.FacialRecognition,
       QueueName.StorageTemplateMigration,
-      QueueName.DuplicateDetection,
       QueueName.BackupDatabase,
     ].includes(name);
   }

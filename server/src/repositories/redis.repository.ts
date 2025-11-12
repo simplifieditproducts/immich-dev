@@ -36,4 +36,48 @@ export class RedisRepository implements OnModuleInit, OnModuleDestroy {
   async del(key: string): Promise<number> {
     return this.client.del(key);
   }
+
+  /**
+   * Try to acquire a distributed lock with a timeout
+   * @param key Lock key
+   * @param ttlSeconds Time to live in seconds (lock will auto-expire)
+   * @param maxWaitSeconds Maximum time to wait for lock acquisition (0 = no wait)
+   * @returns true if lock acquired, false if not
+   */
+  async tryAcquireLock(key: string, ttlSeconds: number, maxWaitSeconds: number = 0): Promise<boolean> {
+    const lockKey = `lock:${key}`;
+    const startTime = Date.now();
+    const maxWaitMs = maxWaitSeconds * 1000;
+
+    while (true) {
+      // Try to set the lock key with NX (only if not exists) and EX (expiration)
+      const result = await this.client.set(lockKey, '1', 'EX', ttlSeconds, 'NX');
+      if (result === 'OK') {
+        return true;
+      }
+
+      // If no wait time specified, return immediately
+      if (maxWaitSeconds === 0) {
+        return false;
+      }
+
+      // Check if we've exceeded max wait time
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= maxWaitMs) {
+        return false;
+      }
+
+      // Wait a bit before retrying (100ms)
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  /**
+   * Release a distributed lock
+   * @param key Lock key
+   */
+  async releaseLock(key: string): Promise<void> {
+    const lockKey = `lock:${key}`;
+    await this.client.del(lockKey);
+  }
 }

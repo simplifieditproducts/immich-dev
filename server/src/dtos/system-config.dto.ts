@@ -200,6 +200,18 @@ class SystemConfigJobDto implements Record<ConcurrentQueueName, JobSettingsDto> 
   @ValidateNested()
   @IsObject()
   @Type(() => JobSettingsDto)
+  [QueueName.DuplicateDetection]!: JobSettingsDto;
+
+  @ApiProperty({ type: JobSettingsDto })
+  @ValidateNested()
+  @IsObject()
+  @Type(() => JobSettingsDto)
+  [QueueName.FacialRecognition]!: JobSettingsDto;  
+
+  @ApiProperty({ type: JobSettingsDto })
+  @ValidateNested()
+  @IsObject()
+  @Type(() => JobSettingsDto)
   [QueueName.FaceDetection]!: JobSettingsDto;
 
   @ApiProperty({ type: JobSettingsDto })
