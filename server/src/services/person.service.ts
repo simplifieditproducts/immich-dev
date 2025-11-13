@@ -479,7 +479,7 @@ export class PersonService extends BaseService {
     const lockKey = `facial-recognition:${userId || face.asset.ownerId}`;
     const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
     if (!lockAcquired) {
-      this.logger.warn(`Could not acquire lock for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
+      this.logger.debug(`Could not acquire lock for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
       // Requeue the job to try again later
       await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred, userId: userId || face.asset.ownerId } });
       return JobStatus.Skipped;
