@@ -155,7 +155,7 @@ export class AssetJobRepository {
   @GenerateSql({ params: [], stream: true })
   streamForEncodeClip(force?: boolean) {
     return this.assetsWithPreviews()
-      .select(['asset.id'])
+      .select(['asset.id', 'asset.ownerId'])
       .$if(!force, (qb) =>
         qb.where((eb) => eb.not((eb) => eb.exists(eb.selectFrom('smart_search').whereRef('assetId', '=', 'asset.id')))),
       )

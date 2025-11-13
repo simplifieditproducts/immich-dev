@@ -80,7 +80,7 @@ export class SmartInfoService extends BaseService {
     let queue: JobItem[] = [];
     const assets = this.assetJobRepository.streamForEncodeClip(force);
     for await (const asset of assets) {
-      queue.push({ name: JobName.SmartSearch, data: { id: asset.id } });
+      queue.push({ name: JobName.SmartSearch, data: { id: asset.id, userId: asset.ownerId } });
       if (queue.length >= JOBS_ASSET_PAGINATION_SIZE) {
         await this.jobRepository.queueAll(queue);
         queue = [];

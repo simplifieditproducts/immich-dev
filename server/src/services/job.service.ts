@@ -349,7 +349,7 @@ export class JobService extends BaseService {
         }
 
         const jobs: JobItem[] = [
-          { name: JobName.SmartSearch, data: item.data },
+          { name: JobName.SmartSearch, data: { ...item.data, userId: asset.ownerId } },
           { name: JobName.AssetDetectFaces, data: item.data },
         ];
 

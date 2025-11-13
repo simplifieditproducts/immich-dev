@@ -180,6 +180,7 @@ export interface IDelayedJob extends IBaseJob {
 export type JobSource = 'upload' | 'sidecar-write' | 'copy';
 export interface IEntityJob extends IBaseJob {
   id: string;
+  userId?: string;
   source?: JobSource;
   notify?: boolean;
 }
@@ -223,7 +224,6 @@ export interface ISidecarWriteJob extends IEntityJob {
 
 export interface IDeferrableJob extends IEntityJob {
   deferred?: boolean;
-  userId?: string;
 }
 
 export interface INightlyJob extends IBaseJob {
@@ -323,7 +323,7 @@ export type JobItem =
 
   // Duplicate Detection
   | { name: JobName.AssetDetectDuplicatesQueueAll; data: IBaseJob }
-  | { name: JobName.AssetDetectDuplicates; data: IDeferrableJob }
+  | { name: JobName.AssetDetectDuplicates; data: IEntityJob }
 
   // Memories
   | { name: JobName.MemoryCleanup; data?: IBaseJob }

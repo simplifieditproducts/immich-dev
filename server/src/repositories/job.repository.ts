@@ -220,6 +220,16 @@ export class JobRepository {
       case JobName.FacialRecognitionQueueAll: {
         return { jobId: JobName.FacialRecognitionQueueAll };
       }
+      case JobName.AssetDetectDuplicates: {
+        return {
+          jobId: `duplicate-detection:${item.data.userId}:${item.data.id}`,
+        };
+      }
+      case JobName.FacialRecognition: {
+        return {
+          jobId: `facial-recognition:${item.data.userId}:${item.data.id}`,
+        };
+      }
       default: {
         return null;
       }
