@@ -70,7 +70,7 @@ export class DuplicateService extends BaseService {
 
     // Acquire distributed lock for this user to prevent concurrent execution
     const lockKey = `duplicate-detection:${userId || asset.ownerId}`;
-    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 300, 60);
+    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
     if (!lockAcquired) {
       this.logger.warn(`Could not acquire lock for user ${userId || asset.ownerId}, requeueing job ${id}`);
       // Requeue the job to try again later
