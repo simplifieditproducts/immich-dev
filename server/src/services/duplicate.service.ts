@@ -100,7 +100,7 @@ export class DuplicateService extends BaseService {
         return JobStatus.Failed;
       }
 
-      this.logger.log(`Start duplicate detection for asset ${id} (user: ${userId || asset.ownerId})`);
+      this.logger.debug(`Start duplicate detection for asset ${id} (user: ${userId || asset.ownerId})`);
 
       const duplicateAssets = await this.duplicateRepository.search({
         assetId: asset.id,
@@ -124,7 +124,7 @@ export class DuplicateService extends BaseService {
       const duplicatesDetectedAt = new Date();
       await this.assetRepository.upsertJobStatus(...assetIds.map((assetId) => ({ assetId, duplicatesDetectedAt })));
 
-      this.logger.log(`Finish duplicate detection for asset ${id} (user: ${userId || asset.ownerId})`);
+      this.logger.debug(`Finish duplicate detection for asset ${id} (user: ${userId || asset.ownerId})`);
       
       return JobStatus.Success;
     } finally {
