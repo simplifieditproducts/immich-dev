@@ -1,7 +1,7 @@
 import { getQueueToken } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
-import { JobsOptions, Queue, Worker } from 'bullmq';
+import { JobsOptions, Queue, Worker, type Job } from 'bullmq';
 import { ClassConstructor } from 'class-transformer';
 import { setTimeout } from 'node:timers/promises';
 import { JobConfig } from 'src/decorators';
@@ -89,7 +89,13 @@ export class JobRepository {
       this.logger.debug(`Starting worker for queue: ${queueName}`);
       this.workers[queueName] = new Worker(
         queueName,
-        (job) => this.eventRepository.emit('JobStart', queueName, job as JobItem),
+        (job: Job, token?: string) => {
+          const item = job as JobItem;
+          // Store jobId and token in data for lock failure handling
+          item.data = { ...item.data, __jobId: job.id, __token: token } as any;
+          this.logger.debug(`Starting job in queue '${queueName}'. Job ID: ${job.id}`);
+          return this.eventRepository.emit('JobStart', queueName, item);
+        },
         { ...bull.config, concurrency: 1 },
       );
     }

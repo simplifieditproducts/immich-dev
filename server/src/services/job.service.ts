@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { DelayedError } from 'bullmq';
 import { ClassConstructor } from 'class-transformer';
 import { snakeCase } from 'lodash';
 import { SystemConfig } from 'src/config';
@@ -21,7 +22,7 @@ import {
 } from 'src/enum';
 import { ArgOf, ArgsOf } from 'src/repositories/event.repository';
 import { BaseService } from 'src/services/base.service';
-import { ConcurrentQueueName, JobItem } from 'src/types';
+import { ConcurrentQueueName, type IEntityJob, JobItem } from 'src/types';
 import { hexOrBufferToBase64 } from 'src/utils/bytes';
 import { handlePromiseError } from 'src/utils/misc';
 
@@ -255,7 +256,17 @@ export class JobService extends BaseService {
         await this.onDone(job);
       }
     } catch (error: Error | any) {
-      await this.eventRepository.emit('JobFailed', { job, error });
+      if (error instanceof DelayedError) {
+        const entity = job.data as IEntityJob;
+        if (job.name === JobName.AssetDetectDuplicates) {
+          this.logger.debug(`Delay duplicate detection for asset ${entity?.id} (user: ${entity?.userId})`);
+        } else if (job.name === JobName.FacialRecognition) {
+          this.logger.debug(`Delay facial recognition for face ${entity?.id} (user: ${entity?.userId})`);
+        }
+        throw error;
+      } else {
+        await this.eventRepository.emit('JobFailed', { job, error });
+      }
     } finally {
       this.telemetryRepository.jobs.addToGauge(queueMetric, -1);
     }

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DelayedError, Job } from 'bullmq';
 import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { OnJob } from 'src/decorators';
 import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
@@ -56,7 +57,7 @@ export class DuplicateService extends BaseService {
   }
 
   @OnJob({ name: JobName.AssetDetectDuplicates, queue: QueueName.DuplicateDetection })
-  async handleSearchDuplicates({ id, userId }: JobOf<JobName.AssetDetectDuplicates>): Promise<JobStatus> {
+  async handleSearchDuplicates({ id, userId, delayRetries = 0, __jobId, __token }: JobOf<JobName.AssetDetectDuplicates> & { __jobId?: string; __token?: string }): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isDuplicateDetectionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -70,12 +71,34 @@ export class DuplicateService extends BaseService {
 
     // Acquire distributed lock for this user to prevent concurrent execution
     const lockKey = `duplicate-detection:${userId || asset.ownerId}`;
-    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
+    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10, 0);
     if (!lockAcquired) {
-      this.logger.debug(`Could not acquire lock for user ${userId || asset.ownerId}, requeueing job ${id}`);
-      // Requeue the job to try again later
-      await this.jobRepository.queue({ name: JobName.AssetDetectDuplicates, data: { id, userId: userId || asset.ownerId } });
-      return JobStatus.Skipped;
+      if (__jobId && __token) {
+        // Exponential backoff: 1s, 2s, 4s, max 8s
+        const delayMs = Math.min(1000 * Math.pow(2, delayRetries), 8000);
+        this.logger.debug(`Delaying job ${id} by ${delayMs}ms (attempt ${delayRetries + 1})`);
+        
+        // Fetch job by ID using static method
+        const job = await Job.fromId(this.jobRepository['getQueue'](QueueName.DuplicateDetection), __jobId);
+        
+        if (job) {
+          // Update job data with incremented retry count
+          await job.updateData({ 
+            ...job.data, 
+            delayRetries: delayRetries + 1,
+            __jobId,
+            __token 
+          });
+          
+          await job.moveToDelayed(Date.now() + delayMs, __token);
+          throw new DelayedError();
+        } else {
+          this.logger.error(`Job with ID ${__jobId} not found for delaying`);
+        }
+      }
+      
+      this.logger.error(`Invalid job ID or token for asset ${id} and user ${userId || asset.ownerId}`);
+      return JobStatus.Failed;
     }
 
     try {

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { DelayedError, Job } from 'bullmq';
 import { Insertable, Updateable } from 'kysely';
 import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { Person } from 'src/database';
@@ -463,7 +464,7 @@ export class PersonService extends BaseService {
   }
 
   @OnJob({ name: JobName.FacialRecognition, queue: QueueName.FacialRecognition })
-  async handleRecognizeFaces({ id, deferred, userId }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
+  async handleRecognizeFaces({ id, deferred, userId, delayRetries = 0, __jobId, __token }: JobOf<JobName.FacialRecognition> & { __jobId?: string; __token?: string }): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isFacialRecognitionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -477,12 +478,34 @@ export class PersonService extends BaseService {
 
     // Acquire distributed lock for this user to prevent concurrent execution
     const lockKey = `facial-recognition:${userId || face.asset.ownerId}`;
-    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
+    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10, 0);
     if (!lockAcquired) {
-      this.logger.debug(`Could not acquire lock for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
-      // Requeue the job to try again later
-      await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred, userId: userId || face.asset.ownerId } });
-      return JobStatus.Skipped;
+      if (__jobId && __token) {
+        // Exponential backoff: 1s, 2s, 4s, max 8s
+        const delayMs = Math.min(1000 * Math.pow(2, delayRetries), 8000);
+        this.logger.debug(`Delaying job ${id} by ${delayMs}ms (attempt ${delayRetries + 1})`);
+        
+        // Fetch job by ID using static method
+        const job = await Job.fromId(this.jobRepository['getQueue'](QueueName.FacialRecognition), __jobId);
+        
+        if (job) {
+          // Update job data with incremented retry count
+          await job.updateData({ 
+            ...job.data, 
+            delayRetries: delayRetries + 1,
+            __jobId,
+            __token 
+          });
+          
+          await job.moveToDelayed(Date.now() + delayMs, __token);
+          throw new DelayedError();
+        } else {
+          this.logger.error(`Job with ID ${__jobId} not found for delaying.`);
+        }
+      } 
+      
+      this.logger.error(`Invalid job ID or token for face ${id} and user ${userId || face.asset.ownerId}`);
+      return JobStatus.Failed;
     }
 
     try {

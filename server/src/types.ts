@@ -183,6 +183,12 @@ export interface IEntityJob extends IBaseJob {
   userId?: string;
   source?: JobSource;
   notify?: boolean;
+
+  // Number of times this job has been delayed due to lock failure, this is used to calculate 
+  // exponential backoff delay time for duplicate detection and facial recognition jobs. 
+  // Note: the 'delay' is different from the 'deferred' property in IDeferrableJob, which pushes
+  // the job to the end of the queue instead of delaying for a specific time.
+  delayRetries?: number;
 }
 
 export interface IAssetDeleteJob extends IEntityJob {
