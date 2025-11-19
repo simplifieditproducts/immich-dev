@@ -18,6 +18,9 @@ export class JobCommandDto {
 export class JobCreateDto {
   @ValidateEnum({ enum: ManualJobName, name: 'ManualJobName' })
   name!: ManualJobName;
+
+  @ApiProperty({ required: false })
+  ownerId?: string;
 }
 
 export class JobCountsDto {

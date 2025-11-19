@@ -56,6 +56,7 @@ export interface GetAllFacesOptions {
   personId?: string | null;
   assetId?: string;
   sourceType?: SourceType;
+  ownerIds?: string[];
 }
 
 export type UnassignFacesOptions = DeleteFacesOptions;
@@ -128,6 +129,7 @@ export class PersonRepository {
       .$if(!!options.personId, (qb) => qb.where('asset_face.personId', '=', options.personId!))
       .$if(!!options.sourceType, (qb) => qb.where('asset_face.sourceType', '=', options.sourceType!))
       .$if(!!options.assetId, (qb) => qb.where('asset_face.assetId', '=', options.assetId!))
+      .$if(!!options.ownerIds && options.ownerIds.length > 0, (qb) => qb.where('asset.ownerId', 'in', options.ownerIds!))
       .where('asset_face.deletedAt', 'is', null)
       .stream();
   }
@@ -521,6 +523,22 @@ export class PersonRepository {
       .executeTakeFirst()) as { latestDate: string } | undefined;
 
     return result?.latestDate;
+  }
+
+  @GenerateSql()
+  async getUsersWithNewPersonsInLast24Hours(): Promise<string[]> {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const results = await this.db
+      .selectFrom('person')
+      .select('person.ownerId')
+      .distinct()
+      .where('person.createdAt', '>=', yesterday)
+      .where('person.isHidden', '=', false)
+      .execute();
+
+    return results.map((row: { ownerId: string }) => row.ownerId);
   }
 
   async createAssetFace(face: Insertable<AssetFaceTable>): Promise<void> {

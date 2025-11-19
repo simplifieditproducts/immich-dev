@@ -311,6 +311,7 @@ export enum ManualJobName {
   MemoryCleanup = 'memory-cleanup',
   MemoryCreate = 'memory-create',
   BackupDatabase = 'backup-database',
+  FacialRecognition = 'facial-recognition',
 }
 
 export enum AssetPathType {

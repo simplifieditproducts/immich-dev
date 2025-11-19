@@ -11101,6 +11101,9 @@
                 "$ref": "#/components/schemas/ManualJobName"
               }
             ]
+          },
+          "ownerId": {
+            "type": "string"
           }
         },
         "required": [
@@ -11371,7 +11374,8 @@
           "user-cleanup",
           "memory-cleanup",
           "memory-create",
-          "backup-database"
+          "backup-database",
+          "facial-recognition"
         ],
         "type": "string"
       },

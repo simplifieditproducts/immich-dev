@@ -377,7 +377,7 @@ export class PersonService extends BaseService {
         name: JobName.FacialRecognition, 
         data: { id: face.id, userId: asset.ownerId } 
       }) as const);
-      await this.jobRepository.queueAll([{ name: JobName.FacialRecognitionQueueAll, data: { force: false } }, ...jobs]);
+      await this.jobRepository.queueAll(jobs);
     } else if (embeddings.length > 0) {
       this.logger.log(`Added ${embeddings.length} face embeddings for asset ${id}`);
     }
@@ -405,7 +405,7 @@ export class PersonService extends BaseService {
   }
 
   @OnJob({ name: JobName.FacialRecognitionQueueAll, queue: QueueName.FacialRecognition })
-  async handleQueueRecognizeFaces({ force, nightly }: JobOf<JobName.FacialRecognitionQueueAll>): Promise<JobStatus> {
+  async handleQueueRecognizeFaces({ force, nightly, ownerId }: JobOf<JobName.FacialRecognitionQueueAll>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isFacialRecognitionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -413,37 +413,42 @@ export class PersonService extends BaseService {
 
     await this.jobRepository.waitForQueueCompletion(QueueName.ThumbnailGeneration, QueueName.FaceDetection);
 
-    if (nightly) {
-      const [state, latestFaceDate] = await Promise.all([
-        this.systemMetadataRepository.get(SystemMetadataKey.FacialRecognitionState),
-        this.personRepository.getLatestFaceDate(),
-      ]);
-
-      if (state?.lastRun && latestFaceDate && state.lastRun > latestFaceDate) {
-        this.logger.debug('Skipping facial recognition nightly since no face has been added since the last run');
-        return JobStatus.Skipped;
-      }
-    }
-
-    const { waiting } = await this.jobRepository.getJobCounts(QueueName.FacialRecognition);
-
     if (force) {
       await this.personRepository.unassignFaces({ sourceType: SourceType.MachineLearning });
       await this.handlePersonCleanup();
       await this.personRepository.vacuum({ reindexVectors: false });
-    } else if (waiting) {
-      this.logger.debug(
-        `Skipping facial recognition queueing because ${waiting} job${waiting > 1 ? 's are' : ' is'} already queued`,
-      );
-      return JobStatus.Skipped;
+    }
+
+    let ownerIds: string[] = [];
+    if (nightly) {
+      // For nightly runs, check if there are users with new persons created in the last 24 hours
+      ownerIds = await this.personRepository.getUsersWithNewPersonsInLast24Hours();
+      if (ownerIds.length === 0) {
+        this.logger.debug('No users with new persons identified in the last 24 hours');
+        return JobStatus.Skipped;
+      }
+      this.logger.log(`Found ${ownerIds.length} users with new persons identified in the last 24 hours`);
+    } else if (ownerId) {
+      // For manual runs with a specific user
+      ownerIds = [ownerId];
+      this.logger.log(`Queueing facial recognition for user ${ownerId}`);
     }
 
     await this.databaseRepository.prewarm(VectorIndex.Face);
 
-    const lastRun = new Date().toISOString();
-    const facePagination = this.personRepository.getAllFaces(
-      force ? undefined : { personId: null, sourceType: SourceType.MachineLearning },
-    );
+    const lastRun = new Date().toISOString();    
+    let facePagination;
+    if (ownerIds.length > 0) {
+      facePagination = this.personRepository.getAllFaces({ 
+        personId: null, 
+        sourceType: SourceType.MachineLearning,
+        ownerIds 
+      });
+    } else {
+      facePagination = this.personRepository.getAllFaces(
+        force ? undefined : { personId: null, sourceType: SourceType.MachineLearning },
+      );
+    }
 
     let jobs: { name: JobName.FacialRecognition; data: { id: string; deferred: false; userId: string } }[] = [];
     for await (const face of facePagination) {
@@ -529,7 +534,7 @@ export class PersonService extends BaseService {
 
       this.logger.debug(`Start facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
 
-      let personId = matches.find((match) => match.personId)?.personId;
+      let personId = matches.find((match: { personId: string | null }) => match.personId)?.personId;
       if (!personId) {
         const matchWithPerson = await this.searchRepository.searchFaces({
           userIds: [face.asset.ownerId],

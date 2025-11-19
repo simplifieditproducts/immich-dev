@@ -196,11 +196,11 @@ export class JobRepository {
     do {
       const statuses = await Promise.all(queues.map((name) => this.getQueueStatus(name)));
       activeQueue = statuses.find((status) => status.isActive);
+      if (activeQueue) {
+        this.logger.verbose(`Waiting for queues to complete: ${queues.join(', ')}`);
+        await setTimeout(1000);
+      }
     } while (activeQueue);
-    {
-      this.logger.verbose(`Waiting for ${activeQueue} queue to stop...`);
-      await setTimeout(1000);
-    }
   }
 
   private getJobOptions(item: JobItem): JobsOptions | null {

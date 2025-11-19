@@ -228,6 +228,7 @@ export interface IDeferrableJob extends IEntityJob {
 
 export interface INightlyJob extends IBaseJob {
   nightly?: boolean;
+  ownerId?: string;
 }
 
 export type EmailImageAttachment = {
