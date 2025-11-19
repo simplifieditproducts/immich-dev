@@ -480,6 +480,21 @@ export class PersonService extends BaseService {
       return JobStatus.Failed;
     }
 
+    if (face.sourceType !== SourceType.MachineLearning) {
+      this.logger.warn(`Skipping face ${id} due to source ${face.sourceType}`);
+      return JobStatus.Skipped;
+    }
+
+    if (!face.faceSearch?.embedding) {
+      this.logger.warn(`Face ${id} does not have an embedding`);
+      return JobStatus.Failed;
+    }
+
+    if (face.personId) {
+      this.logger.debug(`Face ${id} already has a person assigned`);
+      return JobStatus.Skipped;
+    }    
+
     // Acquire distributed lock for this user to prevent concurrent execution
     const lockKey = `facial-recognition:${userId || face.asset.ownerId}`;
     const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
@@ -491,22 +506,6 @@ export class PersonService extends BaseService {
     }
 
     try {
-
-      if (face.sourceType !== SourceType.MachineLearning) {
-        this.logger.warn(`Skipping face ${id} due to source ${face.sourceType}`);
-        return JobStatus.Skipped;
-      }
-
-      if (!face.faceSearch?.embedding) {
-        this.logger.warn(`Face ${id} does not have an embedding`);
-        return JobStatus.Failed;
-      }
-
-      if (face.personId) {
-        this.logger.debug(`Face ${id} already has a person assigned`);
-        return JobStatus.Skipped;
-      }
-
       const matches = await this.searchRepository.searchFaces({
         userIds: [face.asset.ownerId],
         embedding: face.faceSearch.embedding,
