@@ -72,12 +72,12 @@
       oninput={(event) => onInput(event)}
     />  
     {#if !currentInputValue || currentInputValue.trim().length === 0}
-      <Icon path={mdiPencilPlusOutline} size="20" class="hidden xs:block absolute left-3.5 top-4.5 text-gray-400 dark:text-gray-200" />
+      <Icon path={mdiPencilPlusOutline} size="20" class="hidden xs:block lg:hidden absolute left-3.5 top-4.5 text-gray-400 dark:text-gray-200" />
     {/if}
   </div>
   <div class="flex mt-2.5 text-gray-600 dark:text-gray-200">
     <button type="button" class="flex-1 border rounded-l-full bg-gray-50 dark:bg-gray-800 dark:border-gray-600 pl-3 pr-1 py-1 text-xs flex items-center gap-x-1 font-semibold truncate select-none hover:bg-gray-200 active:bg-gray-200 dark:active:bg-gray-900 transition-colors duration-300 ease-in-out" onclick={onHidePerson}>
-      <Icon path={mdiEyeOffOutline} size="20" class="hidden xs:block flex-none" /> <p class="flex-1 text-center pt-0.5">{$t('hide_person')}</p>
+      <Icon path={mdiEyeOffOutline} size="20" class="hidden xs:block lg:hidden flex-none" /> <p class="flex-1 text-center pt-0.5">{$t('hide_person')}</p>
     </button>
     <ButtonContextMenu
       buttonClass="rounded-l-none rounded-r-full border border-l-0 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 active:bg-gray-200 dark:active:bg-gray-900 transition-colors duration-300 ease-in-out"
