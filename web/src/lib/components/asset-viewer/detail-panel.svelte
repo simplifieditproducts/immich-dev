@@ -15,7 +15,7 @@
   import { preferences, user } from '$lib/stores/user.store';
   import { getAssetThumbnailUrl, getPeopleThumbnailUrl, handlePromiseError } from '$lib/utils';
   import { delay, isFlipped } from '$lib/utils/asset-utils';
-  import { getByteUnitString } from '$lib/utils/byte-units';
+  import { getDecimalByteUnitString } from '$lib/utils/decimal-byte-units';
   import { handleError } from '$lib/utils/handle-error';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import { fromISODateTime, fromISODateTimeUTC } from '$lib/utils/timeline-util';
@@ -433,7 +433,7 @@
               {/if}
             {/if}
             {#if asset.exifInfo?.fileSizeInByte}
-              <p>{getByteUnitString(asset.exifInfo.fileSizeInByte, $locale)}</p>
+              <p>{getDecimalByteUnitString(asset.exifInfo.fileSizeInByte, $locale)}</p>
             {/if}
           </div>
         {/if}
