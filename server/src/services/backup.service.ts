@@ -53,9 +53,9 @@ export class BackupService extends BaseService {
 
     const backupsFolder = StorageCore.getBaseFolder(StorageFolder.Backups);
     const files = await this.storageRepository.readdir(backupsFolder);
-    const failedBackups = files.filter((file) => file.match(/immich-db-backup-\d+\.sql\.gz\.tmp$/));
+    const failedBackups = files.filter((file) => file.match(/immich-db-backup-.+\.sql\.gz\.tmp$/));
     const backups = files
-      .filter((file) => file.match(/immich-db-backup-\d+\.sql\.gz$/))
+      .filter((file) => file.match(/immich-db-backup-.+\.sql\.gz$/))
       .sort()
       .reverse();
 
