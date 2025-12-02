@@ -17,7 +17,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { parse } from 'pg-connection-string';
 import postgres, { Notice } from 'postgres';
 import { columns, Exif, Person } from 'src/database';
-import { AssetFileType, AssetVisibility, DatabaseExtension, DatabaseSslMode } from 'src/enum';
+import { AssetFileType, AssetVisibility, DatabaseExtension, DatabaseSslMode, ImmichWorker } from 'src/enum';
 import { AssetSearchBuilderOptions } from 'src/repositories/search.repository';
 import { DB } from 'src/schema';
 import { DatabaseConnectionParams, VectorExtension } from 'src/types';
@@ -111,9 +111,11 @@ export const getKyselyConfig = (
         }
 
         // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
-        // our deployment scripts can detect it and restart the microservice container.
+        // our deployment scripts can detect it and restart the appropriate container.
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
-          const tempFile = '/tmp/immich/connection_destroyed';
+          const isApiServer = process.env.IMMICH_WORKERS_INCLUDE === ImmichWorker.Api;
+          const containerType = isApiServer ? 'server' : 'microservices';
+          const tempFile = `/tmp/immich/connection_destroyed_${containerType}`;
           try {
             if (!existsSync(tempFile)) {
               writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
