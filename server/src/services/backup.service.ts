@@ -46,26 +46,41 @@ export class BackupService extends BaseService {
   }
 
   async cleanupDatabaseBackups() {
-    this.logger.debug(`Database Backup Cleanup Started`);
+    this.logger.log(`Database Backup Cleanup Started`);
     const {
       backup: { database: config },
     } = await this.getConfig({ withCache: false });
 
     const backupsFolder = StorageCore.getBaseFolder(StorageFolder.Backups);
     const files = await this.storageRepository.readdir(backupsFolder);
-    const failedBackups = files.filter((file) => file.match(/immich-db-backup-.+\.sql\.gz\.tmp$/));
+    
+    const deleteItem = async (name: string) => {
+      const fullPath = path.join(backupsFolder, name);
+      const stat = await this.storageRepository.stat(fullPath);
+      if (stat.isDirectory()) {
+        await this.storageRepository.unlinkDir(fullPath, { recursive: true, force: true });
+      } else {
+        await this.storageRepository.unlink(fullPath);
+      }
+    };
+    
+    // Delete failed backups (with .tmp suffix)
+    const failedBackups = files.filter((file) => file.match(/immich-db-backup-.+\.tmp$/));
+    for (const name of failedBackups) {
+      await deleteItem(name);
+    }
+    
+    // Find completed backup folders
     const backups = files
-      .filter((file) => file.match(/immich-db-backup-.+\.sql\.gz$/))
+      .filter((file) => file.match(/^immich-db-backup-\d{8}T\d{6}-v[\d.]+-pg[\d.]+$/))
       .sort()
       .reverse();
-
     const toDelete = backups.slice(config.keepLastAmount);
-    toDelete.push(...failedBackups);
-
-    for (const file of toDelete) {
-      await this.storageRepository.unlink(path.join(backupsFolder, file));
+    for (const name of toDelete) {
+      await deleteItem(name);
     }
-    this.logger.debug(`Database Backup Cleanup Finished, deleted ${toDelete.length} backups`);
+
+    this.logger.log(`Database Backup Cleanup Finished, deleted ${failedBackups.length} failed and ${toDelete.length} old backups`);
   }
 
   @OnJob({ name: JobName.DatabaseBackup, queue: QueueName.BackupDatabase })
@@ -89,16 +104,11 @@ export class BackupService extends BaseService {
           config.host,
           '--port',
           `${config.port}`,
-          '--database',
-          config.database,
         ];
 
-    databaseParams.push('--clean', '--if-exists');
     const databaseVersion = await this.databaseRepository.getPostgresVersion();
-    const backupFilePath = path.join(
-      StorageCore.getBaseFolder(StorageFolder.Backups),
-      `immich-db-backup-${DateTime.now().toFormat("yyyyLLdd'T'HHmmss")}-v${serverVersion.toString()}-pg${databaseVersion.split(' ')[0]}.sql.gz.tmp`,
-    );
+    const backupFolderName = `immich-db-backup-${DateTime.now().toFormat("yyyyLLdd'T'HHmmss")}-v${serverVersion.toString()}-pg${databaseVersion.split(' ')[0]}.tmp`;
+    const backupFolderPath = path.join(StorageCore.getBaseFolder(StorageFolder.Backups), backupFolderName);
     const databaseSemver = semver.coerce(databaseVersion);
     const databaseMajorVersion = databaseSemver?.major;
 
@@ -110,10 +120,18 @@ export class BackupService extends BaseService {
     this.logger.log(`Database Backup Starting. Database Version: ${databaseMajorVersion}`);
 
     try {
+      // Create backup folder
+      this.storageRepository.mkdirSync(backupFolderPath);
+
+      // Step 1: Backup global objects (roles, tablespaces, etc.) as globals.sql
+      this.logger.log('Backing up database globals...');
+      const globalsFilePath = path.join(backupFolderPath, 'globals.sql');
+      const globalsParams = [...databaseParams, '--globals-only'];
+
       await new Promise<void>((resolve, reject) => {
-        const pgdump = this.processRepository.spawn(
+        const pgdumpall = this.processRepository.spawn(
           `/usr/lib/postgresql/${databaseMajorVersion}/bin/pg_dumpall`,
-          databaseParams,
+          globalsParams,
           {
             env: {
               PATH: process.env.PATH,
@@ -122,62 +140,90 @@ export class BackupService extends BaseService {
           },
         );
 
-        // NOTE: `--rsyncable` is only supported in GNU gzip
-        const gzip = this.processRepository.spawn(`gzip`, ['--rsyncable']);
-        pgdump.stdout.pipe(gzip.stdin);
+        const fileStream = this.storageRepository.createWriteStream(globalsFilePath);
+        pgdumpall.stdout.pipe(fileStream);
 
-        const fileStream = this.storageRepository.createWriteStream(backupFilePath);
+        let pgdumpallLogs = '';
+        pgdumpall.stderr.on('data', (data) => (pgdumpallLogs += data));
 
-        gzip.stdout.pipe(fileStream);
-
-        pgdump.on('error', (err) => {
-          this.logger.error('Backup failed with error', err);
+        pgdumpall.on('error', (err) => {
+          this.logger.error('Globals backup failed with error', err);
           reject(err);
         });
 
-        gzip.on('error', (err) => {
-          this.logger.error('Gzip failed with error', err);
-          reject(err);
-        });
-
-        let pgdumpLogs = '';
-        let gzipLogs = '';
-
-        pgdump.stderr.on('data', (data) => (pgdumpLogs += data));
-        gzip.stderr.on('data', (data) => (gzipLogs += data));
-
-        pgdump.on('exit', (code) => {
+        pgdumpall.on('exit', (code) => {
           if (code !== 0) {
-            this.logger.error(`Backup failed with code ${code}`);
-            reject(`Backup failed with code ${code}`);
-            this.logger.error(pgdumpLogs);
+            this.logger.error(`Globals backup failed with code ${code}`);
+            reject(`Globals backup failed with code ${code}`);
+            this.logger.error(pgdumpallLogs);
             return;
           }
-          if (pgdumpLogs) {
-            this.logger.debug(`pgdump_all logs\n${pgdumpLogs}`);
-          }
-        });
-
-        gzip.on('exit', (code) => {
-          if (code !== 0) {
-            this.logger.error(`Gzip failed with code ${code}`);
-            reject(`Gzip failed with code ${code}`);
-            this.logger.error(gzipLogs);
-            return;
-          }
-          if (pgdump.exitCode !== 0) {
-            this.logger.error(`Gzip exited with code 0 but pgdump exited with ${pgdump.exitCode}`);
-            return;
+          if (pgdumpallLogs) {
+            this.logger.debug(`pg_dumpall globals logs\n${pgdumpallLogs}`);
           }
           resolve();
         });
       });
-      await this.storageRepository.rename(backupFilePath, backupFilePath.replace('.tmp', ''));
+      this.logger.log('Database globals backup completed');
+
+      // Step 2: Backup immich database with parallel jobs using directory format
+      this.logger.log('Backing up immich database with parallel jobs (-j 16)...');
+      const databaseDumpFolderPath = path.join(backupFolderPath, 'data');
+      const databaseDumpParams = [
+        ...databaseParams,
+        '--clean',
+        '--if-exists',
+        '-Fd',
+        '-j',
+        '16',
+        '-f',
+        databaseDumpFolderPath,
+        process.env.DB_DATABASE_NAME || 'immich',
+      ];
+
+      await new Promise<void>((resolve, reject) => {
+        const pgdump = this.processRepository.spawn(
+          `/usr/lib/postgresql/${databaseMajorVersion}/bin/pg_dump`,
+          databaseDumpParams,
+          {
+            env: {
+              PATH: process.env.PATH,
+              PGPASSWORD: isUrlConnection ? undefined : config.password,
+            },
+          },
+        );
+
+        let pgdumpLogs = '';
+        pgdump.stderr.on('data', (data) => (pgdumpLogs += data));
+
+        pgdump.on('error', (err) => {
+          this.logger.error('Database backup failed with error', err);
+          reject(err);
+        });
+
+        pgdump.on('exit', (code) => {
+          if (code !== 0) {
+            this.logger.error(`Database backup failed with code ${code}`);
+            reject(`Database backup failed with code ${code}`);
+            this.logger.error(pgdumpLogs);
+            return;
+          }
+          if (pgdumpLogs) {
+            this.logger.debug(`pg_dump logs\n${pgdumpLogs}`);
+          }
+          resolve();
+        });
+      });
+      this.logger.log('Immich database backup completed');
+
+      // Rename folder to remove .tmp suffix
+      const finalBackupFolderPath = backupFolderPath.replace('.tmp', '');
+      await this.storageRepository.rename(backupFolderPath, finalBackupFolderPath);
     } catch (error) {
       this.logger.error('Database Backup Failure', error);
       await this.storageRepository
-        .unlink(backupFilePath)
-        .catch((error) => this.logger.error('Failed to delete failed backup file', error));
+        .unlinkDir(backupFolderPath, { recursive: true, force: true })
+        .catch((error) => this.logger.error('Failed to delete failed backup folder', error));
       throw error;
     }
 
