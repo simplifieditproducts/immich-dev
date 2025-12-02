@@ -13,7 +13,7 @@ import {
 } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { parse } from 'pg-connection-string';
 import postgres, { Notice } from 'postgres';
 import { columns, Exif, Person } from 'src/database';
@@ -105,9 +105,9 @@ export const getKyselyConfig = (
         // Don't print an error log if the app skipped a duplicate asset during upload.
         const error = event.error as any;
         if (error?.message?.includes?.(`duplicate key value violates unique constraint "UQ_assets_owner_checksum"`)) {
-            const lastParam = event.query && event.query.parameters?.length > 0 ? event.query.parameters[event.query.parameters.length - 1] : 'unknown filename';
-            console.log(`Skip duplicate asset ${lastParam}. Detail: ${error?.detail || 'N/A'}`);
-            return;
+          const lastParam = event.query && event.query.parameters?.length > 0 ? event.query.parameters[event.query.parameters.length - 1] : 'unknown filename';
+          console.log(`Skip duplicate asset ${lastParam}. Detail: ${error?.detail || 'N/A'}`);
+          return;
         }
 
         // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
@@ -115,7 +115,9 @@ export const getKyselyConfig = (
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
           const tempFile = '/tmp/immich/connection_destroyed';
           try {
-            writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
+            if (!existsSync(tempFile)) {
+              writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
+            }
           } catch (err) {
             console.warn('Failed to write connection destroyed marker file:', err);
           }

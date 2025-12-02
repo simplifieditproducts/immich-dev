@@ -21,6 +21,7 @@ services:
       - ${THUMB_LOCATION}:/usr/src/app/upload/thumbs
       - ${ENCODED_VIDEO_LOCATION}:/usr/src/app/upload/encoded-video
       - /etc/localtime:/etc/localtime:ro
+      - ./tmp:/tmp/immich
     env_file:
       - .env
     ports:
