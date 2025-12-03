@@ -359,18 +359,16 @@ export class PersonRepository {
   }
 
   @GenerateSql({ params: [DummyValue.UUID] })
-  async getStatistics(personId: string): Promise<PersonStatistics> {
+  async getStatistics(ownerId: string, personId: string): Promise<PersonStatistics> {
     const result = await this.db
       .selectFrom('asset_face')
-      .leftJoin('asset', (join) =>
-        join
-          .onRef('asset.id', '=', 'asset_face.assetId')
-          .on('asset_face.personId', '=', personId)
-          .on('asset.visibility', '=', sql.lit(AssetVisibility.Timeline))
-          .on('asset.deletedAt', 'is', null),
-      )
-      .select((eb) => eb.fn.count(eb.fn('distinct', ['asset.id'])).as('count'))
+      .innerJoin('asset', 'asset.id', 'asset_face.assetId')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('asset_face.personId', '=', personId)
       .where('asset_face.deletedAt', 'is', null)
+      .where('asset.ownerId', '=', ownerId)
+      .where('asset.visibility', '=', AssetVisibility.Timeline)
+      .where('asset.deletedAt', 'is', null)
       .executeTakeFirst();
 
     return {

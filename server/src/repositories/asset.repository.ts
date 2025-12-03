@@ -753,10 +753,15 @@ export class AssetRepository {
       .with('cities', (qb) =>
         qb
           .selectFrom('asset_exif')
-          .select('city')
-          .where('city', 'is not', null)
-          .groupBy('city')
-          .having((eb) => eb.fn('count', [eb.ref('assetId')]), '>=', minAssetsPerField),
+          .innerJoin('asset', 'asset.id', 'asset_exif.assetId')
+          .select('asset_exif.city as city')
+          .where('asset_exif.city', 'is not', null)
+          .where('asset.ownerId', '=', asUuid(ownerId))
+          .where('asset.visibility', '=', AssetVisibility.Timeline)
+          .where('asset.type', '=', AssetType.Image)
+          .where('asset.deletedAt', 'is', null)
+          .groupBy('asset_exif.city')
+          .having((eb) => eb.fn('count', [eb.ref('asset_exif.assetId')]), '>=', minAssetsPerField),
       )
       .selectFrom('asset')
       .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
@@ -768,6 +773,8 @@ export class AssetRepository {
       .where('visibility', '=', AssetVisibility.Timeline)
       .where('type', '=', AssetType.Image)
       .where('deletedAt', 'is', null)
+      .orderBy('asset_exif.city')
+      .orderBy('asset.fileCreatedAt', 'desc')
       .limit(maxFields)
       .execute();
 
