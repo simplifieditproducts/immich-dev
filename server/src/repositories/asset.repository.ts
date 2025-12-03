@@ -750,31 +750,31 @@ export class AssetRepository {
   @GenerateSql({ params: [DummyValue.UUID, { minAssetsPerField: 5, maxFields: 12 }] })
   async getAssetIdByCity(ownerId: string, { minAssetsPerField, maxFields }: AssetExploreFieldOptions) {
     const items = await this.db
-      .with('cities', (qb) =>
+      .with('filtered_assets', (qb) =>
         qb
-          .selectFrom('asset_exif')
-          .innerJoin('asset', 'asset.id', 'asset_exif.assetId')
-          .select('asset_exif.city as city')
-          .where('asset_exif.city', 'is not', null)
+          .selectFrom('asset')
+          .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
+          .select(['asset.id', 'asset.fileCreatedAt', 'asset_exif.city'])
           .where('asset.ownerId', '=', asUuid(ownerId))
           .where('asset.visibility', '=', AssetVisibility.Timeline)
           .where('asset.type', '=', AssetType.Image)
           .where('asset.deletedAt', 'is', null)
-          .groupBy('asset_exif.city')
-          .having((eb) => eb.fn('count', [eb.ref('asset_exif.assetId')]), '>=', minAssetsPerField),
+          .where('asset_exif.city', 'is not', null),
       )
-      .selectFrom('asset')
-      .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
-      .innerJoin('cities', 'asset_exif.city', 'cities.city')
-      .distinctOn('asset_exif.city')
-      .select(['assetId as data', 'asset_exif.city as value'])
+      .with('cities', (qb) =>
+        qb
+          .selectFrom('filtered_assets')
+          .select('city')
+          .groupBy('city')
+          .having((eb) => eb.fn.countAll(), '>=', minAssetsPerField),
+      )
+      .selectFrom('filtered_assets')
+      .innerJoin('cities', 'filtered_assets.city', 'cities.city')
+      .distinctOn('filtered_assets.city')
+      .select(['filtered_assets.id as data', 'filtered_assets.city as value'])
       .$narrowType<{ value: NotNull }>()
-      .where('ownerId', '=', asUuid(ownerId))
-      .where('visibility', '=', AssetVisibility.Timeline)
-      .where('type', '=', AssetType.Image)
-      .where('deletedAt', 'is', null)
-      .orderBy('asset_exif.city')
-      .orderBy('asset.fileCreatedAt', 'desc')
+      .orderBy('filtered_assets.city')
+      .orderBy('filtered_assets.fileCreatedAt', 'desc')
       .limit(maxFields)
       .execute();
 
