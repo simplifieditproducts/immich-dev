@@ -55,6 +55,10 @@ const asJobItem = (dto: JobCreateDto): JobItem => {
       return { name: JobName.FacialRecognitionQueueAll, data: { ownerId: dto.ownerId } };
     }
 
+    case ManualJobName.AssetMissingCheck: {
+      return { name: JobName.AssetMissingCheckQueueAll };
+    }
+
     default: {
       throw new BadRequestException('Invalid job name');
     }
@@ -278,6 +282,7 @@ export class JobService extends BaseService {
 
     if (config.nightlyTasks.databaseCleanup) {
       jobs.push(
+        { name: JobName.AssetMissingCheckQueueAll },
         { name: JobName.AssetDeleteCheck },
         { name: JobName.UserDeleteCheck },
         { name: JobName.PersonCleanup },

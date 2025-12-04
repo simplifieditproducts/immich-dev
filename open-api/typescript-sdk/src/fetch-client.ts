@@ -4165,7 +4165,8 @@ export enum ManualJobName {
     UserCleanup = "user-cleanup",
     MemoryCleanup = "memory-cleanup",
     MemoryCreate = "memory-create",
-    BackupDatabase = "backup-database"
+    BackupDatabase = "backup-database",
+    AssetMissingCheck = "asset-missing-check",
 }
 export enum JobName {
     ThumbnailGeneration = "thumbnailGeneration",

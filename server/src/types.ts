@@ -344,6 +344,8 @@ export type JobItem =
   | { name: JobName.PersonCleanup; data?: IBaseJob }
   | { name: JobName.AssetDelete; data: IAssetDeleteJob }
   | { name: JobName.AssetDeleteCheck; data?: IBaseJob }
+  | { name: JobName.AssetMissingCheckQueueAll; data?: IBaseJob }
+  | { name: JobName.AssetMissingCheck; data: IEntityJob }
 
   // Library Management
   | { name: JobName.LibrarySyncFiles; data: ILibraryFileJob }

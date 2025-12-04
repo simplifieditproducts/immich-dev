@@ -344,4 +344,20 @@ export class AssetJobRepository {
   streamForMigrationJob() {
     return this.db.selectFrom('asset').select(['id']).where('asset.deletedAt', 'is', null).stream();
   }
+
+  @GenerateSql({ params: [], stream: true })
+  streamForMissingCheck() {
+    return (
+      this.db
+        .selectFrom('asset')
+        .leftJoin('asset_job_status', 'asset_job_status.assetId', 'asset.id')
+        .select(['asset.id', 'asset.originalPath'])
+        .where('asset.deletedAt', 'is', null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .where((eb: any) =>
+          eb.or([eb('asset_job_status.metadataExtractedAt', 'is', null), eb('asset_job_status.assetId', 'is', null)]),
+        )
+        .stream()
+    );
+  }
 }

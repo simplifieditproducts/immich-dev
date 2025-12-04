@@ -11375,7 +11375,8 @@
           "memory-cleanup",
           "memory-create",
           "backup-database",
-          "facial-recognition"
+          "facial-recognition",
+          "asset-missing-check"
         ],
         "type": "string"
       },

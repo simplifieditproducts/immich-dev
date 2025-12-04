@@ -210,6 +210,63 @@ export class AssetService extends BaseService {
     return JobStatus.Success;
   }
 
+  @OnJob({ name: JobName.AssetMissingCheckQueueAll, queue: QueueName.BackgroundTask })
+  async handleAssetMissingCheckQueueAll(): Promise<JobStatus> {
+    let chunk: Array<{ id: string }> = [];
+    const queueChunk = async () => {
+      if (chunk.length > 0) {
+        await this.jobRepository.queueAll(
+          chunk.map(({ id }) => ({
+            name: JobName.AssetMissingCheck,
+            data: { id },
+          })),
+        );
+        chunk = [];
+      }
+    };
+
+    const assets = this.assetJobRepository.streamForMissingCheck();
+    for await (const asset of assets) {
+      chunk.push(asset);
+      if (chunk.length >= JOBS_ASSET_PAGINATION_SIZE) {
+        await queueChunk();
+      }
+    }
+
+    await queueChunk();
+
+    return JobStatus.Success;
+  }
+
+  @OnJob({ name: JobName.AssetMissingCheck, queue: QueueName.BackgroundTask })
+  async handleAssetMissingCheck(job: JobOf<JobName.AssetMissingCheck>): Promise<JobStatus> {
+    const { id } = job;
+
+    const asset = await this.assetRepository.getById(id);
+    if (!asset) {
+      return JobStatus.Skipped;
+    }
+
+    // Check if the original file exists on disk
+    try {
+      await this.storageRepository.stat(asset.originalPath);
+      this.logger.log(`Enqueue background tasks for processing asset ${id}.`);
+
+      // File exists, enqueue metadata extraction job
+      await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: { id: asset.id, source: 'upload' } });
+
+      return JobStatus.Success;
+    } catch {
+      // File does not exist - mark as deleted
+      this.logger.warn(`Asset ${id} original file not found, marking as deleted`);
+
+      const deletedDate = new Date('2000-01-01T00:00:00Z');
+      await this.assetRepository.update({ id, deletedAt: deletedDate, status: AssetStatus.Deleted });
+
+      return JobStatus.Success;
+    }
+  }
+
   @OnJob({ name: JobName.AssetDelete, queue: QueueName.BackgroundTask })
   async handleAssetDeletion(job: JobOf<JobName.AssetDelete>): Promise<JobStatus> {
     const { id, deleteOnDisk } = job;
