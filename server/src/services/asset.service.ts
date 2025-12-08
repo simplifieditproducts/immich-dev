@@ -260,7 +260,7 @@ export class AssetService extends BaseService {
       // File does not exist - mark as deleted
       this.logger.warn(`Asset ${id} original file not found, marking as deleted`);
 
-      const deletedDate = new Date('2000-01-01T00:00:00Z');
+      const deletedDate = new Date('2100-01-01T00:00:00Z');
       await this.assetRepository.update({ id, deletedAt: deletedDate, status: AssetStatus.Deleted });
 
       return JobStatus.Success;
