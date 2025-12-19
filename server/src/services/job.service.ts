@@ -34,6 +34,14 @@ const asJobItem = (dto: JobCreateDto): JobItem => {
       return { name: JobName.DatabaseBackup };
     }
 
+    case ManualJobName.FacialRecognition: {
+      return { name: JobName.FacialRecognitionQueueAll, data: { ownerId: dto.ownerId } };
+    }
+
+    case ManualJobName.AssetMissingCheck: {
+      return { name: JobName.AssetMissingCheckQueueAll };
+    }
+
     default: {
       throw new BadRequestException('Invalid job name');
     }

@@ -339,7 +339,11 @@
     <MenuOption icon={mdiRenameOutline} text={$t('edit_album')} onClick={() => handleSelect('edit')} />
     <MenuOption icon={mdiShareVariantOutline} text={$t('share')} onClick={() => handleSelect('share')} />
   {/if}
-  <MenuOption icon={mdiDownload} text={$t('download')} onClick={() => handleSelect('download')} />
+  <!-- Kevin has made 'Download' menu visible only for admins -->
+  {#if $user.isAdmin}
+    <MenuOption icon={mdiDownload} text={$t('download')} onClick={() => handleSelect('download')} />
+  {/if}
+  
   {#if showFullContextMenu}
     <MenuOption icon={mdiDeleteOutline} text={$t('delete')} onClick={() => handleSelect('delete')} />
   {/if}

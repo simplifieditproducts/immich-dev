@@ -14,6 +14,7 @@ import {
   mapFaces,
   mapPerson,
   MergePersonDto,
+  NumberOfPeopleResponseDto,
   PeopleResponseDto,
   PeopleUpdateDto,
   PersonCreateDto,
@@ -75,6 +76,10 @@ export class PersonService extends BaseService {
       total,
       hidden,
     };
+  }
+
+  async getNumberOfPeople(auth: AuthDto): Promise<NumberOfPeopleResponseDto> {
+    return await this.personRepository.getNumberOfPeople(auth.user.id);
   }
 
   async reassignFaces(auth: AuthDto, personId: string, dto: AssetFaceUpdateDto): Promise<PersonResponseDto[]> {
@@ -154,7 +159,7 @@ export class PersonService extends BaseService {
 
   async getStatistics(auth: AuthDto, id: string): Promise<PersonStatisticsResponseDto> {
     await this.requireAccess({ auth, permission: Permission.PersonRead, ids: [id] });
-    return this.personRepository.getStatistics(id);
+    return this.personRepository.getStatistics(auth.user.id, id);
   }
 
   async getThumbnail(auth: AuthDto, id: string): Promise<ImmichFileResponse> {
@@ -371,8 +376,11 @@ export class PersonService extends BaseService {
 
     if (facesToAdd.length > 0) {
       this.logger.log(`Detected ${facesToAdd.length} new faces in asset ${id}`);
-      const jobs = facesToAdd.map((face) => ({ name: JobName.FacialRecognition, data: { id: face.id } }) as const);
-      await this.jobRepository.queueAll([{ name: JobName.FacialRecognitionQueueAll, data: { force: false } }, ...jobs]);
+      const jobs = facesToAdd.map((face) => ({ 
+        name: JobName.FacialRecognition, 
+        data: { id: face.id, userId: asset.ownerId } 
+      }) as const);
+      await this.jobRepository.queueAll(jobs);
     } else if (embeddings.length > 0) {
       this.logger.log(`Added ${embeddings.length} face embeddings for asset ${id}`);
     }
@@ -400,7 +408,7 @@ export class PersonService extends BaseService {
   }
 
   @OnJob({ name: JobName.FacialRecognitionQueueAll, queue: QueueName.FacialRecognition })
-  async handleQueueRecognizeFaces({ force, nightly }: JobOf<JobName.FacialRecognitionQueueAll>): Promise<JobStatus> {
+  async handleQueueRecognizeFaces({ force, nightly, ownerId }: JobOf<JobName.FacialRecognitionQueueAll>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isFacialRecognitionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -408,41 +416,46 @@ export class PersonService extends BaseService {
 
     await this.jobRepository.waitForQueueCompletion(QueueName.ThumbnailGeneration, QueueName.FaceDetection);
 
-    if (nightly) {
-      const [state, latestFaceDate] = await Promise.all([
-        this.systemMetadataRepository.get(SystemMetadataKey.FacialRecognitionState),
-        this.personRepository.getLatestFaceDate(),
-      ]);
-
-      if (state?.lastRun && latestFaceDate && state.lastRun > latestFaceDate) {
-        this.logger.debug('Skipping facial recognition nightly since no face has been added since the last run');
-        return JobStatus.Skipped;
-      }
-    }
-
-    const { waiting } = await this.jobRepository.getJobCounts(QueueName.FacialRecognition);
-
     if (force) {
       await this.personRepository.unassignFaces({ sourceType: SourceType.MachineLearning });
       await this.handlePersonCleanup();
       await this.personRepository.vacuum({ reindexVectors: false });
-    } else if (waiting) {
-      this.logger.debug(
-        `Skipping facial recognition queueing because ${waiting} job${waiting > 1 ? 's are' : ' is'} already queued`,
-      );
-      return JobStatus.Skipped;
+    }
+
+    let ownerIds: string[] = [];
+    if (nightly) {
+      // For nightly runs, check if there are users with new persons created in the last 24 hours
+      ownerIds = await this.personRepository.getUsersWithNewPersonsInLast24Hours();
+      if (ownerIds.length === 0) {
+        this.logger.debug('No users with new persons identified in the last 24 hours');
+        return JobStatus.Skipped;
+      }
+      this.logger.log(`Found ${ownerIds.length} users with new persons identified in the last 24 hours`);
+    } else if (ownerId) {
+      // For manual runs with a specific user
+      ownerIds = [ownerId];
+      this.logger.log(`Queueing facial recognition for user ${ownerId}`);
     }
 
     await this.databaseRepository.prewarm(VectorIndex.Face);
 
-    const lastRun = new Date().toISOString();
-    const facePagination = this.personRepository.getAllFaces(
-      force ? undefined : { personId: null, sourceType: SourceType.MachineLearning },
-    );
+    const lastRun = new Date().toISOString();    
+    let facePagination;
+    if (ownerIds.length > 0) {
+      facePagination = this.personRepository.getAllFaces({ 
+        personId: null, 
+        sourceType: SourceType.MachineLearning,
+        ownerIds 
+      });
+    } else {
+      facePagination = this.personRepository.getAllFaces(
+        force ? undefined : { personId: null, sourceType: SourceType.MachineLearning },
+      );
+    }
 
-    let jobs: { name: JobName.FacialRecognition; data: { id: string; deferred: false } }[] = [];
+    let jobs: { name: JobName.FacialRecognition; data: { id: string; deferred: false; userId: string } }[] = [];
     for await (const face of facePagination) {
-      jobs.push({ name: JobName.FacialRecognition, data: { id: face.id, deferred: false } });
+      jobs.push({ name: JobName.FacialRecognition, data: { id: face.id, deferred: false, userId: face.ownerId } });
 
       if (jobs.length === JOBS_ASSET_PAGINATION_SIZE) {
         await this.jobRepository.queueAll(jobs);
@@ -458,7 +471,7 @@ export class PersonService extends BaseService {
   }
 
   @OnJob({ name: JobName.FacialRecognition, queue: QueueName.FacialRecognition })
-  async handleRecognizeFaces({ id, deferred }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
+  async handleRecognizeFaces({ id, deferred, userId }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isFacialRecognitionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -483,62 +496,81 @@ export class PersonService extends BaseService {
     if (face.personId) {
       this.logger.debug(`Face ${id} already has a person assigned`);
       return JobStatus.Skipped;
-    }
+    }    
 
-    const matches = await this.searchRepository.searchFaces({
-      userIds: [face.asset.ownerId],
-      embedding: face.faceSearch.embedding,
-      maxDistance: machineLearning.facialRecognition.maxDistance,
-      numResults: machineLearning.facialRecognition.minFaces,
-      minBirthDate: face.asset.fileCreatedAt ?? undefined,
-    });
-
-    // `matches` also includes the face itself
-    if (machineLearning.facialRecognition.minFaces > 1 && matches.length <= 1) {
-      this.logger.debug(`Face ${id} only matched the face itself, skipping`);
+    // Acquire distributed lock for this user to prevent concurrent execution
+    const lockKey = `facial-recognition:${userId || face.asset.ownerId}`;
+    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
+    if (!lockAcquired) {
+      this.logger.debug(`Could not acquire lock for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
+      // Requeue the job to try again later
+      await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred, userId: userId || face.asset.ownerId } });
       return JobStatus.Skipped;
     }
 
-    this.logger.debug(`Face ${id} has ${matches.length} matches`);
-
-    const isCore =
-      matches.length >= machineLearning.facialRecognition.minFaces &&
-      face.asset.visibility === AssetVisibility.Timeline;
-    if (!isCore && !deferred) {
-      this.logger.debug(`Deferring non-core face ${id} for later processing`);
-      await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred: true } });
-      return JobStatus.Skipped;
-    }
-
-    let personId = matches.find((match) => match.personId)?.personId;
-    if (!personId) {
-      const matchWithPerson = await this.searchRepository.searchFaces({
+    try {
+      const matches = await this.searchRepository.searchFaces({
         userIds: [face.asset.ownerId],
         embedding: face.faceSearch.embedding,
         maxDistance: machineLearning.facialRecognition.maxDistance,
-        numResults: 1,
-        hasPerson: true,
+        numResults: machineLearning.facialRecognition.minFaces,
         minBirthDate: face.asset.fileCreatedAt ?? undefined,
       });
 
-      if (matchWithPerson.length > 0) {
-        personId = matchWithPerson[0].personId;
+      // `matches` also includes the face itself
+      if (machineLearning.facialRecognition.minFaces > 1 && matches.length <= 1) {
+        this.logger.debug(`Face ${id} only matched the face itself, skipping`);
+        return JobStatus.Skipped;
       }
-    }
 
-    if (isCore && !personId) {
-      this.logger.log(`Creating new person for face ${id}`);
-      const newPerson = await this.personRepository.create({ ownerId: face.asset.ownerId, faceAssetId: face.id });
-      await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
-      personId = newPerson.id;
-    }
+      this.logger.debug(`Face ${id} has ${matches.length} matches`);
 
-    if (personId) {
-      this.logger.debug(`Assigning face ${id} to person ${personId}`);
-      await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
-    }
+      const isCore =
+        matches.length >= machineLearning.facialRecognition.minFaces &&
+        face.asset.visibility === AssetVisibility.Timeline;
+      if (!isCore && !deferred) {
+        this.logger.debug(`Deferring non-core face ${id} for later processing`);
+        await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred: true, userId: face.asset.ownerId } });
+        return JobStatus.Skipped;
+      }
 
-    return JobStatus.Success;
+      this.logger.debug(`Start facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
+
+      let personId = matches.find((match: { personId: string | null }) => match.personId)?.personId;
+      if (!personId) {
+        const matchWithPerson = await this.searchRepository.searchFaces({
+          userIds: [face.asset.ownerId],
+          embedding: face.faceSearch.embedding,
+          maxDistance: machineLearning.facialRecognition.maxDistance,
+          numResults: 1,
+          hasPerson: true,
+          minBirthDate: face.asset.fileCreatedAt ?? undefined,
+        });
+
+        if (matchWithPerson.length > 0) {
+          personId = matchWithPerson[0].personId;
+        }
+      }
+
+      if (isCore && !personId) {
+        this.logger.log(`Creating new person for face ${id}`);
+        const newPerson = await this.personRepository.create({ ownerId: face.asset.ownerId, faceAssetId: face.id });
+        await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
+        personId = newPerson.id;
+      }
+
+      if (personId) {
+        this.logger.debug(`Assigning face ${id} to person ${personId}`);
+        await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
+      }
+
+      this.logger.debug(`Finish facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
+
+      return JobStatus.Success;
+    } finally {
+      // Always release the lock
+      await this.redisRepository.releaseLock(lockKey);
+    }
   }
 
   @OnJob({ name: JobName.PersonFileMigration, queue: QueueName.Migration })

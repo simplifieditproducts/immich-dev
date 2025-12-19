@@ -36,7 +36,9 @@
   use:focusTrap
 >
   <div
-    class="mx-4 mt-4 flex flex-col items-center justify-center gap-4 rounded-t-3xl bg-white p-4 dark:bg-immich-dark-primary/10"
+    class="{$user.isAdmin
+      ? 'mx-4 mt-4 rounded-t-3xl'
+      : 'm-3 rounded-2xl pb-3'} flex flex-col items-center justify-center gap-4 bg-white p-4 dark:bg-immich-dark-primary/10"
   >
     <div class="relative">
       <UserAvatar user={$user} size="xl" />
@@ -58,64 +60,72 @@
       <p class="text-center text-lg font-medium text-primary">
         {$user.name}
       </p>
-      <p class="text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
+      {#if $user.isAdmin}
+        <p class="text-center text-sm text-gray-500 dark:text-immich-dark-fg">{$user.email}</p>
+      {/if}
     </div>
 
-    <div class="flex flex-col gap-1">
-      <Button
-        href={AppRoute.USER_SETTINGS}
-        onclick={onClose}
-        size="small"
-        color="secondary"
-        variant="ghost"
-        shape="round"
-        class="border dark:border-immich-dark-gray dark:bg-gray-500 dark:hover:bg-immich-dark-primary/50 hover:bg-immich-primary/10 dark:text-white"
-      >
-        <div class="flex place-content-center place-items-center text-center gap-2 px-2">
-          <Icon icon={mdiCog} size="18" aria-hidden />
-          {$t('account_settings')}
-        </div>
-      </Button>
-      {#if $user.isAdmin}
+    <!-- Kevin has made the 'Account Settings' button visible only for admins. -->
+    {#if $user.isAdmin}
+      <div class="flex flex-col gap-2">
         <Button
-          href={AppRoute.ADMIN_USERS}
+          href={AppRoute.USER_SETTINGS}
           onclick={onClose}
-          shape="round"
-          variant="ghost"
           size="small"
           color="secondary"
-          aria-current={page.url.pathname.includes('/admin') ? 'page' : undefined}
+          variant="ghost"
+          shape="round"
           class="border dark:border-immich-dark-gray dark:bg-gray-500 dark:hover:bg-immich-dark-primary/50 hover:bg-immich-primary/10 dark:text-white"
         >
           <div class="flex place-content-center place-items-center text-center gap-2 px-2">
-            <Icon icon={mdiWrench} size="18" aria-hidden />
-            {$t('administration')}
+            <Icon icon={mdiCog} size="18" aria-hidden />
+            {$t('account_settings')}
           </div>
         </Button>
-      {/if}
+        {#if $user.isAdmin}
+          <Button
+            href={AppRoute.ADMIN_QUEUES}
+            onclick={onClose}
+            shape="round"
+            variant="ghost"
+            size="small"
+            color="secondary"
+            aria-current={page.url.pathname.includes('/admin') ? 'page' : undefined}
+            class="border dark:border-immich-dark-gray dark:bg-gray-500 dark:hover:bg-immich-dark-primary/50 hover:bg-immich-primary/10 dark:text-white"
+          >
+            <div class="flex place-content-center place-items-center text-center gap-2 px-2">
+              <Icon icon={mdiWrench} size="18" aria-hidden />
+              {$t('administration')}
+            </div>
+          </Button>
+        {/if}
+      </div>
+    {/if}
+  </div>
+
+  <!-- Kevin/Gavin have made the "Sign Out" button and "Support and Feedback" button visible only for admins. -->
+  {#if $user.isAdmin}
+    <div class="mb-4 flex flex-col">
+      <Button
+        class="m-1 mx-4 rounded-none rounded-b-3xl bg-white p-3 dark:bg-immich-dark-primary/10"
+        onclick={onLogout}
+        leadingIcon={mdiLogout}
+        variant="ghost"
+        color="secondary">{$t('sign_out')}</Button
+      >
+
+      <button
+        type="button"
+        class="text-center mt-4 underline text-xs text-primary"
+        onclick={async () => {
+          onClose();
+          if (info) {
+            await modalManager.show(HelpAndFeedbackModal, { info });
+          }
+        }}
+      >
+        {$t('support_and_feedback')}
+      </button>
     </div>
-  </div>
-
-  <div class="mb-4 flex flex-col">
-    <Button
-      class="m-1 mx-4 rounded-none rounded-b-3xl bg-white p-3 dark:bg-immich-dark-primary/10"
-      onclick={onLogout}
-      leadingIcon={mdiLogout}
-      variant="ghost"
-      color="secondary">{$t('sign_out')}</Button
-    >
-
-    <button
-      type="button"
-      class="text-center mt-4 underline text-xs text-primary"
-      onclick={async () => {
-        onClose();
-        if (info) {
-          await modalManager.show(HelpAndFeedbackModal, { info });
-        }
-      }}
-    >
-      {$t('support_and_feedback')}
-    </button>
-  </div>
+  {/if}
 </div>

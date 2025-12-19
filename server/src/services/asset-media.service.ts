@@ -32,10 +32,12 @@ import {
   StorageFolder,
 } from 'src/enum';
 import { AuthRequest } from 'src/middleware/auth.guard';
+import { ImmichTags } from 'src/repositories/metadata.repository';
 import { BaseService } from 'src/services/base.service';
 import { UploadFile, UploadRequest } from 'src/types';
 import { requireUploadAccess } from 'src/utils/access';
 import { asUploadRequest, getAssetFiles, onBeforeLink } from 'src/utils/asset.util';
+import { hexOrBufferToBase64 } from 'src/utils/bytes';
 import { isAssetChecksumConstraint } from 'src/utils/database';
 import { getFilenameExtension, getFileNameWithoutExtension, ImmichFileResponse } from 'src/utils/file';
 import { mimeTypes } from 'src/utils/mime-types';
@@ -57,7 +59,7 @@ export class AssetMediaService extends BaseService {
       return;
     }
 
-    return { id: assetId, status: AssetMediaStatus.DUPLICATE };
+    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum };
   }
 
   canUploadFile({ auth, fieldName, file, body }: UploadRequest): true {
@@ -153,7 +155,7 @@ export class AssetMediaService extends BaseService {
 
       await this.userRepository.updateUsage(auth.user.id, file.size);
 
-      return { id: asset.id, status: AssetMediaStatus.CREATED };
+      return { id: asset.id, status: AssetMediaStatus.CREATED, checksum: hexOrBufferToBase64(file.checksum) };
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
     }
@@ -168,26 +170,42 @@ export class AssetMediaService extends BaseService {
   ): Promise<AssetMediaResponseDto> {
     try {
       await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: [id] });
-      const asset = await this.assetRepository.getById(id);
+      const asset = await this.assetRepository.getById(id, { exifInfo: dto.skipReprocess ?? false });
 
       if (!asset) {
         throw new Error('Asset not found');
       }
 
+      if (asset.type !== AssetType.Image && dto.skipReprocess) {
+        throw new BadRequestException('skipReprocess only works for images');
+      }
+
       this.requireQuota(auth, file.size);
 
-      await this.replaceFileData(asset.id, dto, file, sidecarFile?.originalPath);
+      await this.replaceFileData(asset, dto, file, sidecarFile?.originalPath);
 
-      // Next, create a backup copy of the existing record. The db record has already been updated above,
-      // but the local variable holds the original file data paths.
-      const copiedPhoto = await this.createCopy(asset);
-      // and immediate trash it
-      await this.assetRepository.updateAll([copiedPhoto.id], { deletedAt: new Date(), status: AssetStatus.Trashed });
-      await this.eventRepository.emit('AssetTrash', { assetId: copiedPhoto.id, userId: auth.user.id });
+      if (dto.skipReprocess) {
 
-      await this.userRepository.updateUsage(auth.user.id, file.size);
+        // Simply delete the old original file from the disk
+        await this.jobRepository.queue({ name: JobName.FileDelete, data: { files: [asset.originalPath] } });
 
-      return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id };
+        const delta = file.size - (asset.exifInfo?.fileSizeInByte || 0);
+        await this.userRepository.updateUsage(auth.user.id, delta);
+
+        return { status: AssetMediaStatus.REPLACED, id: asset.id, checksum: hexOrBufferToBase64(file.checksum) };
+      } else {
+
+        // Next, create a backup copy of the existing record. The db record has already been updated above,
+        // but the local variable holds the original file data paths.
+        const copiedPhoto = await this.createCopy(asset);
+        // and immediate trash it
+        await this.assetRepository.updateAll([copiedPhoto.id], { deletedAt: new Date(), status: AssetStatus.Trashed });
+        await this.eventRepository.emit('AssetTrash', { assetId: copiedPhoto.id, userId: auth.user.id });
+
+        await this.userRepository.updateUsage(auth.user.id, file.size);
+
+        return { status: AssetMediaStatus.REPLACED, id: copiedPhoto.id, checksum: hexOrBufferToBase64(file.checksum) };
+      }
     } catch (error: any) {
       return this.handleUploadError(error, auth, file, sidecarFile);
     }
@@ -270,10 +288,10 @@ export class AssetMediaService extends BaseService {
     auth: AuthDto,
     checkExistingAssetsDto: CheckExistingAssetsDto,
   ): Promise<CheckExistingAssetsResponseDto> {
-    const existingIds = await this.assetRepository.getByDeviceIds(
+    const existingIds = await this.assetRepository.checkExistingAssets(
       auth.user.id,
-      checkExistingAssetsDto.deviceId,
       checkExistingAssetsDto.deviceAssetIds,
+      checkExistingAssetsDto.deviceId,
     );
     return { existingIds };
   }
@@ -327,7 +345,7 @@ export class AssetMediaService extends BaseService {
         this.logger.error(`Error locating duplicate for checksum constraint`);
         throw new InternalServerErrorException();
       }
-      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId };
+      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId, checksum: hexOrBufferToBase64(file.checksum) };
     }
 
     this.logger.error(`Error uploading file ${error}`, error?.stack);
@@ -342,13 +360,13 @@ export class AssetMediaService extends BaseService {
    * job is queued to update these derived properties.
    */
   private async replaceFileData(
-    assetId: string,
+    asset: any,
     dto: AssetMediaReplaceDto,
     file: UploadFile,
     sidecarPath?: string,
   ): Promise<void> {
     await this.assetRepository.update({
-      id: assetId,
+      id: asset.id,
 
       checksum: file.checksum,
       originalPath: file.originalPath,
@@ -356,28 +374,78 @@ export class AssetMediaService extends BaseService {
       originalFileName: file.originalName,
 
       deviceAssetId: dto.deviceAssetId,
+      deviceFilePath: dto.deviceFilePath,
       deviceId: dto.deviceId,
       fileCreatedAt: dto.fileCreatedAt,
       fileModifiedAt: dto.fileModifiedAt,
       localDateTime: dto.fileCreatedAt,
       duration: dto.duration || null,
+      isOriginalQuality: dto.isOriginalQuality,
 
       livePhotoVideoId: null,
     });
-
+    
     await (sidecarPath
-      ? this.assetRepository.upsertFile({ assetId, type: AssetFileType.Sidecar, path: sidecarPath })
-      : this.assetRepository.deleteFile({ assetId, type: AssetFileType.Sidecar }));
+      ? this.assetRepository.upsertFile({ assetId: asset.id, type: AssetFileType.Sidecar, path: sidecarPath })
+      : this.assetRepository.deleteFile({ assetId: asset.id, type: AssetFileType.Sidecar }));
+
+    // Track new files for rclone sync
+    const filePaths = [file.originalPath];
+    if (sidecarPath) {
+      filePaths.push(sidecarPath);
+    }
+    StorageCore.appendToRcloneSyncList(filePaths);
 
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
-    await this.assetRepository.upsertExif(
-      { assetId, fileSizeInByte: file.size },
-      { lockedPropertiesBehavior: 'override' },
-    );
-    await this.jobRepository.queue({
-      name: JobName.AssetExtractMetadata,
-      data: { id: assetId, source: 'upload' },
-    });
+    
+    // If the asset's orientation is larger than 1, it means the asset was uploaded by an older version
+    // of mobile app that did not adjust the EXIF properly, hence we will need to reprocess the metadata
+    // and also regenerate the thumbnails.
+    if (!dto.skipReprocess || Number(asset.exifInfo?.orientation ?? 0) > 1) {
+      await this.assetRepository.upsertExif({ assetId: asset.id, fileSizeInByte: file.size }, { lockedPropertiesBehavior: 'override' });
+      await this.jobRepository.queue({
+        name: JobName.AssetExtractMetadata,
+        data: { id: asset.id, source: 'upload' },
+      });
+    } else {
+      // BUG: works for images only, videos are not handled
+      // Update the dimensions, orientation, and file size in the exif record
+      const exifTags = await this.metadataRepository.readTags(file.originalPath);
+      const { width, height } = this.getImageDimensions(exifTags);
+      const validate = <T>(value: T): NonNullable<T> | null => {
+        // handle lists of numbers
+        if (Array.isArray(value)) {
+          value = value[0];
+        }
+
+        if (typeof value === 'string') {
+          // string means a failure to parse a number, throw out result
+          return null;
+        }
+
+        if (typeof value === 'number' && (Number.isNaN(value) || !Number.isFinite(value))) {
+          return null;
+        }
+
+        return value ?? null;
+      };
+
+      await this.assetRepository.upsertExif({ assetId: asset.id, fileSizeInByte: file.size, exifImageWidth: width, exifImageHeight: height, orientation: validate(exifTags.Orientation)?.toString() ?? null}, { lockedPropertiesBehavior: 'override' });
+    }
+  }
+
+  // This method is copied from metadata.service.ts
+  private getImageDimensions(exifTags: ImmichTags): { width?: number; height?: number } {
+    /*
+     * The "true" values for width and height are a bit hidden, depending on the camera model and file format.
+     * For RAW images in the CR2 or RAF format, the "ImageSize" value seems to be correct,
+     * but ImageWidth and ImageHeight are not correct (they contain the dimensions of the preview image).
+     */
+    let [width, height] = (typeof exifTags.ImageSize === 'string' ? exifTags.ImageSize : '')?.split('x').map((dim) => Number.parseInt(dim) || undefined) || [];
+    if (!width || !height) {
+      [width, height] = [exifTags.ImageWidth, exifTags.ImageHeight];
+    }
+    return { width, height };
   }
 
   /**
@@ -419,6 +487,7 @@ export class AssetMediaService extends BaseService {
       originalPath: file.originalPath,
 
       deviceAssetId: dto.deviceAssetId,
+      deviceFilePath: dto.deviceFilePath,
       deviceId: dto.deviceId,
 
       fileCreatedAt: dto.fileCreatedAt,
@@ -427,12 +496,15 @@ export class AssetMediaService extends BaseService {
 
       type: mimeTypes.assetType(file.originalPath),
       isFavorite: dto.isFavorite,
+      isOriginalQuality: dto.isOriginalQuality,
       duration: dto.duration || null,
       visibility: dto.visibility ?? AssetVisibility.Timeline,
       livePhotoVideoId: dto.livePhotoVideoId,
       originalFileName: dto.filename || file.originalName,
     });
 
+    const filePaths = [file.originalPath];
+    
     if (dto.metadata) {
       await this.assetRepository.upsertMetadata(asset.id, dto.metadata);
     }
@@ -444,6 +516,7 @@ export class AssetMediaService extends BaseService {
         type: AssetFileType.Sidecar,
       });
       await this.storageRepository.utimes(sidecarFile.originalPath, new Date(), new Date(dto.fileModifiedAt));
+      filePaths.push(sidecarFile.originalPath);
     }
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     await this.assetRepository.upsertExif(
@@ -454,7 +527,10 @@ export class AssetMediaService extends BaseService {
     await this.eventRepository.emit('AssetCreate', { asset });
 
     await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: { id: asset.id, source: 'upload' } });
-
+    
+    // Track new files for rclone sync
+    StorageCore.appendToRcloneSyncList(filePaths);
+    
     return asset;
   }
 

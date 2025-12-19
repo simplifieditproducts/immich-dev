@@ -60,7 +60,7 @@
 
 <div
   bind:clientHeight={height}
-  class="fixed min-w-50 w-max max-w-75 overflow-hidden rounded-lg shadow-lg z-1"
+  class="fixed min-w-50 w-max max-w-75 overflow-hidden rounded-lg shadow-lg z-10"
   style:left="{position.left}px"
   style:top="{position.top}px"
   transition:slide={{ duration: 250, easing: quintOut }}

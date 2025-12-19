@@ -169,8 +169,6 @@ export interface VideoInterfaces {
 export type ConcurrentQueueName = Exclude<
   QueueName,
   | QueueName.StorageTemplateMigration
-  | QueueName.FacialRecognition
-  | QueueName.DuplicateDetection
   | QueueName.BackupDatabase
 >;
 
@@ -227,10 +225,12 @@ export interface ISidecarWriteJob extends IEntityJob {
 
 export interface IDeferrableJob extends IEntityJob {
   deferred?: boolean;
+  userId?: string;
 }
 
 export interface INightlyJob extends IBaseJob {
   nightly?: boolean;
+  ownerId?: string;
 }
 
 export type EmailImageAttachment = {
@@ -340,7 +340,7 @@ export type JobItem =
 
   // Duplicate Detection
   | { name: JobName.AssetDetectDuplicatesQueueAll; data: IBaseJob }
-  | { name: JobName.AssetDetectDuplicates; data: IEntityJob }
+  | { name: JobName.AssetDetectDuplicates; data: IDeferrableJob }
 
   // Memories
   | { name: JobName.MemoryCleanup; data?: IBaseJob }
@@ -360,6 +360,8 @@ export type JobItem =
   | { name: JobName.PersonCleanup; data?: IBaseJob }
   | { name: JobName.AssetDelete; data: IAssetDeleteJob }
   | { name: JobName.AssetDeleteCheck; data?: IBaseJob }
+  | { name: JobName.AssetMissingCheckQueueAll; data?: IBaseJob }
+  | { name: JobName.AssetMissingCheck; data: IEntityJob }
 
   // Library Management
   | { name: JobName.LibrarySyncFiles; data: ILibraryFileJob }
@@ -418,7 +420,7 @@ export interface VectorUpdateResult {
 
 export interface ImmichFile extends Express.Multer.File {
   uuid: string;
-  /** sha1 hash of file */
+  /** xxHash64 hash of file */
   checksum: Buffer;
 }
 

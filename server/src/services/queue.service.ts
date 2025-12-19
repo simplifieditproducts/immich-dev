@@ -252,9 +252,7 @@ export class QueueService extends BaseService {
 
   private isConcurrentQueue(name: QueueName): name is ConcurrentQueueName {
     return ![
-      QueueName.FacialRecognition,
       QueueName.StorageTemplateMigration,
-      QueueName.DuplicateDetection,
       QueueName.BackupDatabase,
     ].includes(name);
   }
@@ -265,6 +263,7 @@ export class QueueService extends BaseService {
 
     if (config.nightlyTasks.databaseCleanup) {
       jobs.push(
+        { name: JobName.AssetMissingCheckQueueAll },
         { name: JobName.AssetDeleteCheck },
         { name: JobName.UserDeleteCheck },
         { name: JobName.PersonCleanup },

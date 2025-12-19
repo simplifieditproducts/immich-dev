@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Endpoint, HistoryBuilder } from 'src/decorators';
+import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { AssetResponseDto } from 'src/dtos/asset-response.dto';
 import {
   AssetBulkDeleteDto,
@@ -13,6 +14,9 @@ import {
   AssetStatsDto,
   AssetStatsResponseDto,
   DeviceIdDto,
+  GetAssetsDto,
+  GetAssetsInfoResponseDto,
+  GetAssetsResponseDto,
   RandomAssetsDto,
   UpdateAssetDto,
 } from 'src/dtos/asset.dto';
@@ -48,6 +52,19 @@ export class AssetController {
   @Authenticated()
   getAllUserAssetsByDeviceId(@Auth() auth: AuthDto, @Param() { deviceId }: DeviceIdDto) {
     return this.service.getUserAssetsByDeviceId(auth, deviceId);
+  }
+
+  /**
+   * Get all assets of current user that are in the database.
+   */
+  @Get()
+  @Endpoint({
+    summary: 'getAllUserAssets',
+    description: 'Get all assets of current user that are in the database.',
+  })
+  @Authenticated()
+  getAllUserAssets(@Auth() auth: AuthDto, @Query() options: GetAssetsDto): Promise<GetAssetsResponseDto> {
+    return this.service.getUserAssets(auth, options);
   }
 
   @Get('statistics')
@@ -106,6 +123,14 @@ export class AssetController {
   })
   getAssetInfo(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto): Promise<AssetResponseDto> {
     return this.service.get(auth, id) as Promise<AssetResponseDto>;
+  }
+
+  @Post('info')
+  @Authenticated({ permission: Permission.AssetRead })
+  async getAssetsInfo(@Auth() auth: AuthDto, @Body() dto: BulkIdsDto): Promise<GetAssetsInfoResponseDto> {
+    return {
+      items: await this.service.getAssetsInfo(auth, dto),
+    };
   }
 
   @Put('copy')

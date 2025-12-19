@@ -20,6 +20,7 @@
     QueueName.Sidecar,
     QueueName.SmartSearch,
     QueueName.FaceDetection,
+    QueueName.DuplicateDetection,
     QueueName.FacialRecognition,
     QueueName.VideoConversion,
     QueueName.StorageTemplateMigration,

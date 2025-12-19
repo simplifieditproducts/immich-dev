@@ -1,0 +1,37 @@
+FROM ghcr.io/immich-app/base-server-dev:202511261514@sha256:cbcca5851fd11042463f09797e6d6068d94adbb108749e62aa69159df59c0591 AS builder
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+  CI=1 \
+  COREPACK_HOME=/tmp \
+  PNPM_HOME=/buildcache/pnpm-store \
+  PATH="/buildcache/pnpm-store:$PATH"
+
+RUN npm install --global corepack@latest && \
+  corepack enable pnpm && \
+  pnpm config set store-dir "$PNPM_HOME"
+
+FROM builder AS web
+
+ARG VITE_APP_ID
+ENV VITE_APP_ID=$VITE_APP_ID
+
+WORKDIR /usr/src/app
+COPY ./web ./web/
+COPY ./i18n ./i18n/
+COPY ./open-api ./open-api/
+RUN --mount=type=cache,id=pnpm-web,target=/buildcache/pnpm-store \
+  --mount=type=bind,source=package.json,target=package.json \
+  --mount=type=bind,source=.pnpmfile.cjs,target=.pnpmfile.cjs \
+  --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+  --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
+  SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter @immich/sdk --filter immich-web --frozen-lockfile --force install && node ./web/custom-build.js && \
+  pnpm --filter @immich/sdk --filter immich-web build
+
+FROM nginx:alpine AS web-prod
+
+# Copy built static files from previous stage
+COPY --from=web /usr/src/app/web/build /usr/share/nginx/html
+
+# Custom NGINX config to support SPA routing
+COPY ./web/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080

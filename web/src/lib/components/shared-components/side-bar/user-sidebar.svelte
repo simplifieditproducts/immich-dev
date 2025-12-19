@@ -5,7 +5,7 @@
   import Sidebar from '$lib/components/sidebar/sidebar.svelte';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
   import { recentAlbumsDropdown } from '$lib/stores/preferences.store';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import {
     mdiAccount,
     mdiAccountMultiple,
@@ -80,12 +80,15 @@
     <SideBarLink title={$t('shared_links')} href={resolve('/(user)/shared-links')} icon={mdiLink} />
   {/if}
 
-  <SideBarLink
-    title={$t('sharing')}
-    href={resolve('/(user)/sharing')}
-    icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
-    bind:isSelected={isSharingSelected}
-  ></SideBarLink>
+  <!-- Kevin has made 'Sharing' option visible only for admins. -->
+  {#if $user.isAdmin}
+    <SideBarLink
+      title={$t('sharing')}
+      href={resolve('/(user)/sharing')}
+      icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
+      bind:isSelected={isSharingSelected}
+    ></SideBarLink>
+  {/if}
 
   <p class="text-xs p-6 dark:text-immich-dark-fg uppercase">{$t('library')}</p>
 
@@ -125,19 +128,22 @@
     icon={isUtilitiesSelected ? mdiToolbox : mdiToolboxOutline}
   ></SideBarLink>
 
-  <SideBarLink
-    title={$t('archive')}
-    href={resolve('/(user)/archive')}
-    bind:isSelected={isArchiveSelected}
-    icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
-  ></SideBarLink>
+  <!-- Gavin has made 'Archive' and 'Locked Folder' options visible only for admins. -->
+  {#if $user.isAdmin}
+    <SideBarLink
+      title={$t('archive')}
+      href={resolve('/(user)/archive')}
+      bind:isSelected={isArchiveSelected}
+      icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
+    ></SideBarLink>
 
-  <SideBarLink
-    title={$t('locked_folder')}
-    href={resolve('/(user)/locked')}
-    bind:isSelected={isLockedFolderSelected}
-    icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
-  ></SideBarLink>
+    <SideBarLink
+      title={$t('locked_folder')}
+      href={resolve('/(user)/locked')}
+      bind:isSelected={isLockedFolderSelected}
+      icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
+    ></SideBarLink>
+  {/if}
 
   {#if featureFlagsManager.value.trash}
     <SideBarLink

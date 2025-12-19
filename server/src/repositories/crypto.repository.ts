@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { xxh64, Xxh64 } from '@node-rs/xxhash';
 import { compareSync, hash } from 'bcrypt';
+import { Buffer } from 'node:buffer';
 import jwt from 'jsonwebtoken';
 import { createHash, createPublicKey, createVerify, randomBytes, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -45,13 +47,24 @@ export class CryptoRepository {
     return createHash('sha1').update(value).digest();
   }
 
+  hashXxHash64(value: string | Buffer): Buffer {
+    const hash = xxh64(value, 0xABCDn);
+    const buf = Buffer.alloc(8);
+    buf.writeBigUInt64BE(hash, 0);
+    return buf;
+  }
+
   hashFile(filepath: string | Buffer): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
-      const hash = createHash('sha1');
+      const hash = new Xxh64(0xABCDn);
       const stream = createReadStream(filepath);
       stream.on('error', (error) => reject(error));
       stream.on('data', (chunk) => hash.update(chunk));
-      stream.on('end', () => resolve(hash.digest()));
+      stream.on('end', () => {
+        const buf = Buffer.alloc(8);
+        buf.writeBigUInt64BE(hash.digest(), 0);
+        resolve(buf);
+      });
     });
   }
 

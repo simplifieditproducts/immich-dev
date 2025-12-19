@@ -12,6 +12,7 @@ import {
   ServerPingResponse,
   ServerStatsResponseDto,
   ServerStorageResponseDto,
+  SimpleServerStatsResponseDto,
   UsageByUserDto,
 } from 'src/dtos/server.dto';
 import { StorageFolder, SystemMetadataKey } from 'src/enum';
@@ -23,6 +24,7 @@ import {
   isDuplicateDetectionEnabled,
   isFacialRecognitionEnabled,
   isOcrEnabled,
+  isFilterExtractionEnabled,
   isSmartSearchEnabled,
 } from 'src/utils/misc';
 
@@ -81,7 +83,15 @@ export class ServerService extends BaseService {
     return serverInfo;
   }
 
-  ping(): ServerPingResponse {
+  async ping(): Promise<ServerPingResponse> {
+    // Check if database is responding
+    try {
+      await this.versionRepository.getLatest();
+    } catch (error) {
+      this.logger.error('Database health check failed', error);
+      throw new BadRequestException('Database is not responding');
+    }
+
     return { res: 'pong' };
   }
 
@@ -91,6 +101,7 @@ export class ServerService extends BaseService {
     const { configFile } = this.configRepository.getEnv();
 
     return {
+      filterExtraction: isFilterExtractionEnabled(machineLearning),
       smartSearch: isSmartSearchEnabled(machineLearning),
       facialRecognition: isFacialRecognitionEnabled(machineLearning),
       duplicateDetection: isDuplicateDetectionEnabled(machineLearning),
@@ -159,6 +170,18 @@ export class ServerService extends BaseService {
     }
 
     return serverStats;
+  }
+
+  async getSimpleStatistics(sourceApp: string): Promise<SimpleServerStatsResponseDto> {
+    const libraryBase = StorageCore.getBaseFolder(StorageFolder.Library);
+    const diskInfo = await this.storageRepository.checkDiskUsage(libraryBase);
+
+    return {
+      ...await this.userRepository.getUserCount(sourceApp),
+      ...await this.assetRepository.getAssetCount(sourceApp),
+      diskUsed: diskInfo.total - diskInfo.free,
+      diskTotal: diskInfo.total,
+    };
   }
 
   getSupportedMediaTypes(): ServerMediaTypesResponseDto {

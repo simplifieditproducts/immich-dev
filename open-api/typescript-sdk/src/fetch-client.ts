@@ -335,7 +335,7 @@ export type TagResponseDto = {
     value: string;
 };
 export type AssetResponseDto = {
-    /** base64 encoded sha1 hash */
+    /** base64 encoded xxHash64 hash */
     checksum: string;
     /** The UTC timestamp when the asset was originally uploaded to Immich. */
     createdAt: string;
@@ -377,6 +377,9 @@ export type AssetResponseDto = {
 export type ContributorCountResponseDto = {
     assetCount: number;
     userId: string;
+};
+export type GetAssetsInfoResponseDto = {
+    items: AssetResponseDto[];
 };
 export type AlbumResponseDto = {
     albumName: string;
@@ -506,7 +509,7 @@ export type AssetBulkUpdateDto = {
     visibility?: AssetVisibility;
 };
 export type AssetBulkUploadCheckItem = {
-    /** base64 or hex encoded sha1 hash */
+    /** base64 or hex encoded xxHash64 hash */
     checksum: string;
     id: string;
 };
@@ -881,6 +884,11 @@ export type PeopleResponseDto = {
     people: PersonResponseDto[];
     total: number;
 };
+export type NumberOfPeopleResponseDto = {
+    total: number;
+    hidden: number;
+    unnamed: number;
+};
 export type PersonCreateDto = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
@@ -1141,6 +1149,8 @@ export type SmartSearchDto = {
     visibility?: AssetVisibility;
     withDeleted?: boolean;
     withExif?: boolean;
+    withFilterExtraction?: boolean;
+    excludeAssetIds?: string[];
 };
 export type StatisticsSearchDto = {
     albumIds?: string[];
@@ -1220,6 +1230,7 @@ export type ServerConfigDto = {
 };
 export type ServerFeaturesDto = {
     configFile: boolean;
+    filterExtraction: boolean;
     duplicateDetection: boolean;
     email: boolean;
     facialRecognition: boolean;
@@ -1492,6 +1503,13 @@ export type MachineLearningAvailabilityChecksDto = {
     interval: number;
     timeout: number;
 };
+export type FilterExtractionConfig = {
+    enabled: boolean;
+    modelName: string;
+    prompt: string;
+    cacheEnabled: boolean;
+    showExtractedFilters: boolean;
+};
 export type ClipConfig = {
     enabled: boolean;
     modelName: string;
@@ -1515,6 +1533,7 @@ export type OcrConfig = {
     modelName: string;
 };
 export type SystemConfigMachineLearningDto = {
+    filterExtraction: FilterExtractionConfig;
     availabilityChecks: MachineLearningAvailabilityChecksDto;
     clip: ClipConfig;
     duplicateDetection: DuplicateDetectionConfig;
@@ -2508,6 +2527,23 @@ export function getAssetInfo({ id, key, slug }: {
     }))}`, {
         ...opts
     }));
+}
+/**
+ * Get assets info
+ */
+export function getAssetsInfo({ ids }: {
+    ids: string[];
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: GetAssetsInfoResponseDto;
+    }>("/assets/info", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: {
+            ids
+        }
+    })));
 }
 /**
  * Update an asset
@@ -3514,6 +3550,17 @@ export function getAllPeople({ closestAssetId, closestPersonId, page, size, with
         size,
         withHidden
     }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Get number of people
+ */
+export function getNumberOfPeople(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: NumberOfPeopleResponseDto;
+    }>('/people/count', {
         ...opts
     }));
 }
@@ -5378,7 +5425,8 @@ export enum ManualJobName {
     UserCleanup = "user-cleanup",
     MemoryCleanup = "memory-cleanup",
     MemoryCreate = "memory-create",
-    BackupDatabase = "backup-database"
+    BackupDatabase = "backup-database",
+    AssetMissingCheck = "asset-missing-check",
 }
 export enum QueueName {
     ThumbnailGeneration = "thumbnailGeneration",

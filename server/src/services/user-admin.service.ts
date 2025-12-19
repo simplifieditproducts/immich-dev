@@ -22,6 +22,7 @@ export class UserAdminService extends BaseService {
   async search(auth: AuthDto, dto: UserAdminSearchDto): Promise<UserAdminResponseDto[]> {
     const users = await this.userRepository.getList({
       id: dto.id,
+      ids: dto.ids,
       withDeleted: dto.withDeleted,
     });
     return users.map((user) => mapUserAdmin(user));

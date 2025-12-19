@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { StorageAsset } from 'src/database';
 import { AssetFileType, AssetPathType, ImageFormat, PathType, PersonPathType, StorageFolder } from 'src/enum';
@@ -323,5 +324,31 @@ export class StorageCore {
 
   static getTempPathInDir(dir: string): string {
     return join(dir, `${randomUUID()}.tmp`);
+  }
+
+  /**
+   * Appends file paths to the rclone-sync-files.list. Safe to call concurrently - uses atomic O_APPEND writes
+   * @param filePaths The file paths to append to the list
+   */
+  static async appendToRcloneSyncList(filePaths: (string | null | undefined)[]): Promise<void> {
+    // This folder is '/usr/src/app/upload' in production, and is '/data' in local development
+    const dataFolder = StorageCore.getMediaLocation();
+
+    // Filter out falsy values and return early if nothing to write
+    const validPaths = filePaths
+      .filter(path => {
+        return path && new RegExp(`^${dataFolder}\/upload\/`).test(path);
+      })
+      .map(path => path!.slice(dataFolder.length + 1) + '\n');
+    if (validPaths.length === 0) {
+      return;
+    }
+    
+    const syncListPath = join(dataFolder, 'rclone-sync-files.list');
+    try {
+      await fs.appendFile(syncListPath, validPaths.join(''), 'utf8');
+    } catch (error) {
+      console.error(`[StorageCore] Failed to write to rclone sync list: ${error}`);
+    }
   }
 }

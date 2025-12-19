@@ -8,6 +8,7 @@
   import { navigate } from '$lib/utils/navigation';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { getAssetInfo, type AlbumResponseDto, type PersonResponseDto } from '@immich/sdk';
+  import { toastManager } from '@immich/ui';
 
   let { asset: viewingAsset, gridScrollTarget, mutex, preloadAssets } = assetViewingStore;
 
@@ -47,6 +48,8 @@
       const asset = await getAssetInfo({ ...authManager.params, id: laterAsset.id });
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: laterAsset.id });
+    } else {
+      toastManager.warning('This is already the first photo.');
     }
 
     release();
@@ -62,6 +65,8 @@
       const asset = await getAssetInfo({ ...authManager.params, id: earlierAsset.id });
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: earlierAsset.id });
+    } else {
+      toastManager.warning('This is already the last photo.');
     }
 
     release();

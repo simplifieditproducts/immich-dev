@@ -25,7 +25,7 @@
     <button
       type="button"
       onclick={() => togglePlacesGroupCollapsing(group.id)}
-      class="w-fit mt-2 pt-2 pe-2 mb-2 dark:text-immich-dark-fg"
+      class="w-fit mt-2 pt-2 pe-2 mb-2 dark:text-immich-dark-fg text-left"
       aria-expanded={!isCollapsed}
     >
       <Icon icon={mdiChevronRight} size="24" class="inline-block -mt-2.5 transition-all duration-250 {iconRotation}" />

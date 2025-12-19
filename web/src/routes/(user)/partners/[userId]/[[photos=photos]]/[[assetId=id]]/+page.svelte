@@ -7,10 +7,11 @@
   import DownloadAction from '$lib/components/timeline/actions/DownloadAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
-  import { AppRoute } from '$lib/constants';
+  import { AppRoute, mdiArrowBackIos } from '$lib/constants';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { AssetVisibility } from '@immich/sdk';
-  import { mdiArrowLeft, mdiPlus } from '@mdi/js';
+  import { mdiPlus } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { PageData } from './$types';
 
@@ -36,7 +37,7 @@
   };
 </script>
 
-<main class="relative h-dvh overflow-hidden px-2 md:px-6 max-md:pt-(--navbar-height-md) pt-(--navbar-height)">
+<main class="relative h-dvh overflow-hidden px-2 md:px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'}">
   <Timeline enableRouting={true} {options} {assetInteraction} onEscape={handleEscape} />
 </main>
 
@@ -46,14 +47,14 @@
     clearSelect={() => assetInteraction.clearMultiselect()}
   >
     <CreateSharedLink />
-    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
       <AddToAlbum />
       <AddToAlbum shared />
     </ButtonContextMenu>
     <DownloadAction />
   </AssetSelectControlBar>
 {:else}
-  <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(AppRoute.SHARING)}>
+  <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(AppRoute.SHARING)}>
     {#snippet leading()}
       <p class="whitespace-nowrap text-immich-fg dark:text-immich-dark-fg">
         {data.partner.name}'s photos

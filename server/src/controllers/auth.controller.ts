@@ -17,7 +17,7 @@ import {
   ValidateAccessTokenResponseDto,
 } from 'src/dtos/auth.dto';
 import { UserAdminResponseDto } from 'src/dtos/user.dto';
-import { ApiTag, AuthType, ImmichCookie, Permission } from 'src/enum';
+import { ApiTag, AuthType, ImmichCookie, ImmichHeader, Permission } from 'src/enum';
 import { Auth, Authenticated, GetLoginDetails } from 'src/middleware/auth.guard';
 import { AuthService, LoginDetails } from 'src/services/auth.service';
 import { respondWithCookie, respondWithoutCookie } from 'src/utils/response';
@@ -67,8 +67,24 @@ export class AuthController {
   })
   @Authenticated({ permission: false })
   @HttpCode(HttpStatus.OK)
-  validateAccessToken(): ValidateAccessTokenResponseDto {
-    return { authStatus: true };
+  validateAccessToken(
+    @Req() request: Request,
+    @Res({ passthrough: true }) res: Response,
+    @GetLoginDetails() loginDetails: LoginDetails,
+  ): ValidateAccessTokenResponseDto {
+    const sessionToken = request.headers[ImmichHeader.SessionToken];
+    if (!sessionToken) {
+      return { authStatus: true };
+    }
+
+    return respondWithCookie(res, { authStatus: true }, {
+      isSecure: loginDetails.isSecure,
+      values: [
+        { key: ImmichCookie.AccessToken, value: sessionToken as string },
+        { key: ImmichCookie.AuthType, value: AuthType.Password },
+        { key: ImmichCookie.IsAuthenticated, value: 'true' },
+      ],
+    });
   }
 
   @Post('change-password')

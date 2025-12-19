@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { shortcuts, type ShortcutOptions } from '$lib/actions/shortcut';
-  import type { Action } from '$lib/components/asset-viewer/actions/action';
+  import type { Action, OnAction } from '$lib/components/asset-viewer/actions/action';
   import Thumbnail from '$lib/components/assets/thumbnail/thumbnail.svelte';
   import { AppRoute, AssetAction } from '$lib/constants';
   import Portal from '$lib/elements/Portal.svelte';
@@ -32,9 +32,11 @@
     disableAssetSelect?: boolean;
     showArchiveIcon?: boolean;
     viewport: Viewport;
+    scrollingElement?: Element | null;
     onIntersected?: (() => void) | undefined;
     showAssetName?: boolean;
     isShowDeleteConfirmation?: boolean;
+    onAction?: OnAction | undefined;
     onPrevious?: (() => Promise<{ id: string } | undefined>) | undefined;
     onNext?: (() => Promise<{ id: string } | undefined>) | undefined;
     onRandom?: (() => Promise<{ id: string } | undefined>) | undefined;
@@ -42,6 +44,7 @@
     pageHeaderOffset?: number;
     slidingWindowOffset?: number;
     arrowNavigation?: boolean;
+    name?: string;
   }
 
   let {
@@ -51,9 +54,11 @@
     disableAssetSelect = false,
     showArchiveIcon = false,
     viewport,
+    scrollingElement = document.scrollingElement,
     onIntersected = undefined,
     showAssetName = false,
     isShowDeleteConfirmation = $bindable(false),
+    onAction = undefined,
     onPrevious = undefined,
     onNext = undefined,
     onRandom = undefined,
@@ -61,9 +66,10 @@
     slidingWindowOffset = 0,
     pageHeaderOffset = 0,
     arrowNavigation = true,
+    name = 'default',
   }: Props = $props();
 
-  let { isViewing: isViewerOpen, asset: viewingAsset, setAssetId } = assetViewingStore;
+  let { dataSourceName, isViewing: isViewerOpen, asset: viewingAsset, setAssetId } = assetViewingStore;
 
   const geometry = $derived(
     getJustifiedLayoutFromAssets(assets, {
@@ -106,9 +112,19 @@
     };
   });
 
-  const updateSlidingWindow = () => (scrollTop = document.scrollingElement?.scrollTop ?? 0);
+  const updateSlidingWindow = () => (scrollTop = scrollingElement?.scrollTop ?? 0);
 
   const debouncedOnIntersected = debounce(() => onIntersected?.(), 750, { maxWait: 100, leading: true });
+
+  // The scrolling element may not be the document(root node), here we listen for scroll events on it.
+  $effect(() => {
+    if (scrollingElement) {
+      scrollingElement.addEventListener('scroll', updateSlidingWindow);
+      return () => {
+        scrollingElement.removeEventListener('scroll', updateSlidingWindow);
+      };
+    }
+  });
 
   let lastIntersectedHeight = 0;
   $effect(() => {
@@ -124,6 +140,7 @@
   });
   const viewAssetHandler = async (asset: TimelineAsset) => {
     currentIndex = assets.findIndex((a) => a.id == asset.id);
+    $dataSourceName = name; // Set the data source name to the current gallery viewer
     await setAssetId(assets[currentIndex].id);
     await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
   };
@@ -302,7 +319,7 @@
         asset = await onNext();
       } else {
         if (currentIndex >= assets.length - 1) {
-          return false;
+          currentIndex = -1;
         }
 
         currentIndex = currentIndex + 1;
@@ -352,7 +369,7 @@
         asset = await onPrevious();
       } else {
         if (currentIndex <= 0) {
-          return false;
+          currentIndex = assets.length;
         }
 
         currentIndex = currentIndex - 1;
@@ -397,6 +414,8 @@
         break;
       }
     }
+
+    onAction?.(action);
   };
 
   const assetMouseEventHandler = (asset: TimelineAsset | null) => {
@@ -442,7 +461,7 @@
   />
 {/if}
 
-{#if assets.length > 0}
+{#if assets.length > 0 && !$isViewerOpen}
   <div
     style:position="relative"
     style:height={geometry.containerHeight + 'px'}
@@ -484,7 +503,7 @@
 {/if}
 
 <!-- Overlay Asset Viewer -->
-{#if $isViewerOpen}
+{#if $isViewerOpen && $dataSourceName === name}
   <Portal target="body">
     {#await import('$lib/components/asset-viewer/asset-viewer.svelte') then { default: AssetViewer }}
       <AssetViewer

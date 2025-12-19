@@ -403,3 +403,33 @@ export const getReleaseType = (
 };
 
 export const semverToName = ({ major, minor, patch }: ServerVersionResponseDto) => `v${major}.${minor}.${patch}`;
+
+// Type declarations for native mobile app bridges
+declare global {
+  interface Window {
+    webkit?: {
+      messageHandlers?: {
+        logHandler?: {
+          postMessage: (data: string) => void;
+        };
+      };
+    };
+    Android?: {
+      postMessage: (data: string) => void;
+    };
+  }
+}
+
+export const sendMessageToApp = (data: string) => {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.logHandler) {
+    // iOS
+    window.webkit.messageHandlers.logHandler.postMessage(data);
+  } else if (window.Android && window.Android.postMessage) {
+    // Android
+    window.Android.postMessage(data);
+  } else {
+    console.warn("No native bridge available. Message not sent:", data);
+    return false;
+  }
+  return true;
+}

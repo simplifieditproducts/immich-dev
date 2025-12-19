@@ -16,6 +16,7 @@ export interface SearchAssetIdOptions {
   checksum?: Buffer;
   deviceAssetId?: string;
   id?: string;
+  excludeAssetIds?: string[];
 }
 
 export interface SearchUserIdOptions {
@@ -392,43 +393,8 @@ export class SearchRepository {
   @GenerateSql({ params: [[DummyValue.UUID]] })
   getAssetsByCity(userIds: string[]) {
     return this.db
-      .withRecursive('cte', (qb) => {
-        const base = qb
-          .selectFrom('asset_exif')
-          .select(['city', 'assetId'])
-          .innerJoin('asset', 'asset.id', 'asset_exif.assetId')
-          .where('asset.ownerId', '=', anyUuid(userIds))
-          .where('asset.visibility', '=', AssetVisibility.Timeline)
-          .where('asset.type', '=', AssetType.Image)
-          .where('asset.deletedAt', 'is', null)
-          .orderBy('city')
-          .limit(1);
-
-        const recursive = qb
-          .selectFrom('cte')
-          .select(['l.city', 'l.assetId'])
-          .innerJoinLateral(
-            (qb) =>
-              qb
-                .selectFrom('asset_exif')
-                .select(['city', 'assetId'])
-                .innerJoin('asset', 'asset.id', 'asset_exif.assetId')
-                .where('asset.ownerId', '=', anyUuid(userIds))
-                .where('asset.visibility', '=', AssetVisibility.Timeline)
-                .where('asset.type', '=', AssetType.Image)
-                .where('asset.deletedAt', 'is', null)
-                .whereRef('asset_exif.city', '>', 'cte.city')
-                .orderBy('city')
-                .limit(1)
-                .as('l'),
-            (join) => join.onTrue(),
-          );
-
-        return sql<{ city: string; assetId: string }>`(${base} union all ${recursive})`;
-      })
       .selectFrom('asset')
       .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
-      .innerJoin('cte', 'asset.id', 'cte.assetId')
       .selectAll('asset')
       .select((eb) =>
         eb
@@ -436,7 +402,14 @@ export class SearchRepository {
           .$castTo<Selectable<AssetExifTable>>()
           .as('exifInfo'),
       )
+      .distinctOn('asset_exif.city')
+      .where('asset.ownerId', '=', anyUuid(userIds))
+      .where('asset.visibility', '=', AssetVisibility.Timeline)
+      .where('asset.type', '=', AssetType.Image)
+      .where('asset.deletedAt', 'is', null)
+      .where('asset_exif.city', 'is not', null)
       .orderBy('asset_exif.city')
+      .orderBy('asset.fileCreatedAt', 'desc')
       .execute();
   }
 

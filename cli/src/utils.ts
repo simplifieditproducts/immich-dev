@@ -1,5 +1,7 @@
 import { getMyUser, init, isHttpError } from '@immich/sdk';
+import { Xxh64 } from '@node-rs/xxhash';
 import { convertPathToPattern, glob } from 'fast-glob';
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -172,6 +174,20 @@ export const sha1 = (filepath: string) => {
     rs.on('end', () => resolve(hash.digest('hex')));
   });
 };
+
+export const xxHash64 = (filepath: string) => {
+  return new Promise<Buffer>((resolve, reject) => {
+    const hash = new Xxh64(0xABCDn);
+    const stream = createReadStream(filepath);
+    stream.on('error', (error) => reject(error));
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => {
+      const buf = Buffer.alloc(8);
+      buf.writeBigUInt64BE(hash.digest(), 0);
+      resolve(buf);
+    });
+  });
+}
 
 /**
  * Batches items and calls onBatch to process them

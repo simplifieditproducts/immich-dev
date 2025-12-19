@@ -59,6 +59,13 @@ export interface SystemConfig {
       timeout: number;
       interval: number;
     };
+    filterExtraction: {
+      enabled: boolean;
+      modelName: string;
+      prompt: string;
+      cacheEnabled: boolean;
+      showExtractedFilters: boolean;
+    };
     clip: {
       enabled: boolean;
       modelName: string;
@@ -227,6 +234,8 @@ export const defaults = Object.freeze<SystemConfig>({
     [QueueName.SmartSearch]: { concurrency: 2 },
     [QueueName.MetadataExtraction]: { concurrency: 5 },
     [QueueName.FaceDetection]: { concurrency: 2 },
+    [QueueName.FacialRecognition]: { concurrency: 5 },
+    [QueueName.DuplicateDetection]: { concurrency: 5 },
     [QueueName.Search]: { concurrency: 5 },
     [QueueName.Sidecar]: { concurrency: 5 },
     [QueueName.Library]: { concurrency: 5 },
@@ -248,6 +257,25 @@ export const defaults = Object.freeze<SystemConfig>({
       enabled: true,
       timeout: Number(process.env.IMMICH_MACHINE_LEARNING_PING_TIMEOUT) || 2000,
       interval: 30_000,
+    },
+    filterExtraction: {
+      enabled: false,
+      modelName: 'gpt-4.1-2025-04-14',
+      prompt: `Create a prompt that returns a JSON object in the following structure:
+{
+  "takenAfter": "2025-06-01T00:00:00Z",
+  "takenBefore": "2025-08-31T23:59:59Z",
+  "country": null,
+  "state": null,
+  "city": "Washington, D.C.",
+  "people": ["Kevin", "William"],
+  "refinedQuery": "trip"
+}
+
+The city value must match a valid entry in the cities500 dataset. All fields are optional.
+`,
+      cacheEnabled: true,
+      showExtractedFilters: false
     },
     clip: {
       enabled: true,

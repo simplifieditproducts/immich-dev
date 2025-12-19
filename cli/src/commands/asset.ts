@@ -20,7 +20,7 @@ import { Stats, createReadStream } from 'node:fs';
 import { stat, unlink } from 'node:fs/promises';
 import path, { basename } from 'node:path';
 import { Queue } from 'src/queue';
-import { BaseOptions, Batcher, authenticate, crawl, sha1 } from 'src/utils';
+import { BaseOptions, Batcher, authenticate, crawl, xxHash64 } from 'src/utils';
 
 const UPLOAD_WATCH_BATCH_SIZE = 100;
 const UPLOAD_WATCH_DEBOUNCE_TIME_MS = 10_000;
@@ -221,7 +221,7 @@ export const checkForDuplicates = async (files: string[], { concurrency, skipHas
 
   const queue = new Queue<string, AssetBulkUploadCheckItem[]>(
     async (filepath: string): Promise<AssetBulkUploadCheckItem[]> => {
-      const dto = { id: filepath, checksum: await sha1(filepath) };
+      const dto = { id: filepath, checksum: (await xxHash64(filepath)).toString('base64') };
 
       results.push(dto);
       checkBulkUploadRequests.push(dto);

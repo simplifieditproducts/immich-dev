@@ -25,15 +25,15 @@
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
-  import { AppRoute, PersonPageViewMode, QueryParameter, SessionStorageKey } from '$lib/constants';
+  import { AppRoute, PersonPageViewMode, QueryParameter, SessionStorageKey, mdiArrowBackIos } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import PersonEditBirthDateModal from '$lib/modals/PersonEditBirthDateModal.svelte';
   import PersonMergeSuggestionModal from '$lib/modals/PersonMergeSuggestionModal.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
-  import { locale } from '$lib/stores/preferences.store';
-  import { preferences } from '$lib/stores/user.store';
+  import { embeddedInApp, locale } from '$lib/stores/preferences.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
   import { getPeopleThumbnailUrl } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
@@ -49,7 +49,6 @@
   import {
     mdiAccountBoxOutline,
     mdiAccountMultipleCheckOutline,
-    mdiArrowLeft,
     mdiCalendarEditOutline,
     mdiDotsVertical,
     mdiEyeOffOutline,
@@ -354,7 +353,7 @@
 </script>
 
 <main
-  class="relative z-0 h-dvh overflow-hidden px-2 md:px-6 md:pt-(--navbar-height-md) pt-(--navbar-height)"
+  class="relative z-0 h-dvh overflow-hidden px-2 md:px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'}"
   use:scrollMemoryClearer={{
     routeStartsWith: AppRoute.PEOPLE,
     beforeClear: () => {
@@ -384,7 +383,7 @@
           }}
           use:listNavigation={suggestionContainer}
         >
-          <section class="flex w-64 sm:w-96 place-items-center border-black">
+          <section class="flex w-80 sm:w-96 place-items-center border-black">
             {#if isEditingName}
               <EditNameInput
                 {person}
@@ -395,7 +394,7 @@
                 {thumbnailData}
               />
             {:else}
-              <div class="relative">
+              <div class="relative py-px">
                 <button
                   type="button"
                   class="flex items-center justify-center"
@@ -411,7 +410,7 @@
                     heightStyle="3.375rem"
                   />
                   <div class="flex flex-col justify-center text-start px-4 text-primary">
-                    <p class="w-40 sm:w-72 font-medium truncate">{person.name || $t('add_a_name')}</p>
+                    <p class="w-40 sm:w-72 truncate {person.name ? 'font-medium text-immich-primary dark:text-immich-dark-primary' : 'font-normal text-gray-400'}">{person.name || $t('add_a_name')}</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                       {$t('assets_count', { values: { count: numberOfAssets } })}
                     </p>
@@ -486,7 +485,7 @@
     >
       <CreateSharedLink />
       <SelectAllAssets {timelineManager} {assetInteraction} />
-      <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+      <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
         <AddToAlbum />
         <AddToAlbum shared />
       </ButtonContextMenu>
@@ -494,7 +493,7 @@
         removeFavorite={assetInteraction.isAllFavorite}
         onFavorite={(ids, isFavorite) => timelineManager.update(ids, (asset) => (asset.isFavorite = isFavorite))}
       />
-      <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
         <DownloadAction menuItem filename="{person.name || 'immich'}.zip" />
         <MenuOption
           icon={mdiAccountMultipleCheckOutline}
@@ -504,15 +503,18 @@
         <ChangeDate menuItem />
         <ChangeDescription menuItem />
         <ChangeLocation menuItem />
-        <ArchiveAction
-          menuItem
-          unarchive={assetInteraction.isAllArchived}
-          onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
-        />
-        {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
-          <TagAction menuItem />
+        <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+        {#if $user.isAdmin}
+          <ArchiveAction
+            menuItem
+            unarchive={assetInteraction.isAllArchived}
+            onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
+          />
+          {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
+            <TagAction menuItem />
+          {/if}
+          <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
         {/if}
-        <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
         <DeleteAssets
           menuItem
           onAssetDelete={(assetIds) => handleDeleteAssets(assetIds)}
@@ -522,9 +524,9 @@
     </AssetSelectControlBar>
   {:else}
     {#if viewMode === PersonPageViewMode.VIEW_ASSETS}
-      <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(previousRoute)}>
+      <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(previousRoute)}>
         {#snippet trailing()}
-          <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+          <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
             <MenuOption
               text={$t('select_featured_photo')}
               icon={mdiAccountBoxOutline}

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation';
+  import { page } from '$app/state';
+  import { Icon } from '@immich/ui';
   import UserPageLayout from '$lib/components/layouts/user-page-layout.svelte';
   import MemoryLane from '$lib/components/photos-page/memory-lane.svelte';
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
-  import EmptyPlaceholder from '$lib/components/shared-components/empty-placeholder.svelte';
+  import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
   import AddToAlbum from '$lib/components/timeline/actions/AddToAlbumAction.svelte';
   import ArchiveAction from '$lib/components/timeline/actions/ArchiveAction.svelte';
   import AssetJobActions from '$lib/components/timeline/actions/AssetJobActions.svelte';
@@ -21,24 +23,24 @@
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
-  import { AssetAction } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
+  import { embeddedInApp, initialUrl } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
+  import { sendMessageToApp } from '$lib/utils';
   import {
     updateStackedAssetInTimeline,
     updateUnstackedAssetInTimeline,
     type OnLink,
     type OnUnlink,
   } from '$lib/utils/actions';
-  import { openFileUploadDialog } from '$lib/utils/file-uploader';
   import { AssetVisibility } from '@immich/sdk';
-
-  import { mdiDotsVertical, mdiPlus } from '@mdi/js';
+  import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
 
   import { t } from 'svelte-i18n';
+  import { SvelteURL } from 'svelte/reactivity';
 
   let { isViewing: showAssetViewer } = assetViewingStore;
   let timelineManager = $state<TimelineManager>() as TimelineManager;
@@ -46,6 +48,11 @@
 
   const assetInteraction = new AssetInteraction();
 
+  // Kevin: Only update `$embeddedInApp` if the `inApp` query parameter is present
+  if (page.url.searchParams.has(QueryParameter.IN_APP)) {
+    $embeddedInApp = ['1', 'true'].includes(page.url.searchParams.get(QueryParameter.IN_APP) || '');
+  }
+  
   let selectedAssets = $derived(assetInteraction.selectedAssets);
   let isAssetStackSelected = $derived(selectedAssets.length === 1 && !!selectedAssets[0].stack);
   let isLinkActionAvailable = $derived.by(() => {
@@ -82,12 +89,18 @@
     assetInteraction.clearMultiselect();
   };
 
+  const onBack = () => {
+    // Send 'CMD_CLOSE_WINDOW' if embedded in app and the initial URL is '/photos'
+    return $embeddedInApp && (new SvelteURL($initialUrl)).pathname === AppRoute.PHOTOS && sendMessageToApp('CMD_CLOSE_WINDOW');
+  }
+
   beforeNavigate(() => {
     isFaceEditMode.value = false;
   });
 </script>
 
-<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton scrollbar={false}>
+<!-- Gavin has made the 'Upload' Button visible only for admins -->
+<UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false} onBack={onBack}>
   <Timeline
     enableRouting={true}
     bind:timelineManager
@@ -101,7 +114,14 @@
       <MemoryLane />
     {/if}
     {#snippet empty()}
-      <EmptyPlaceholder text={$t('no_assets_message')} onClick={() => openFileUploadDialog()} class="mt-10 mx-auto" />
+      <!-- Kevin has updated the default no photos message. -->
+      <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
+        <div class="flex flex-col content-center items-center text-center">
+          <Icon icon={mdiImageOffOutline} size="3.5em" />
+          <p class="mt-5 text-3xl font-medium">No photos available</p>
+          <p class="text-base font-normal px-2">Run a backup using the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} app and try again.</p>
+        </div>
+      </div>
     {/snippet}
   </Timeline>
 </UserPageLayout>
@@ -114,7 +134,7 @@
   >
     <CreateSharedLink />
     <SelectAllAssets {timelineManager} {assetInteraction} />
-    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
       <AddToAlbum />
       <AddToAlbum shared />
     </ButtonContextMenu>
@@ -122,7 +142,7 @@
       removeFavorite={assetInteraction.isAllFavorite}
       onFavorite={(ids, isFavorite) => timelineManager.update(ids, (asset) => (asset.isFavorite = isFavorite))}
     ></FavoriteAction>
-    <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+    <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 8, y: 40 }}>
       <DownloadAction menuItem />
       {#if assetInteraction.selectedAssets.length > 1 || isAssetStackSelected}
         <StackAction
@@ -142,10 +162,13 @@
       <ChangeDate menuItem />
       <ChangeDescription menuItem />
       <ChangeLocation menuItem />
-      <ArchiveAction
-        menuItem
-        onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
-      />
+      <!-- Gavin has made 'Archive' button visible only for admins -->
+      {#if $user.isAdmin}      
+        <ArchiveAction
+          menuItem
+          onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
+        />
+      {/if}
       {#if $preferences.tags.enabled}
         <TagAction menuItem />
       {/if}
@@ -154,9 +177,12 @@
         onAssetDelete={(assetIds) => timelineManager.removeAssets(assetIds)}
         onUndoDelete={(assets) => timelineManager.upsertAssets(assets)}
       />
-      <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
-      <hr />
-      <AssetJobActions />
+      <!-- Gavin has made 'Move to locked folder', 'Refresh thumbnails', and 'Refresh metadata' buttons visible only for admins -->
+      {#if $user.isAdmin}
+        <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+        <hr />
+        <AssetJobActions />
+      {/if}
     </ButtonContextMenu>
   </AssetSelectControlBar>
 {/if}

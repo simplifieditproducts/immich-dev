@@ -14,11 +14,12 @@
   import { closeEditorCofirm } from '$lib/stores/asset-editor.store';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { ocrManager } from '$lib/stores/ocr.svelte';
-  import { alwaysLoadOriginalVideo, isShowDetail } from '$lib/stores/preferences.store';
+  import { embeddedInApp, alwaysLoadOriginalVideo, isShowDetail } from '$lib/stores/preferences.store';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
-  import { getAssetJobMessage, getSharedLink, handlePromiseError } from '$lib/utils';
+  import { photoZoomState } from '$lib/stores/zoom-image.store';
+  import { getAssetJobMessage, getSharedLink, handlePromiseError, sendMessageToApp } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { SlideshowHistory } from '$lib/utils/slideshow-history';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
@@ -68,6 +69,7 @@
     onPrevious: () => Promise<HasAsset>;
     onRandom: () => Promise<{ id: string } | undefined>;
     copyImage?: () => Promise<void>;
+    animateOpacity?: boolean;
   }
 
   let {
@@ -86,7 +88,27 @@
     onPrevious,
     onRandom,
     copyImage = $bindable(),
+    animateOpacity = false,
   }: Props = $props();
+
+  const DISMISS_THRESHOLD = 100; // pixels to trigger dismiss
+  const MAX_DRAG_DISTANCE = 300; // maximum distance for opacity calculation
+  const MIN_SCALE = 0.3; // minimum scale when fully dragged
+  const MIN_OPACITY = 0.3; // minimum opacity when fully dragged
+
+  // Navigation controls auto-hide functionality
+  let controlsVisible = $state(true);
+
+  // Swipe to dismiss variables
+  let isDragging = $state(false);
+  let isDismissing = $state(undefined as boolean | undefined);
+  let dragStartY = $state(0);
+  let dragCurrentY = $state(0);
+  let dragStartX = $state(0);
+  let dragCurrentX = $state(0);  
+  let viewerTransform = $state(0);
+  let viewerOpacity = $state(1);
+  let viewerScale = $state(1);
 
   const { setAssetId } = assetViewingStore;
   const {
@@ -157,6 +179,11 @@
   };
 
   onMount(async () => {
+    // Set the background of the native app to black.
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DARK');
+    }
+
     unsubscribes.push(
       websocketEvents.on('on_upload_success', (asset) => onAssetUpdate({ event: 'upload', asset })),
       websocketEvents.on('on_asset_update', (asset) => onAssetUpdate({ event: 'update', asset })),
@@ -198,6 +225,11 @@
     }
 
     activityManager.reset();
+
+    // Reset the background of the native app.
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DEFAULT');
+    }
   });
 
   const handleGetAllAlbums = async () => {
@@ -232,6 +264,147 @@
     closeEditorCofirm(() => {
       isShowEditor = false;
     });
+  };
+
+  // Swipe to dismiss gesture handlers
+  const handleTouchStart = (e: TouchEvent) => {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const touches = (e as any).touches;
+    if (touches && touches.length === 1) {
+      isDragging = true;
+      dragStartX = touches[0].clientX;
+      dragStartY = touches[0].clientY;
+      dragCurrentX = dragStartX;
+      dragCurrentY = dragStartY;
+    }
+  };
+
+  const handleMouseDown = (e: MouseEvent) => {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
+      return;
+    }
+
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragCurrentX = dragStartX;
+    dragCurrentY = dragStartY;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const touches = (e as any).touches;
+    if (!isDragging || !touches || touches.length !== 1) {
+      return;
+    }
+    dragCurrentX = touches[0].clientX;
+    dragCurrentY = touches[0].clientY;
+    updateViewerPosition();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) {
+      return;
+    }
+    
+    dragCurrentY = e.clientY;
+    updateViewerPosition();
+  };
+
+  const updateViewerPosition = () => {
+    const deltaX = dragCurrentX - dragStartX;
+    const deltaY = dragCurrentY - dragStartY;
+
+    // Lock the direction to vertical or horizontal based on initial movement
+    if (isDismissing === undefined) {
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+        isDismissing = true; // Vertical drag
+      } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        isDismissing = false; // Horizontal drag
+      } else {
+        return; // Not enough movement to determine direction
+      }
+    }
+    
+    // Only allow downward swipes
+    if (deltaY > 0 && isDismissing) {
+      controlsVisible = false; // Hide controls during drag
+
+      viewerTransform = deltaY;
+      
+      // Calculate opacity based on drag distance
+      const opacityReduction = Math.min(deltaY / MAX_DRAG_DISTANCE, 1 - MIN_OPACITY);
+      viewerOpacity = 1 - opacityReduction;
+      
+      // Calculate scale based on drag distance (shrink as it moves down)
+      const scaleReduction = Math.min(deltaY / MAX_DRAG_DISTANCE, 1 - MIN_SCALE);
+      viewerScale = 1 - scaleReduction;
+    } else {
+      viewerTransform = 0;
+      viewerOpacity = 1;
+      viewerScale = 1;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) {
+      return;
+    }
+    
+    const deltaY = dragCurrentY - dragStartY;
+    
+    if (isDismissing && deltaY > DISMISS_THRESHOLD) {
+      dismissViewer();
+    } else {
+      resetViewer();
+    }
+    
+    isDragging = false;
+    isDismissing = undefined;
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging) {
+      return;
+    }
+    
+    const deltaY = dragCurrentY - dragStartY;
+    
+    if (isDismissing && deltaY > DISMISS_THRESHOLD) {
+      dismissViewer();
+    } else {
+      resetViewer();
+    }
+    
+    isDragging = false;
+    isDismissing = undefined;
+  };
+
+  const dismissViewer = () => {
+    // Animate PhotoViewer to bottom of screen
+    viewerTransform = window.innerHeight;
+    viewerOpacity = MIN_OPACITY;
+    viewerScale = MIN_SCALE;
+    
+    // Close after animation
+    setTimeout(() => {
+      closeViewer();
+    }, 250);
+  };
+
+  const resetViewer = () => {
+    if (viewerTransform !== 0) {
+      controlsVisible = true;
+    }
+
+    // Reset position, opacity, and scale
+    viewerTransform = 0;
+    viewerOpacity = 1;
+    viewerScale = 1;
   };
 
   const navigateAsset = async (order?: 'previous' | 'next', e?: Event) => {
@@ -411,13 +584,29 @@
 
 <section
   id="immich-asset-viewer"
-  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden bg-black"
+  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden transition-color duration-300"
+  style="background-color: rgba(0, 0, 0, {animateOpacity ? viewerOpacity : 1});"
   use:focusTrap
   bind:this={assetViewerHtmlElement}
+  onclick={() => controlsVisible = !controlsVisible}
+  onkeydown={() => controlsVisible = true}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
+  onmousedown={handleMouseDown}
+  onmousemove={handleMouseMove}
+  onmouseup={handleMouseUp}
+  role="button"
+  tabindex="0"
 >
   <!-- Top navigation bar -->
   {#if $slideshowState === SlideshowState.None && !isShowEditor}
-    <div class="col-span-4 col-start-1 row-span-1 row-start-1 transition-transform">
+    <div 
+      class="z-2 col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
+      class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <AssetViewerNavBar
         {asset}
         {album}
@@ -460,13 +649,18 @@
   {/if}
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
-    <div class="my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start">
+    <div 
+      class="z-1 my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
+      class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <PreviousAssetAction onPreviousAsset={() => navigateAsset('previous')} />
     </div>
   {/if}
 
   <!-- Asset Viewer -->
-  <div class="z-[-1] relative col-start-1 col-span-4 row-start-1 row-span-full">
+  <div class="z-0 relative col-start-1 col-span-4 row-start-1 row-span-full" style="transform: translateY({viewerTransform}px) scale({viewerScale}); transform-origin: center center;">
     {#if previewStackedAsset}
       {#key previewStackedAsset.id}
         {#if previewStackedAsset.type === AssetTypeEnum.Image}
@@ -556,7 +750,12 @@
         {/if}
 
         {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData}
-          <div class="absolute bottom-0 end-0 mb-6 me-6">
+          <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300"
+            class:opacity-0={!controlsVisible}
+            class:pointer-events-none={!controlsVisible}
+            class:opacity-100={controlsVisible}
+            onclick={(e) => e.stopPropagation()}
+          >
             <OcrButton />
           </div>
         {/if}
@@ -565,7 +764,12 @@
   </div>
 
   {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
-    <div class="my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end">
+    <div 
+      class="z-1 my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
+      class:opacity-0={!controlsVisible}
+      class:pointer-events-none={!controlsVisible}
+      class:opacity-100={controlsVisible}
+    >
       <NextAssetAction onNextAsset={() => navigateAsset('next')} />
     </div>
   {/if}
@@ -574,7 +778,7 @@
     <div
       transition:fly={{ duration: 150 }}
       id="detail-panel"
-      class="row-start-1 row-span-4 w-[360px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
+      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-[360px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
       translate="yes"
     >
       <DetailPanel {asset} currentAlbum={album} albums={appearsInAlbums} onClose={() => ($isShowDetail = false)} />

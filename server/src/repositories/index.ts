@@ -31,6 +31,7 @@ import { PartnerRepository } from 'src/repositories/partner.repository';
 import { PersonRepository } from 'src/repositories/person.repository';
 import { PluginRepository } from 'src/repositories/plugin.repository';
 import { ProcessRepository } from 'src/repositories/process.repository';
+import { RedisRepository } from 'src/repositories/redis.repository';
 import { SearchRepository } from 'src/repositories/search.repository';
 import { ServerInfoRepository } from 'src/repositories/server-info.repository';
 import { SessionRepository } from 'src/repositories/session.repository';
@@ -63,6 +64,7 @@ export const repositories = [
   ConfigRepository,
   CronRepository,
   CryptoRepository,
+  RedisRepository,
   DatabaseRepository,
   DownloadRepository,
   DuplicateRepository,

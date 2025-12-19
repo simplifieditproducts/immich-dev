@@ -24,7 +24,7 @@
   import type { Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { foldersStore } from '$lib/stores/folders.svelte';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { joinPaths } from '$lib/utils/tree-utils';
@@ -131,7 +131,7 @@
         icon={mdiSelectAll}
         onclick={handleSelectAllAssets}
       />
-      <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+      <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
         <AddToAlbum onAddToAlbum={() => cancelMultiselect(assetInteraction)} />
         <AddToAlbum onAddToAlbum={() => cancelMultiselect(assetInteraction)} shared />
       </ButtonContextMenu>
@@ -149,18 +149,24 @@
         }}
       />
 
-      <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
         <DownloadAction menuItem />
         <ChangeDate menuItem />
         <ChangeDescription menuItem />
         <ChangeLocation menuItem />
-        <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} onArchive={triggerAssetUpdate} />
+        <!-- Kevin has made 'Archive' button visible only for admins -->
+        {#if $user.isAdmin}
+          <ArchiveAction menuItem unarchive={assetInteraction.isAllArchived} onArchive={triggerAssetUpdate} />
+        {/if}
         {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
           <TagAction menuItem />
         {/if}
         <DeleteAssets menuItem onAssetDelete={triggerAssetUpdate} onUndoDelete={triggerAssetUpdate} />
-        <hr />
-        <AssetJobActions />
+        <!-- Kevin has made 'Refresh thumbnails' and 'Refresh metadata' buttons visible only for admins -->
+        {#if $user.isAdmin}
+          <hr />
+          <AssetJobActions />
+        {/if}
       </ButtonContextMenu>
     </AssetSelectControlBar>
   </div>

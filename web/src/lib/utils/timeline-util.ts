@@ -189,6 +189,9 @@ export const toTimelineAsset = (unknownAsset: AssetResponseDto | TimelineAsset):
     people,
     latitude: assetResponse.exifInfo?.latitude || null,
     longitude: assetResponse.exifInfo?.longitude || null,
+    deviceAssetId: assetResponse.deviceAssetId,
+    originalFileName: assetResponse.originalFileName,
+    fileSizeInByte: assetResponse.exifInfo?.fileSizeInByte,
   };
 };
 

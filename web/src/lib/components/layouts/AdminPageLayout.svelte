@@ -1,7 +1,9 @@
 <script lang="ts">
   import PageContent from '$lib/components/layouts/PageContent.svelte';
+  import NavigationBarEmbedded from '$lib/components/shared-components/navigation-bar/navigation-bar-embedded.svelte';
   import NavigationBar from '$lib/components/shared-components/navigation-bar/navigation-bar.svelte';
   import AdminSidebar from '$lib/sidebars/AdminSidebar.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import type { HeaderButtonActionItem } from '$lib/types';
   import {
@@ -32,7 +34,11 @@
 
 <AppShell>
   <AppShellHeader>
-    <NavigationBar showUploadButton={false} noBorder />
+    {#if $embeddedInApp}
+      <NavigationBarEmbedded showUploadButton={false} noBorder />
+    {:else}
+      <NavigationBar showUploadButton={false} noBorder />
+    {/if}
   </AppShellHeader>
   <AppShellSidebar bind:open={sidebarStore.isOpen} class="border-none shadow-none">
     <AdminSidebar />

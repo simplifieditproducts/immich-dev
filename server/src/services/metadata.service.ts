@@ -546,7 +546,11 @@ export class MetadataService extends BaseService {
   }
 
   private isMotionPhoto(asset: { type: AssetType }, tags: ImmichTags): boolean {
-    return asset.type === AssetType.Image && !!(tags.MotionPhoto || tags.MicroVideo);
+    // Kevin: disable motion photo support for now
+    // Also, reset 'livePhotoVideoId' to NULL for all existing live photo assets and trashed all related video assets.
+    return false;
+    
+    // return asset.type === AssetType.Image && !!(tags.MotionPhoto || tags.MicroVideo);
   }
 
   private async applyMotionPhotos(asset: Asset, tags: ImmichTags, dates: Dates, stats: Stats) {
@@ -602,7 +606,7 @@ export class MetadataService extends BaseService {
           length,
         });
       }
-      const checksum = this.cryptoRepository.hashSha1(video);
+      const checksum = this.cryptoRepository.hashXxHash64(video);
       const checksumQuery = { ownerId: asset.ownerId, libraryId: asset.libraryId ?? undefined, checksum };
 
       let motionAsset = await this.assetRepository.getByChecksum(checksumQuery);

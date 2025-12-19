@@ -56,6 +56,7 @@ export interface GetAllFacesOptions {
   personId?: string | null;
   assetId?: string;
   sourceType?: SourceType;
+  ownerIds?: string[];
 }
 
 export type UnassignFacesOptions = DeleteFacesOptions;
@@ -115,11 +116,14 @@ export class PersonRepository {
   getAllFaces(options: GetAllFacesOptions = {}) {
     return this.db
       .selectFrom('asset_face')
+      .innerJoin('asset', 'asset.id', 'asset_face.assetId')
       .selectAll('asset_face')
+      .select('asset.ownerId as ownerId')
       .$if(options.personId === null, (qb) => qb.where('asset_face.personId', 'is', null))
       .$if(!!options.personId, (qb) => qb.where('asset_face.personId', '=', options.personId!))
       .$if(!!options.sourceType, (qb) => qb.where('asset_face.sourceType', '=', options.sourceType!))
       .$if(!!options.assetId, (qb) => qb.where('asset_face.assetId', '=', options.assetId!))
+      .$if(!!options.ownerIds && options.ownerIds.length > 0, (qb) => qb.where('asset.ownerId', 'in', options.ownerIds!))
       .where('asset_face.deletedAt', 'is', null)
       .stream();
   }
@@ -200,6 +204,17 @@ export class PersonRepository {
 
     return paginationHelper(items, pagination.take);
   }
+
+  @GenerateSql()
+  getAllForUserWithNames(userId: string) {
+    return this.db
+      .selectFrom('person')
+      .select(['person.id', 'person.name'])
+      .where('person.name', '!=', '')
+      .where('person.ownerId', '=', userId)
+      .where('person.isHidden', '=', false)
+      .execute();
+  }  
 
   @GenerateSql()
   getAllWithoutFaces() {
@@ -338,18 +353,16 @@ export class PersonRepository {
   }
 
   @GenerateSql({ params: [DummyValue.UUID] })
-  async getStatistics(personId: string): Promise<PersonStatistics> {
+  async getStatistics(ownerId: string, personId: string): Promise<PersonStatistics> {
     const result = await this.db
       .selectFrom('asset_face')
-      .leftJoin('asset', (join) =>
-        join
-          .onRef('asset.id', '=', 'asset_face.assetId')
-          .on('asset_face.personId', '=', personId)
-          .on('asset.visibility', '=', sql.lit(AssetVisibility.Timeline))
-          .on('asset.deletedAt', 'is', null),
-      )
-      .select((eb) => eb.fn.count(eb.fn('distinct', ['asset.id'])).as('count'))
+      .innerJoin('asset', 'asset.id', 'asset_face.assetId')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('asset_face.personId', '=', personId)
       .where('asset_face.deletedAt', 'is', null)
+      .where('asset.ownerId', '=', ownerId)
+      .where('asset.visibility', '=', AssetVisibility.Timeline)
+      .where('asset.deletedAt', 'is', null)
       .executeTakeFirst();
 
     return {
@@ -382,6 +395,7 @@ export class PersonRepository {
       .where('person.ownerId', '=', userId)
       .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>(), zero).as('total'))
       .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>().filterWhere('isHidden', '=', true), zero).as('hidden'))
+      .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>().filterWhere('name', '=', ''), zero).as('unnamed'))
       .executeTakeFirstOrThrow();
   }
 
@@ -506,6 +520,22 @@ export class PersonRepository {
       .executeTakeFirst()) as { latestDate: string } | undefined;
 
     return result?.latestDate;
+  }
+
+  @GenerateSql()
+  async getUsersWithNewPersonsInLast24Hours(): Promise<string[]> {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const results = await this.db
+      .selectFrom('person')
+      .select('person.ownerId')
+      .distinct()
+      .where('person.createdAt', '>=', yesterday)
+      .where('person.isHidden', '=', false)
+      .execute();
+
+    return results.map((row: { ownerId: string }) => row.ownerId);
   }
 
   async createAssetFace(face: Insertable<AssetFaceTable>): Promise<void> {

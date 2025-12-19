@@ -19,7 +19,7 @@
   import { AssetAction } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { mdiDotsVertical, mdiPlus } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { PageData } from './$types';
@@ -73,24 +73,27 @@
     <FavoriteAction removeFavorite onFavorite={(assetIds) => timelineManager.removeAssets(assetIds)} />
     <CreateSharedLink />
     <SelectAllAssets {timelineManager} {assetInteraction} />
-    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+    <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
       <AddToAlbum />
       <AddToAlbum shared />
     </ButtonContextMenu>
-    <ButtonContextMenu icon={mdiDotsVertical} title={$t('menu')}>
+    <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }}>
       <DownloadAction menuItem />
       <ChangeDate menuItem />
       <ChangeDescription menuItem />
       <ChangeLocation menuItem />
-      <ArchiveAction
-        menuItem
-        unarchive={assetInteraction.isAllArchived}
-        onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
-      />
-      {#if $preferences.tags.enabled}
-        <TagAction menuItem />
+      <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+      {#if $user.isAdmin}
+        <ArchiveAction
+          menuItem
+          unarchive={assetInteraction.isAllArchived}
+          onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
+        />
+        {#if $preferences.tags.enabled}
+          <TagAction menuItem />
+        {/if}
+        <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
       {/if}
-      <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
       <DeleteAssets
         menuItem
         onAssetDelete={(assetIds) => timelineManager.removeAssets(assetIds)}

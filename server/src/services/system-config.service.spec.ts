@@ -89,6 +89,13 @@ const updatedConfig = Object.freeze<SystemConfig>({
       interval: 30_000,
       timeout: 2000,
     },
+    filterExtraction: {
+      enabled: false,
+      modelName: 'gpt-4.1-2025-04-14',
+      prompt: '',
+      cacheEnabled: true,
+      showExtractedFilters: false,
+    },
     clip: {
       enabled: true,
       modelName: 'ViT-B-32__openai',

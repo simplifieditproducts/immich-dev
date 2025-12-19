@@ -352,6 +352,8 @@ export enum ManualJobName {
   MemoryCleanup = 'memory-cleanup',
   MemoryCreate = 'memory-create',
   BackupDatabase = 'backup-database',
+  FacialRecognition = 'facial-recognition',
+  AssetMissingCheck = 'asset-missing-check',
 }
 
 export enum AssetPathType {
@@ -576,6 +578,8 @@ export enum JobName {
   AssetFileMigration = 'AssetFileMigration',
   AssetGenerateThumbnailsQueueAll = 'AssetGenerateThumbnailsQueueAll',
   AssetGenerateThumbnails = 'AssetGenerateThumbnails',
+  AssetMissingCheckQueueAll = 'AssetMissingCheckQueueAll',
+  AssetMissingCheck = 'AssetMissingCheck',
 
   AuditLogCleanup = 'AuditLogCleanup',
   AuditTableCleanup = 'AuditTableCleanup',

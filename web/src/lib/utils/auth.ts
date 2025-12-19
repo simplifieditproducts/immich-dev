@@ -1,8 +1,9 @@
 import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
 import { purchaseStore } from '$lib/stores/purchase.store';
 import { preferences as preferences$, user as user$ } from '$lib/stores/user.store';
 import { userInteraction } from '$lib/stores/user.svelte';
-import { getAboutInfo, getMyPreferences, getMyUser, getStorage } from '@immich/sdk';
+import { getAboutInfo, getMyPreferences, getMyUser, getStorage, validateAccessToken } from '@immich/sdk';
 import { redirect } from '@sveltejs/kit';
 import { DateTime } from 'luxon';
 import { get } from 'svelte/store';
@@ -50,8 +51,29 @@ const hasAuthCookie = (): boolean => {
   return false;
 };
 
+// This gets called on most page loads to ensure that the user is still authorized to access the content.
 export const authenticate = async (url: URL, options?: AuthOptions) => {
   const { public: publicRoute, admin: adminRoute } = options || {};
+
+  // Check for sessionToken query parameter
+  const sessionToken = url.searchParams.get('sessionToken');
+  if (sessionToken) {
+    try {
+      // Validate the session token, which will set the auth cookies if valid
+      await validateAccessToken({headers: {
+        'x-immich-session-token': sessionToken
+      }});
+
+      // If validation succeeds, we shall redirect to the same URL by removing the sessionToken parameter
+      url.searchParams.delete('sessionToken');
+      goto(url.toString(), { replaceState: true });
+      return;
+    } catch (error) {
+      console.error('Login with session token failed:', error);
+    }
+  }
+  
+  // Fall back to normal cookie-based authentication
   const user = await loadUser();
 
   if (publicRoute) {

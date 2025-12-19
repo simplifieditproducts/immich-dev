@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { isAbsolute } from 'node:path';
+import { stdout } from 'process';
 import { SALT_ROUNDS } from 'src/constants';
 import { MaintenanceAuthDto } from 'src/dtos/maintenance.dto';
 import { UserAdminResponseDto, mapUserAdmin } from 'src/dtos/user.dto';
@@ -179,6 +180,66 @@ export class CliService extends BaseService {
     await this.databaseRepository.migrateFilePaths(sourceFolder, targetFolder);
 
     return true;
+  }
+
+  async recalculateAssetChecksums({
+    onProgress,
+  }: {
+    onProgress?: (processed: number, total: number) => void;
+  } = {}): Promise<{ processed: number; updated: number; errored: number }> {
+    const batchSize = 1000;
+    let skip = 0;
+    let processed = 0;
+    let updated = 0;
+    let errored = 0;
+
+    // Get total count first
+    const total = await this.assetRepository.adminGetNumberOfAssets();
+    this.logger.log(`Start calculating checksum for ${total} assets`);
+
+    while (true) {
+      // Get batch of assets
+      const page = await this.assetRepository.adminGetAll({
+        skip,
+        take: batchSize,
+      });
+
+      for (const asset of page.items) {
+        try {
+          // Calculate new checksum
+          const newChecksum = await this.cryptoRepository.hashFile(asset.originalPath);
+          
+          // Only update if checksum has changed
+          if (!newChecksum.equals(asset.checksum)) {
+            await this.assetRepository.update({
+              id: asset.id,
+              checksum: newChecksum,
+            });
+            updated++;
+          }
+          
+          processed++;
+          if (onProgress) {
+            onProgress(processed, total);
+          }
+          const percentage = Math.round((processed / total) * 100);
+          stdout.write(`\rProgress: ${processed}/${total} assets processed (${percentage}%)`);
+        } catch (error) {
+          errored++;
+          this.logger.error(`Failed to calculate checksum for asset ${asset.id}: ${asset.originalPath}`, error);
+        }
+      }
+
+      if (!page.hasNextPage) {
+        break;
+      } else {
+        skip += batchSize;
+      }
+    }
+    stdout.write('\n');
+
+    this.logger.log(`Checksum calculation completed. Processed: ${processed}, Updated: ${updated}, Errored: ${errored}`);
+    return { processed, updated, errored };
   }
 
   cleanup() {

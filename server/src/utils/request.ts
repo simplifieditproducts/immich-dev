@@ -2,7 +2,7 @@ import { IncomingHttpHeaders } from 'node:http';
 import { UAParser } from 'ua-parser-js';
 
 export const fromChecksum = (checksum: string): Buffer => {
-  return Buffer.from(checksum, checksum.length === 28 ? 'base64' : 'hex');
+  return Buffer.from(checksum, checksum.length === 12 ? 'base64' : 'hex'); // xxHash64 can be base64 (12 chars)
 };
 
 export const fromMaybeArray = <T>(param: T | T[]) => (Array.isArray(param) ? param[0] : param);

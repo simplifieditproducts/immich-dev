@@ -220,6 +220,15 @@ export class PeopleResponseDto {
   hasNextPage?: boolean;
 }
 
+export class NumberOfPeopleResponseDto {
+  @ApiProperty({ type: 'integer' })
+  total!: number;
+  @ApiProperty({ type: 'integer' })
+  hidden!: number;
+  @ApiProperty({ type: 'integer' })
+  unnamed!: number;
+}
+
 export function mapPerson(person: Person): PersonResponseDto {
   return {
     id: person.id,

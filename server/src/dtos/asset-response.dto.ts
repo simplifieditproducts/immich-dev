@@ -45,6 +45,7 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   })
   createdAt!: Date;
   deviceAssetId!: string;
+  deviceFilePath?: string | null;
   deviceId!: string;
   ownerId!: string;
   owner?: UserResponseDto;
@@ -77,6 +78,7 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   })
   updatedAt!: Date;
   isFavorite!: boolean;
+  isOriginalQuality!: boolean;
   isArchived!: boolean;
   isTrashed!: boolean;
   isOffline!: boolean;
@@ -86,7 +88,7 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   tags?: TagResponseDto[];
   people?: PersonWithFacesResponseDto[];
   unassignedFaces?: AssetFaceWithoutPersonResponseDto[];
-  /**base64 encoded sha1 hash */
+  /**base64 encoded xxHash64 hash */
   checksum!: string;
   stack?: AssetStackResponseDto | null;
   duplicateId?: string | null;
@@ -104,6 +106,7 @@ export type MapAsset = {
   status: AssetStatus;
   checksum: Buffer<ArrayBufferLike>;
   deviceAssetId: string;
+  deviceFilePath: string | null;
   deviceId: string;
   duplicateId: string | null;
   duration: string | null;
@@ -115,6 +118,7 @@ export type MapAsset = {
   files?: AssetFile[];
   isExternal: boolean;
   isFavorite: boolean;
+  isOriginalQuality: boolean;
   isOffline: boolean;
   visibility: AssetVisibility;
   libraryId: string | null;
@@ -198,6 +202,7 @@ export function mapAsset(entity: MapAsset, options: AssetMapOptions = {}): Asset
     id: entity.id,
     createdAt: entity.createdAt,
     deviceAssetId: entity.deviceAssetId,
+    deviceFilePath: entity.deviceFilePath,
     ownerId: entity.ownerId,
     owner: entity.owner ? mapUser(entity.owner) : undefined,
     deviceId: entity.deviceId,
@@ -212,6 +217,7 @@ export function mapAsset(entity: MapAsset, options: AssetMapOptions = {}): Asset
     localDateTime: entity.localDateTime,
     updatedAt: entity.updatedAt,
     isFavorite: options.auth?.user.id === entity.ownerId && entity.isFavorite,
+    isOriginalQuality: entity.isOriginalQuality,
     isArchived: entity.visibility === AssetVisibility.Archive,
     isTrashed: !!entity.deletedAt,
     visibility: entity.visibility,

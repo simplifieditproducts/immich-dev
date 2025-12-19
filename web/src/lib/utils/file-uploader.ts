@@ -18,6 +18,7 @@ import {
 import { tick } from 'svelte';
 import { t } from 'svelte-i18n';
 import { get } from 'svelte/store';
+import xxhash from "xxhash-wasm";
 import { handleError } from './handle-error';
 
 export const addDummyItems = () => {
@@ -136,6 +137,7 @@ async function fileUploader({
       fileCreatedAt,
       fileModifiedAt: new Date(assetFile.lastModified).toISOString(),
       isFavorite: 'false',
+      isOriginalQuality: 'true',
       duration: '0:00:00.000000',
       assetData: new File([assetFile], assetFile.name),
     })) {
@@ -147,15 +149,14 @@ async function fileUploader({
     }
 
     let responseData: { id: string; status: AssetMediaStatus; isTrashed?: boolean } | undefined;
-    if (crypto?.subtle?.digest && !authManager.isSharedLink) {
+    if (!authManager.isSharedLink) {
       uploadAssetsStore.updateItem(deviceAssetId, { message: $t('asset_hashing') });
       await tick();
       try {
-        const bytes = await assetFile.arrayBuffer();
-        const hash = await crypto.subtle.digest('SHA-1', bytes);
-        const checksum = Array.from(new Uint8Array(hash))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
+        const { h64Raw } = await xxhash();
+        const buf = await assetFile.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const checksum = h64Raw(bytes, 0xABCDn).toString(16).padStart(16, '0').toUpperCase();
 
         const {
           results: [checkUploadResult],
@@ -168,7 +169,7 @@ async function fileUploader({
           };
         }
       } catch (error) {
-        console.error(`Error calculating sha1 file=${assetFile.name})`, error);
+        console.error(`Error calculating xxHash64 file=${assetFile.name})`, error);
       }
     }
 

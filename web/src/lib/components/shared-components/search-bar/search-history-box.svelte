@@ -94,15 +94,15 @@
   {#if isOpen && isSearchSuggestions}
     <div
       transition:fly={{ y: 25, duration: 150 }}
-      class="absolute w-full rounded-b-3xl border-2 border-t-0 border-gray-200 bg-white pb-5 shadow-2xl transition-all dark:border-gray-700 dark:bg-immich-dark-gray dark:text-gray-300 z-1"
+      class="absolute w-full rounded-b-lg sm:rounded-b-3xl border-2 border-t-0 border-gray-200 bg-white pb-5 shadow-2xl transition-all dark:border-gray-700 dark:bg-immich-dark-gray dark:text-gray-300 z-1"
     >
-      <div class="flex items-center justify-between px-5 pt-5 text-xs">
+      <div class="flex items-center justify-between px-4 pt-5 text-xs">
         <p class="uppercase py-2" aria-hidden={true}>{$t('recent_searches')}</p>
         {#if showClearAll}
           <button
             id={getId(0)}
             type="button"
-            class="rounded-lg p-2 font-semibold text-primary aria-selected:bg-immich-primary/25 hover:bg-immich-primary/25"
+            class="rounded-lg p-1 font-semibold text-immich-primary aria-selected:bg-immich-primary/25 hover:bg-immich-primary/25 dark:text-immich-dark-primary"
             role="option"
             onclick={() => handleClearAll()}
             tabindex="-1"
@@ -119,19 +119,20 @@
         <div class="flex w-full items-center justify-between text-sm text-black dark:text-gray-300">
           <div class="relative w-full items-center">
             <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- Kevin adjusted the layout of recent searches list. -->
             <div
               id={getId(index)}
-              class="relative flex w-full cursor-pointer gap-3 py-3 ps-5 hover:bg-gray-100 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-500/30 dark:hover:bg-gray-500/30"
+              class="relative flex w-full cursor-pointer gap-3 py-3 ps-4 hover:bg-gray-100 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-500/30 dark:hover:bg-gray-500/30"
               onclick={() => handleSelect(savedSearchTerm)}
               role="option"
               tabindex="-1"
               aria-selected={selectedIndex === index}
               aria-label={savedSearchTerm}
             >
-              <Icon icon={mdiMagnify} size="1.5em" aria-hidden />
-              {savedSearchTerm}
+              <Icon icon={mdiMagnify} size="1.5em" aria-hidden class="shrink-0" />
+              <span class="truncate pr-12">{savedSearchTerm}</span>
             </div>
-            <div aria-hidden={true} class="absolute end-5 top-0 items-center justify-center py-3">
+            <div aria-hidden={true} class="absolute end-2 top-0 items-center justify-center py-1">
               <IconButton
                 shape="round"
                 color="secondary"

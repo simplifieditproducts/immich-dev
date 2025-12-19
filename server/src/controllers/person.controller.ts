@@ -20,6 +20,7 @@ import { AuthDto } from 'src/dtos/auth.dto';
 import {
   AssetFaceUpdateDto,
   MergePersonDto,
+  NumberOfPeopleResponseDto,
   PeopleResponseDto,
   PeopleUpdateDto,
   PersonCreateDto,
@@ -54,6 +55,12 @@ export class PersonController {
   })
   getAllPeople(@Auth() auth: AuthDto, @Query() options: PersonSearchDto): Promise<PeopleResponseDto> {
     return this.service.getAll(auth, options);
+  }
+
+  @Get('/count')
+  @Authenticated({ permission: Permission.PersonRead })
+  getNumberOfPeople(@Auth() auth: AuthDto): Promise<NumberOfPeopleResponseDto> {
+    return this.service.getNumberOfPeople(auth);
   }
 
   @Post()

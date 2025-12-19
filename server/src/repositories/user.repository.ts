@@ -9,10 +9,11 @@ import { AssetType, AssetVisibility, UserStatus } from 'src/enum';
 import { DB } from 'src/schema';
 import { UserTable } from 'src/schema/tables/user.table';
 import { UserMetadata, UserMetadataItem } from 'src/types';
-import { asUuid } from 'src/utils/database';
+import { anyUuid, asUuid } from 'src/utils/database';
 
 export interface UserListFilter {
   id?: string;
+  ids?: string[];
   withDeleted?: boolean;
 }
 
@@ -160,13 +161,14 @@ export class UserRepository {
     { name: 'with deleted', params: [{ withDeleted: true }] },
     { name: 'without deleted', params: [{ withDeleted: false }] },
   )
-  getList({ id, withDeleted }: UserListFilter = {}) {
+  getList({ id, ids, withDeleted }: UserListFilter = {}) {
     return this.db
       .selectFrom('user')
       .select(columns.userAdmin)
       .select(withMetadata)
       .$if(!withDeleted, (eb) => eb.where('user.deletedAt', 'is', null))
       .$if(!!id, (eb) => eb.where('user.id', '=', id!))
+      .$if(!!ids, (eb) => eb.where('user.id', '=', anyUuid(ids!)))
       .orderBy('createdAt', 'desc')
       .execute();
   }
@@ -226,6 +228,16 @@ export class UserRepository {
     return hard
       ? this.db.deleteFrom('user').where('id', '=', user.id).execute()
       : this.db.updateTable('user').set({ deletedAt: new Date() }).where('id', '=', user.id).execute();
+  }
+
+  @GenerateSql()
+  getUserCount(sourceApp: string) {
+    return this.db
+      .selectFrom('user')
+      .where('user.sourceApp', '=', sourceApp)
+      .where('user.deletedAt', 'is', null)
+      .select((eb) => eb.fn.countAll<number>().as('users'))
+      .executeTakeFirstOrThrow();
   }
 
   @GenerateSql()

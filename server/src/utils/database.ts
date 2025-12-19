@@ -13,10 +13,11 @@ import {
 } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { existsSync, writeFileSync } from 'node:fs';
 import { parse } from 'pg-connection-string';
 import postgres, { Notice, PostgresError } from 'postgres';
 import { columns, Exif, lockableProperties, LockableProperty, Person } from 'src/database';
-import { AssetFileType, AssetVisibility, DatabaseExtension, DatabaseSslMode } from 'src/enum';
+import { AssetFileType, AssetVisibility, DatabaseExtension, DatabaseSslMode, ImmichWorker } from 'src/enum';
 import { AssetSearchBuilderOptions } from 'src/repositories/search.repository';
 import { DB } from 'src/schema';
 import { DatabaseConnectionParams, VectorExtension } from 'src/types';
@@ -100,6 +101,30 @@ export const getKyselyConfig = (
     }),
     log(event) {
       if (event.level === 'error') {
+
+        // Don't print an error log if the app skipped a duplicate asset during upload.
+        const error = event.error as any;
+        if (error?.message?.includes?.(`duplicate key value violates unique constraint "UQ_assets_owner_checksum"`)) {
+          const lastParam = event.query && event.query.parameters?.length > 0 ? event.query.parameters[event.query.parameters.length - 1] : 'unknown filename';
+          console.log(`Skip duplicate asset ${lastParam}. Detail: ${error?.detail || 'N/A'}`);
+          return;
+        }
+
+        // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
+        // our deployment scripts can detect it and restart the appropriate container.
+        if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
+          const isApiServer = process.env.IMMICH_WORKERS_INCLUDE === ImmichWorker.Api;
+          const containerType = isApiServer ? 'server' : 'microservices';
+          const tempFile = `/tmp/immich/connection_destroyed_${containerType}`;
+          try {
+            if (!existsSync(tempFile)) {
+              writeFileSync(tempFile, new Date().toISOString(), { encoding: 'utf-8' });
+            }
+          } catch (err) {
+            console.warn('Failed to write connection destroyed marker file:', err);
+          }
+        }
+
         console.error('Query failed :', {
           durationMs: event.queryDurationMillis,
           error: event.error,
@@ -114,6 +139,8 @@ export const getKyselyConfig = (
 export const asUuid = (id: string | Expression<string>) => sql<string>`${id}::uuid`;
 
 export const anyUuid = (ids: string[]) => sql<string>`any(${`{${ids}}`}::uuid[])`;
+
+export const allUuid = (ids: string[]) => sql<string>`all(${`{${ids}}`}::uuid[])`;
 
 export const asVector = (embedding: number[]) => sql<string>`${`[${embedding}]`}::vector`;
 
@@ -412,6 +439,7 @@ export function searchAssetBuilder(kysely: Kysely<DB>, options: AssetSearchBuild
     .$if(!!options.id, (qb) => qb.where('asset.id', '=', asUuid(options.id!)))
     .$if(!!options.libraryId, (qb) => qb.where('asset.libraryId', '=', asUuid(options.libraryId!)))
     .$if(!!options.userIds, (qb) => qb.where('asset.ownerId', '=', anyUuid(options.userIds!)))
+    .$if(!!options.excludeAssetIds, (qb) => qb.where('asset.id', '!=', allUuid(options.excludeAssetIds!)))
     .$if(!!options.encodedVideoPath, (qb) => qb.where('asset.encodedVideoPath', '=', options.encodedVideoPath!))
     .$if(!!options.originalPath, (qb) =>
       qb.where(sql`f_unaccent(asset."originalPath")`, 'ilike', sql`'%' || f_unaccent(${options.originalPath}) || '%'`),

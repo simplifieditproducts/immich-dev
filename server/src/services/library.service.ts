@@ -399,7 +399,7 @@ export class LibraryService extends BaseService {
     return {
       ownerId,
       libraryId,
-      checksum: this.cryptoRepository.hashSha1(`path:${assetPath}`),
+      checksum: this.cryptoRepository.hashXxHash64(`path:${assetPath}`),
       originalPath: assetPath,
 
       fileCreatedAt: stat.mtime,

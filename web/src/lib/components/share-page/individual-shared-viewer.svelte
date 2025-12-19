@@ -4,20 +4,21 @@
   import DownloadAction from '$lib/components/timeline/actions/DownloadAction.svelte';
   import RemoveFromSharedLink from '$lib/components/timeline/actions/RemoveFromSharedLinkAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
-  import { AppRoute, AssetAction } from '$lib/constants';
+  import { AppRoute, AssetAction, mdiArrowBackIos } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import type { Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { dragAndDropFilesStore } from '$lib/stores/drag-and-drop-files.store';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { handlePromiseError } from '$lib/utils';
-  import { cancelMultiselect, downloadArchive } from '$lib/utils/asset-utils';
+  import { cancelMultiselect, downloadArchive, downloadAssetsViaApp } from '$lib/utils/asset-utils';
   import { fileUploadHandler, openFileUploadDialog } from '$lib/utils/file-uploader';
   import { handleError } from '$lib/utils/handle-error';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { addSharedLinkAssets, getAssetInfo, type SharedLinkResponseDto } from '@immich/sdk';
   import { IconButton, Logo, toastManager } from '@immich/ui';
-  import { mdiArrowLeft, mdiDownload, mdiFileImagePlusOutline, mdiSelectAll } from '@mdi/js';
+  import { mdiDownload, mdiFileImagePlusOutline, mdiSelectAll } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import ControlAppBar from '../shared-components/control-app-bar.svelte';
   import GalleryViewer from '../shared-components/gallery-viewer/gallery-viewer.svelte';
@@ -42,6 +43,12 @@
   });
 
   const downloadAssets = async () => {
+    // If embedded in app, use the app's download functionality
+    if ($embeddedInApp) {
+      downloadAssetsViaApp(assets);
+      return;
+    }
+
     await downloadArchive(`immich-shared.zip`, { assetIds: assets.map((asset) => asset.id) });
   };
 
@@ -106,7 +113,7 @@
         {/if}
       </AssetSelectControlBar>
     {:else}
-      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiArrowLeft} showBackButton={false}>
+      <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} backIcon={mdiArrowBackIos} showBackButton={false}>
         {#snippet leading()}
           <a data-sveltekit-preload-data="hover" class="ms-4" href="/">
             <Logo variant={mobileDevice.maxMd ? 'icon' : 'inline'} class="min-w-10" />

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 import { SemVer } from 'semver';
 import { SystemConfigThemeDto } from 'src/dtos/system-config.dto';
 
@@ -133,6 +134,30 @@ export class ServerStatsResponseDto {
   usageByUser: UsageByUserDto[] = [];
 }
 
+export class SimpleServerStatsDto {
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['picturekeeper', 'ultimatebackup'])
+  sourceApp: string = 'picturekeeper';
+}
+
+export class SimpleServerStatsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  users = 0;
+
+  @ApiProperty({ type: 'integer' })
+  photos = 0;
+
+  @ApiProperty({ type: 'integer' })
+  videos = 0;
+
+  @ApiProperty({ type: 'integer', format: 'int64' })
+  diskUsed = 0;
+
+  @ApiProperty({ type: 'integer', format: 'int64' })
+  diskTotal = 0;
+}
+
 export class ServerMediaTypesResponseDto {
   video!: string[];
   image!: string[];
@@ -158,6 +183,7 @@ export class ServerConfigDto {
 }
 
 export class ServerFeaturesDto {
+  filterExtraction!: boolean;
   smartSearch!: boolean;
   duplicateDetection!: boolean;
   configFile!: boolean;

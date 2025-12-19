@@ -68,6 +68,10 @@ export class UserAdminSearchDto {
 
   @ValidateUUID({ optional: true })
   id?: string;
+
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @ValidateUUID({ optional: true, each: true })
+  ids?: string[];
 }
 
 export class UserAdminCreateDto {

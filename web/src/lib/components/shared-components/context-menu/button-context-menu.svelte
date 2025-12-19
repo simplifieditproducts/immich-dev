@@ -39,6 +39,10 @@
       x: number;
       y: number;
     };
+    /**
+     * Callback function called when the button is clicked.
+     */
+    onButtonClick?: (event: MouseEvent) => void;
   } & HTMLAttributes<HTMLDivElement>;
 
   let {
@@ -53,6 +57,7 @@
     hideContent = false,
     children,
     offset,
+    onButtonClick,
     ...restProps
   }: Props = $props();
 
@@ -80,6 +85,8 @@
   };
 
   const handleClick = (event: MouseEvent) => {
+    onButtonClick?.(event);
+    
     if (isOpen) {
       closeDropdown();
       return;

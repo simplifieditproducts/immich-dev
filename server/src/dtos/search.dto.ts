@@ -213,6 +213,12 @@ export class SmartSearchDto extends BaseSearchWithResultsDto {
   @Type(() => Number)
   @Optional()
   page?: number;
+
+  @ValidateBoolean({ optional: true })
+  withFilterExtraction?: boolean;
+
+  @ValidateUUID({ each: true, optional: true })
+  excludeAssetIds?: string[];
 }
 
 export class SearchPlacesDto {
@@ -319,6 +325,7 @@ class SearchAssetResponseDto {
 export class SearchResponseDto {
   albums!: SearchAlbumResponseDto;
   assets!: SearchAssetResponseDto;
+  terms?: SmartSearchDto;
 }
 
 export class SearchStatisticsResponseDto {

@@ -45,6 +45,7 @@ export const serverVersion = new SemVer(version);
 
 export const AUDIT_LOG_MAX_DURATION = Duration.fromObject({ days: 100 });
 export const ONE_HOUR = Duration.fromObject({ hours: 1 });
+export const FILTER_EXTRACTION_CACHE_TTL = Duration.fromObject({ days: 14 });
 
 export const citiesFile = 'cities500.txt';
 export const reverseGeocodeMaxDistance = 25_000;

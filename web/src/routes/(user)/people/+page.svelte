@@ -3,7 +3,6 @@
   import { page } from '$app/stores';
   import { focusTrap } from '$lib/actions/focus-trap';
   import { scrollMemory } from '$lib/actions/scroll-memory';
-  import { shortcut } from '$lib/actions/shortcut';
   import ManagePeopleVisibility from '$lib/components/faces-page/manage-people-visibility.svelte';
   import PeopleCard from '$lib/components/faces-page/people-card.svelte';
   import PeopleInfiniteScroll from '$lib/components/faces-page/people-infinite-scroll.svelte';
@@ -22,8 +21,6 @@
   import { mdiAccountOff, mdiEyeOutline } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
-  import { quintOut } from 'svelte/easing';
-  import { fly } from 'svelte/transition';
   import type { PageData } from './$types';
 
   interface Props {
@@ -229,8 +226,8 @@
     await clearQueryParam(QueryParameter.SEARCHED_PEOPLE, $page.url);
   };
 
-  let people = $derived(data.people.people);
-  let visiblePeople = $derived(people.filter((people) => !people.isHidden));
+  let people = $state(data.people.people);
+  let visiblePeople = $derived(people.filter((person) => !person.isHidden));
   let countVisiblePeople = $derived(searchName ? searchedPeopleLocal.length : data.people.total - data.people.hidden);
   let showPeople = $derived(searchName ? searchedPeopleLocal : visiblePeople);
 
@@ -349,7 +346,7 @@
     <PeopleInfiniteScroll people={showPeople} hasNextPage={!!nextPage && !searchName} {loadNextPage}>
       {#snippet children({ person })}
         <div
-          class="p-2 rounded-xl hover:bg-gray-200 border-2 hover:border-immich-primary/50 hover:shadow-sm dark:hover:bg-immich-dark-primary/20 hover:dark:border-immich-dark-primary/25 border-transparent transition-all"
+          class="p-2 rounded-xl hover:bg-gray-100 border-2 hover:border-immich-primary/50 hover:shadow-sm dark:hover:bg-immich-dark-primary/20 hover:dark:border-immich-dark-primary/25 border-transparent transition-all"
         >
           <PeopleCard
             {person}
@@ -357,17 +354,10 @@
             onMergePeople={() => handleMergePeople(person)}
             onHidePerson={() => handleHidePerson(person)}
             onToggleFavorite={() => handleToggleFavorite(person)}
-          />
+            onInputFocusIn={() => onNameChangeInputFocus(person)}
+            onInputFocusOut={() => onNameChangeSubmit(newName, person)}
+            onInput={(event) => onNameChangeInputUpdate(event)}
 
-          <input
-            type="text"
-            class=" bg-white dark:bg-immich-dark-gray border-gray-100 placeholder-gray-400 text-center dark:border-gray-900 w-full rounded-2xl mt-2 py-2 text-sm text-primary"
-            value={person.name}
-            placeholder={$t('add_a_name')}
-            use:shortcut={{ shortcut: { key: 'Enter' }, onShortcut: (e) => e.currentTarget.blur() }}
-            onfocusin={() => onNameChangeInputFocus(person)}
-            onfocusout={() => onNameChangeSubmit(newName, person)}
-            oninput={(event) => onNameChangeInputUpdate(event)}
           />
         </div>
       {/snippet}
@@ -387,7 +377,6 @@
 {#if selectHidden}
   <dialog
     open
-    transition:fly={{ y: innerHeight, duration: 150, easing: quintOut, opacity: 0 }}
     class="absolute start-0 top-0 h-full w-full bg-light"
     aria-modal="true"
     aria-labelledby="manage-visibility-title"

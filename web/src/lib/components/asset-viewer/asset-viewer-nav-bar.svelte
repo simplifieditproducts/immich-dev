@@ -122,7 +122,10 @@
 </script>
 
 <div
-  class="flex h-16 place-items-center justify-between bg-linear-to-b from-black/40 px-3 transition-transform duration-200"
+  class="flex h-12 place-items-center justify-between bg-linear-to-b from-black/40 transition-transform duration-200"
+  onclick={(e) => e.stopPropagation()}
+  onkeydown={(e) => e.stopPropagation()}
+  role="none"
 >
   <div class="dark">
     {#if showCloseButton}
@@ -132,7 +135,7 @@
   <div class="flex gap-2 overflow-x-auto dark" data-testid="asset-viewer-navbar-actions">
     <CastButton />
 
-    {#if !asset.isTrashed && $user && !isLocked}
+    {#if !asset.isTrashed && $user && $user.isAdmin && !isLocked}
       <ShareAction {asset} />
     {/if}
     {#if asset.isOffline}
@@ -184,7 +187,7 @@
     {#if isOwner}
       <DeleteAction {asset} {onAction} {preAction} />
 
-      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical}>
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 8, y: 40 }}>
         {#if showSlideshow && !isLocked}
           <MenuOption icon={mdiPresentationPlay} text={$t('slideshow')} onClick={onPlaySlideshow} />
         {/if}
@@ -197,7 +200,9 @@
             <RestoreAction {asset} {onAction} />
           {:else}
             <AddToAlbumAction {asset} {onAction} />
-            <AddToAlbumAction {asset} {onAction} shared />
+            {#if $user.isAdmin}
+              <AddToAlbumAction {asset} {onAction} shared />
+            {/if}
           {/if}
         {/if}
 
@@ -219,17 +224,20 @@
           {#if person}
             <SetFeaturedPhotoAction {asset} {person} {onAction} />
           {/if}
-          {#if asset.type === AssetTypeEnum.Image && !isLocked}
+          {#if asset.type === AssetTypeEnum.Image && !isLocked && $user.isAdmin}
             <SetProfilePictureAction {asset} />
           {/if}
 
           {#if !isLocked}
-            <ArchiveAction {asset} {onAction} {preAction} />
-            <MenuOption
-              icon={mdiUpload}
-              onClick={() => handleReplaceAsset(asset.id)}
-              text={$t('replace_with_upload')}
-            />
+            <!-- Kevin has made 'Archive' and 'Replace with upload' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <ArchiveAction {asset} {onAction} {preAction} />
+              <MenuOption
+                icon={mdiUpload}
+                onClick={() => handleReplaceAsset(asset.id)}
+                text={$t('replace_with_upload')}
+              />
+            {/if}
             {#if !asset.isArchived && !asset.isTrashed}
               <MenuOption
                 icon={mdiImageSearch}
@@ -247,40 +255,43 @@
             {/if}
           {/if}
 
-          {#if !asset.isTrashed}
-            <SetVisibilityAction asset={toTimelineAsset(asset)} {onAction} {preAction} />
-          {/if}
+          <!-- Kevin has made 'Move to locked folder', 'Refresh faces', 'Refresh metadata' and 'Refresh thumbnails' buttons visible only for admins -->
+          {#if $user.isAdmin}
+            {#if !asset.isTrashed}
+              <SetVisibilityAction asset={toTimelineAsset(asset)} {onAction} {preAction} />
+            {/if}
 
-          {#if asset.type === AssetTypeEnum.Video}
-            <MenuOption
-              icon={mdiVideoOutline}
-              onClick={() => setPlayOriginalVideo(!playOriginalVideo)}
-              text={playOriginalVideo ? $t('play_transcoded_video') : $t('play_original_video')}
-            />
-          {/if}
+            {#if asset.type === AssetTypeEnum.Video}
+              <MenuOption
+                icon={mdiVideoOutline}
+                onClick={() => setPlayOriginalVideo(!playOriginalVideo)}
+                text={playOriginalVideo ? $t('play_transcoded_video') : $t('play_original_video')}
+              />
+            {/if}
 
-          <hr />
-          <MenuOption
-            icon={mdiHeadSyncOutline}
-            onClick={() => onRunJob(AssetJobName.RefreshFaces)}
-            text={$getAssetJobName(AssetJobName.RefreshFaces)}
-          />
-          <MenuOption
-            icon={mdiDatabaseRefreshOutline}
-            onClick={() => onRunJob(AssetJobName.RefreshMetadata)}
-            text={$getAssetJobName(AssetJobName.RefreshMetadata)}
-          />
-          <MenuOption
-            icon={mdiImageRefreshOutline}
-            onClick={() => onRunJob(AssetJobName.RegenerateThumbnail)}
-            text={$getAssetJobName(AssetJobName.RegenerateThumbnail)}
-          />
-          {#if asset.type === AssetTypeEnum.Video}
+            <hr />
             <MenuOption
-              icon={mdiCogRefreshOutline}
-              onClick={() => onRunJob(AssetJobName.TranscodeVideo)}
-              text={$getAssetJobName(AssetJobName.TranscodeVideo)}
+              icon={mdiHeadSyncOutline}
+              onClick={() => onRunJob(AssetJobName.RefreshFaces)}
+              text={$getAssetJobName(AssetJobName.RefreshFaces)}
             />
+            <MenuOption
+              icon={mdiDatabaseRefreshOutline}
+              onClick={() => onRunJob(AssetJobName.RefreshMetadata)}
+              text={$getAssetJobName(AssetJobName.RefreshMetadata)}
+            />
+            <MenuOption
+              icon={mdiImageRefreshOutline}
+              onClick={() => onRunJob(AssetJobName.RegenerateThumbnail)}
+              text={$getAssetJobName(AssetJobName.RegenerateThumbnail)}
+            />
+            {#if asset.type === AssetTypeEnum.Video}
+              <MenuOption
+                icon={mdiCogRefreshOutline}
+                onClick={() => onRunJob(AssetJobName.TranscodeVideo)}
+                text={$getAssetJobName(AssetJobName.TranscodeVideo)}
+              />
+            {/if}
           {/if}
         {/if}
       </ButtonContextMenu>

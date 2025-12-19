@@ -31,7 +31,7 @@
   import SearchRatingsSection from '$lib/components/shared-components/search-bar/search-ratings-section.svelte';
   import SearchTagsSection from '$lib/components/shared-components/search-bar/search-tags-section.svelte';
   import SearchTextSection from '$lib/components/shared-components/search-bar/search-text-section.svelte';
-  import { preferences } from '$lib/stores/user.store';
+  import { preferences, user } from '$lib/stores/user.store';
   import { parseUtcDate } from '$lib/utils/date-time';
   import { generateId } from '$lib/utils/generate-id';
   import { AssetTypeEnum, AssetVisibility, type MetadataSearchDto, type SmartSearchDto } from '@immich/sdk';
@@ -184,40 +184,54 @@
   });
 </script>
 
+<!-- 
+Kevin has customized this component:
+  - Hide the "Tags", "Camera Model", "Media Type" and "Display Options" section for non-admin users
+  - Change the order of those visible sections
+  - Text and layout adjustments
+-->
 <Modal icon={mdiTune} size="giant" title={$t('search_options')} {onClose}>
   <ModalBody>
     <form id={formId} autocomplete="off" {onsubmit} {onreset}>
-      <div class="flex flex-col gap-4 pb-10" tabindex="-1">
-        <!-- PEOPLE -->
-        <SearchPeopleSection bind:selectedPeople={filter.personIds} />
+      <div class="flex flex-col gap-10" tabindex="-1">
 
         <!-- TEXT -->
         <SearchTextSection bind:query={filter.query} bind:queryType={filter.queryType} />
 
+        <!-- DATE RANGE -->
+        <SearchDateSection bind:filters={filter.date} />
+
         <!-- TAGS -->
-        <SearchTagsSection bind:selectedTags={filter.tagIds} />
+        {#if $user.isAdmin}
+          <SearchTagsSection bind:selectedTags={filter.tagIds} />
+        {/if}
+
+        <!-- PEOPLE -->
+        <SearchPeopleSection bind:selectedPeople={filter.personIds} />
 
         <!-- LOCATION -->
         <SearchLocationSection bind:filters={filter.location} />
 
         <!-- CAMERA MODEL -->
-        <SearchCameraSection bind:filters={filter.camera} />
-
-        <!-- DATE RANGE -->
-        <SearchDateSection bind:filters={filter.date} />
+        {#if $user.isAdmin}
+          <hr />
+          <SearchCameraSection bind:filters={filter.camera} />
+        {/if}
 
         <!-- RATING -->
         {#if $preferences?.ratings.enabled}
           <SearchRatingsSection bind:rating={filter.rating} />
         {/if}
 
-        <div class="grid md:grid-cols-2 gap-x-5 gap-y-10">
-          <!-- MEDIA TYPE -->
-          <SearchMediaSection bind:filteredMedia={filter.mediaType} />
+        {#if $user.isAdmin}
+          <div class="grid md:grid-cols-2 gap-x-5 gap-y-10">
+            <!-- MEDIA TYPE -->
+            <SearchMediaSection bind:filteredMedia={filter.mediaType} />
 
-          <!-- DISPLAY OPTIONS -->
-          <SearchDisplaySection bind:filters={filter.display} />
-        </div>
+            <!-- DISPLAY OPTIONS -->
+            <SearchDisplaySection bind:filters={filter.display} />
+          </div>
+        {/if}
       </div>
     </form>
   </ModalBody>

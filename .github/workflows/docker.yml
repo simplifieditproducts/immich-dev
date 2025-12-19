@@ -3,10 +3,7 @@ name: Docker
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-  pull_request:
-  release:
-    types: [published]
+    branches: [custom-patch-v2]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,117 +36,11 @@ jobs:
               - 'openapi/**'
               - 'web/**'
               - 'i18n/**'
-            machine-learning:
-              - 'machine-learning/**'
           force-filters: |
             - '.github/workflows/docker.yml'
             - '.github/workflows/multi-runner-build.yml'
             - '.github/actions/image-build'
           force-events: 'workflow_dispatch,release'
-
-  retag_ml:
-    name: Re-Tag ML
-    needs: pre-job
-    permissions:
-      contents: read
-      packages: write
-    if: ${{ fromJSON(needs.pre-job.outputs.should_run).machine-learning == false && !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        suffix: ['', '-cuda', '-rocm', '-openvino', '-armnn', '-rknn']
-    steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Re-tag image
-        env:
-          REGISTRY_NAME: 'ghcr.io'
-          REPOSITORY: ${{ github.repository_owner }}/immich-machine-learning
-          TAG_OLD: main${{ matrix.suffix }}
-          TAG_PR: ${{ github.event.number == 0 && github.ref_name || format('pr-{0}', github.event.number) }}${{ matrix.suffix }}
-          TAG_COMMIT: commit-${{ github.event_name != 'pull_request' && github.sha || github.event.pull_request.head.sha }}${{ matrix.suffix }}
-        run: |
-          docker buildx imagetools create -t "${REGISTRY_NAME}/${REPOSITORY}:${TAG_PR}" "${REGISTRY_NAME}/${REPOSITORY}:${TAG_OLD}"
-          docker buildx imagetools create -t "${REGISTRY_NAME}/${REPOSITORY}:${TAG_COMMIT}" "${REGISTRY_NAME}/${REPOSITORY}:${TAG_OLD}"
-
-  retag_server:
-    name: Re-Tag Server
-    needs: pre-job
-    permissions:
-      contents: read
-      packages: write
-    if: ${{ fromJSON(needs.pre-job.outputs.should_run).server == false && !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        suffix: ['']
-    steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Re-tag image
-        env:
-          REGISTRY_NAME: 'ghcr.io'
-          REPOSITORY: ${{ github.repository_owner }}/immich-server
-          TAG_OLD: main${{ matrix.suffix }}
-          TAG_PR: ${{ github.event.number == 0 && github.ref_name || format('pr-{0}', github.event.number) }}${{ matrix.suffix }}
-          TAG_COMMIT: commit-${{ github.event_name != 'pull_request' && github.sha || github.event.pull_request.head.sha }}${{ matrix.suffix }}
-        run: |
-          docker buildx imagetools create -t "${REGISTRY_NAME}/${REPOSITORY}:${TAG_PR}" "${REGISTRY_NAME}/${REPOSITORY}:${TAG_OLD}"
-          docker buildx imagetools create -t "${REGISTRY_NAME}/${REPOSITORY}:${TAG_COMMIT}" "${REGISTRY_NAME}/${REPOSITORY}:${TAG_OLD}"
-
-  machine-learning:
-    name: Build and Push ML
-    needs: pre-job
-    if: ${{ fromJSON(needs.pre-job.outputs.should_run).machine-learning == true }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - device: cpu
-          - device: cuda
-            suffixes: '-cuda'
-            platforms: linux/amd64
-          - device: openvino
-            suffixes: '-openvino'
-            platforms: linux/amd64
-          - device: armnn
-            suffixes: '-armnn'
-            platforms: linux/arm64
-          - device: rknn
-            suffixes: '-rknn'
-            platforms: linux/arm64
-          - device: rocm
-            suffixes: '-rocm'
-            platforms: linux/amd64
-            runner-mapping: '{"linux/amd64": "mich"}'
-    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@0477486d82313fba68f7c82c034120a4b8981297 # multi-runner-build-workflow-v2.1.0
-    permissions:
-      contents: read
-      actions: read
-      packages: write
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-    with:
-      image: immich-machine-learning
-      context: machine-learning
-      dockerfile: machine-learning/Dockerfile
-      platforms: ${{ matrix.platforms }}
-      runner-mapping: ${{ matrix.runner-mapping }}
-      suffixes: ${{ matrix.suffixes }}
-      dockerhub-push: ${{ github.event_name == 'release' }}
-      build-args: |
-        DEVICE=${{ matrix.device }}
 
   server:
     name: Build and Push Server
@@ -171,9 +62,30 @@ jobs:
       build-args: |
         DEVICE=cpu
 
+  web-ub:
+    name: Build and Push Web App (Ultimate Backup)
+    needs: pre-job
+    if: ${{ fromJSON(needs.pre-job.outputs.should_run).server == true }}
+    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@0477486d82313fba68f7c82c034120a4b8981297 # multi-runner-build-workflow-v2.1.0
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    with:
+      image: immich-web-ub
+      context: .
+      dockerfile: web/Dockerfile.prod
+      dockerhub-push: ${{ github.event_name == 'release' }}
+      build-args: |
+        DEVICE=cpu
+        VITE_APP_ID=ultimatebackup
+
   success-check-server:
     name: Docker Build & Push Server Success
-    needs: [server, retag_server]
+    needs: [server]
     permissions: {}
     runs-on: ubuntu-latest
     if: always()
@@ -182,13 +94,13 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
 
-  success-check-ml:
-    name: Docker Build & Push ML Success
-    needs: [machine-learning, retag_ml]
+  success-check-web-ub:
+    name: Docker Build & Push Web App (Ultimate Backup) Success
+    needs: web-ub
     permissions: {}
     runs-on: ubuntu-latest
     if: always()
     steps:
       - uses: immich-app/devtools/actions/success-check@68f10eb389bb02a3cf9d1156111964c549eb421b # 0.0.4
         with:
-          needs: ${{ toJSON(needs) }}
+          needs: ${{ toJSON(needs) }}          

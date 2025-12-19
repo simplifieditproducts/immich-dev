@@ -162,7 +162,7 @@ export class AssetJobRepository {
   streamForSearchDuplicates(force?: boolean) {
     return this.db
       .selectFrom('asset')
-      .select(['asset.id'])
+      .select(['asset.id', 'asset.ownerId'])
       .where('asset.deletedAt', 'is', null)
       .innerJoin('smart_search', 'asset.id', 'smart_search.assetId')
       .$call(withDefaultVisibility)
@@ -198,7 +198,7 @@ export class AssetJobRepository {
   getForDetectFacesJob(id: string) {
     return this.db
       .selectFrom('asset')
-      .select(['asset.id', 'asset.visibility'])
+      .select(['asset.id', 'asset.visibility', 'asset.ownerId'])
       .$call(withExifInner)
       .select((eb) => withFaces(eb, true))
       .select((eb) => withFiles(eb, AssetFileType.Preview))
@@ -396,5 +396,21 @@ export class AssetJobRepository {
   @GenerateSql({ params: [DummyValue.DATE], stream: true })
   streamForMigrationJob() {
     return this.db.selectFrom('asset').select(['id']).where('asset.deletedAt', 'is', null).stream();
+  }
+
+  @GenerateSql({ params: [], stream: true })
+  streamForMissingCheck() {
+    return (
+      this.db
+        .selectFrom('asset')
+        .leftJoin('asset_job_status', 'asset_job_status.assetId', 'asset.id')
+        .select(['asset.id', 'asset.originalPath'])
+        .where('asset.deletedAt', 'is', null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .where((eb: any) =>
+          eb.or([eb('asset_job_status.metadataExtractedAt', 'is', null), eb('asset_job_status.assetId', 'is', null)]),
+        )
+        .stream()
+    );
   }
 }

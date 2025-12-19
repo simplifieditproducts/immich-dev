@@ -99,6 +99,7 @@ export enum QueryParameter {
   SMART_SEARCH = 'smartSearch',
   PAGE = 'page',
   PATH = 'path',
+  IN_APP = 'inApp',
 }
 
 export enum SessionStorageKey {
@@ -441,3 +442,10 @@ export enum ToggleVisibility {
 }
 
 export const assetViewerFadeDuration: number = 150;
+
+export const appId = import.meta.env.VITE_APP_ID || 'picturekeeper';
+export const appName = import.meta.env.VITE_APP_ID === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper';
+
+// See: https://mui.com/material-ui/material-icons/?query=ios&selected=ArrowBackIosNew
+// The default `mdiChevronLeft` icon is too small in some use cases.
+export const mdiArrowBackIos = 'M17.77 3.77 16 2 6 12l10 10 1.77-1.77L9.54 12z';

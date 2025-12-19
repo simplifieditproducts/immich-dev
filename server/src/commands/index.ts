@@ -8,6 +8,7 @@ import {
 } from 'src/commands/media-location.command';
 import { DisableOAuthLogin, EnableOAuthLogin } from 'src/commands/oauth-login';
 import { DisablePasswordLoginCommand, EnablePasswordLoginCommand } from 'src/commands/password-login';
+import { PromptRecalculateChecksumsQuestion, RecalculateChecksumsCommand } from 'src/commands/recalculate-checksums.command';
 import { PromptPasswordQuestions, ResetAdminPasswordCommand } from 'src/commands/reset-admin-password.command';
 import { VersionCommand } from 'src/commands/version.command';
 
@@ -28,4 +29,6 @@ export const commandsAndQuestions = [
   ChangeMediaLocationCommand,
   PromptMediaLocationQuestions,
   PromptConfirmMoveQuestions,
+  RecalculateChecksumsCommand,
+  PromptRecalculateChecksumsQuestion,
 ];

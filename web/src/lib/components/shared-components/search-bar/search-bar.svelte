@@ -2,15 +2,19 @@
   import { goto } from '$app/navigation';
   import { focusOutside } from '$lib/actions/focus-outside';
   import { shortcuts } from '$lib/actions/shortcut';
+  import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
+  import MenuOption from '$lib/components/shared-components/context-menu/menu-option.svelte';
   import { AppRoute } from '$lib/constants';
   import SearchFilterModal from '$lib/modals/SearchFilterModal.svelte';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { searchStore } from '$lib/stores/search.svelte';
   import { handlePromiseError } from '$lib/utils';
   import { generateId } from '$lib/utils/generate-id';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import type { MetadataSearchDto, SmartSearchDto } from '@immich/sdk';
   import { Button, IconButton, modalManager } from '@immich/ui';
-  import { mdiClose, mdiMagnify, mdiTune } from '@mdi/js';
+  import { mdiClose, mdiDotsVertical, mdiFaceRecognition, mdiMagnify, mdiTune } from '@mdi/js';
   import { onDestroy, onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import SearchHistoryBox from './search-history-box.svelte';
@@ -19,9 +23,10 @@
     value?: string;
     grayTheme: boolean;
     searchQuery?: MetadataSearchDto | SmartSearchDto;
+    onMoreClick?: (event: MouseEvent) => void;
   }
 
-  let { value = $bindable(''), grayTheme, searchQuery = {} }: Props = $props();
+  let { value = $bindable(''), grayTheme, searchQuery = {}, onMoreClick }: Props = $props();
 
   let showClearIcon = $derived(value.length > 0);
 
@@ -32,6 +37,7 @@
   let selectedId: string | undefined = $state();
   let close: (() => Promise<void>) | undefined;
   let showSearchTypeDropdown = $state(false);
+  let usingMobileDevice = $derived(mobileDevice.pointerCoarse);
   let currentSearchType = $state('smart');
 
   const listboxId = generateId();
@@ -43,7 +49,6 @@
 
   const handleSearch = async (payload: SmartSearchDto | MetadataSearchDto) => {
     const params = getMetadataSearchQuery(payload);
-
     closeDropdown();
     searchStore.isSearchEnabled = false;
     await goto(`${AppRoute.SEARCH}?${params}`);
@@ -262,14 +267,15 @@
   >
     <div use:focusOutside={{ onFocusOut: closeDropdown }} tabindex="-1">
       <label for="main-search-bar" class="sr-only">{$t('search_your_photos')}</label>
+      <!-- Kevin has increased the right padding of the input field on desktop. -->
       <input
         type="text"
         name="q"
         id="main-search-bar"
-        class="w-full transition-all border-2 ps-14 py-4 max-md:py-2 text-immich-fg/75 dark:text-immich-dark-fg
+        class="w-full transition-all border-2 px-12 sm:pr-28 pt-4 pb-3 max-md:pt-2 max-md:pb-1 text-immich-fg/75 dark:text-immich-dark-fg text-base
         {showClearIcon ? 'pe-22.5' : 'pe-14'}
         {grayTheme ? 'dark:bg-immich-dark-gray' : 'dark:bg-immich-dark-bg'}
-        {showSuggestions && isSearchSuggestions ? 'rounded-t-3xl' : 'rounded-3xl bg-gray-200'}
+        {showSuggestions && isSearchSuggestions ? 'rounded-t-lg sm:rounded-t-3xl' : 'rounded-lg sm:rounded-3xl bg-gray-200'}
         {searchStore.isSearchEnabled ? 'border-gray-200 dark:border-gray-700 bg-white' : 'border-transparent'}"
         placeholder={$t('search_your_photos')}
         required
@@ -308,7 +314,8 @@
       />
     </div>
 
-    {#if searchStore.isSearchEnabled}
+    <!-- Gavin changed this to not show "chip" on right side of mobile search bar that says "context", "filename", or "description" (as it takes up too much space on mobile). -->
+    {#if searchStore.isSearchEnabled && !usingMobileDevice}
       <div
         id={searchTypeId}
         class="absolute inset-y-0 flex items-center end-16"
@@ -345,6 +352,30 @@
         </div>
       </div>
     {/if}
+    
+    
+    <div class="absolute inset-y-0 {!$embeddedInApp && (showClearIcon ? 'sm:end-14' : 'sm:end-2')} -end-10.5 flex items-center ps-6 transition-all">
+    {#if $embeddedInApp}
+      <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }} onButtonClick={onMoreClick}>
+        <MenuOption
+          icon={mdiFaceRecognition}
+          text="Edit People & Faces"
+          onClick={() => goto(AppRoute.PEOPLE)}
+        />
+      </ButtonContextMenu>
+    {:else}
+      <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
+        <IconButton
+          aria-label={$t('show_search_options')}
+          shape="round"
+          icon={mdiTune}
+          onclick={onFilterClick}
+          size="medium"
+          color="secondary"
+          variant="ghost"
+        />
+      </div>
+    {/if}    
 
     <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
       <IconButton

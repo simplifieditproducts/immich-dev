@@ -2,9 +2,11 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { transformException } from '@nestjs/platform-express/multer/multer/multer.utils';
+import { Xxh64 } from '@node-rs/xxhash';
 import { NextFunction, RequestHandler } from 'express';
 import multer, { StorageEngine, diskStorage } from 'multer';
-import { createHash, randomUUID } from 'node:crypto';
+import { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { Observable } from 'rxjs';
 import { UploadFieldName } from 'src/dtos/asset-media.dto';
 import { RouteKey } from 'src/enum';
@@ -129,14 +131,16 @@ export class FileUploadInterceptor implements NestInterceptor {
       return;
     }
 
-    const hash = createHash('sha1');
+    const hash = new Xxh64(0xABCDn);
     file.stream.on('data', (chunk) => hash.update(chunk));
     this.defaultStorage._handleFile(request, file, (error, info) => {
       if (error) {
-        hash.destroy();
+        hash.reset();
         callback(error);
       } else {
-        callback(null, { ...info, checksum: hash.digest() });
+        const buf = Buffer.alloc(8);
+        buf.writeBigUInt64BE(hash.digest(), 0);
+        callback(null, { ...info, checksum: buf });
       }
     });
   }

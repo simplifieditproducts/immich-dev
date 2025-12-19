@@ -12,21 +12,61 @@ name: immich
 services:
   immich-server:
     container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    image: ghcr.io/simplifieditproducts/immich-server:custom-patch-v2
     # extends:
     #   file: hwaccel.transcoding.yml
     #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     volumes:
-      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
       - ${UPLOAD_LOCATION}:/data
+      - ${THUMB_LOCATION}:/usr/src/app/upload/thumbs
+      - ${ENCODED_VIDEO_LOCATION}:/usr/src/app/upload/encoded-video
       - /etc/localtime:/etc/localtime:ro
+      - ./tmp:/tmp/immich
     env_file:
       - .env
     ports:
-      - '2283:2283'
+      - "127.0.0.1:2283:2283"
     depends_on:
       - redis
       - database
+    restart: always
+    healthcheck:
+      disable: false
+    environment:
+      IMMICH_WORKERS_INCLUDE: 'api'
+
+  immich-microservices:
+    container_name: immich_microservices
+    image: ghcr.io/simplifieditproducts/immich-server:custom-patch-v2
+    # extends:
+    #   file: hwaccel.transcoding.yml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - ${THUMB_LOCATION}:/usr/src/app/upload/thumbs
+      - ${ENCODED_VIDEO_LOCATION}:/usr/src/app/upload/encoded-video
+      - /etc/localtime:/etc/localtime:ro
+      - ./tmp:/tmp/immich
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - database
+    restart: always
+    healthcheck:
+      disable: false
+    environment:
+      IMMICH_WORKERS_EXCLUDE: 'api'
+
+  immich-web-ub:
+    container_name: immich_web_ub
+    image: ghcr.io/simplifieditproducts/immich-web-ub:custom-patch-v2
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:2284:8080"
+    depends_on:
+      - immich-server
     restart: always
     healthcheck:
       disable: false
@@ -35,10 +75,10 @@ services:
     container_name: immich_machine_learning
     # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
     # Example tag: ${IMMICH_VERSION:-release}-cuda
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
-    # extends: # uncomment this section for hardware acceleration - see https://docs.immich.app/features/ml-hardware-acceleration
-    #   file: hwaccel.ml.yml
-    #   service: cpu # set to one of [armnn, cuda, rocm, openvino, openvino-wsl, rknn] for accelerated inference - use the `-wsl` version for WSL2 where applicable
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-cuda
+    extends: # uncomment this section for hardware acceleration - see https://docs.immich.app/features/ml-hardware-acceleration
+      file: hwaccel.ml.yml
+      service: cuda # set to one of [armnn, cuda, rocm, openvino, openvino-wsl, rknn] for accelerated inference - use the `-wsl` version for WSL2 where applicable
     volumes:
       - model-cache:/cache
     env_file:
@@ -67,8 +107,10 @@ services:
     volumes:
       # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
-    shm_size: 128mb
+    shm_size: 36gb
     restart: always
+    ports:
+      - "127.0.0.1:5432:5432"  # Expose port to localhost only for security reasons
 
 volumes:
   model-cache:

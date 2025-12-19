@@ -12,6 +12,7 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { dragAndDropFilesStore } from '$lib/stores/drag-and-drop-files.store';
+  import { embeddedInApp } from '$lib/stores/preferences.store';  
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { handlePromiseError } from '$lib/utils';
@@ -20,6 +21,7 @@
   import type { AlbumResponseDto, SharedLinkResponseDto, UserResponseDto } from '@immich/sdk';
   import { IconButton, Logo } from '@immich/ui';
   import { mdiDownload, mdiFileImagePlusOutline, mdiPresentationPlay } from '@mdi/js';
+  import { onDestroy } from 'svelte';
   import { t } from 'svelte-i18n';
   import ControlAppBar from '../shared-components/control-app-bar.svelte';
   import ThemeButton from '../shared-components/theme-button.svelte';
@@ -71,7 +73,7 @@
   }}
 />
 
-<main class="relative h-dvh overflow-hidden px-2 md:px-6 max-md:pt-(--navbar-height-md) pt-(--navbar-height)">
+<main class="relative h-dvh overflow-hidden px-2 md:px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'}">
   <Timeline enableRouting={true} {album} bind:timelineManager {options} {assetInteraction}>
     <section class="pt-8 md:pt-24 px-2 md:px-0">
       <!-- ALBUM TITLE -->
@@ -129,6 +131,7 @@
           />
         {/if}
 
+        <!-- Kevin has made 'Slideshow' and 'Download' button invisible in shared album -->
         {#if album.assetCount > 0 && sharedLink.allowDownload}
           <IconButton
             shape="round"
@@ -146,7 +149,7 @@
             onclick={() => handleDownloadAlbum(album)}
             icon={mdiDownload}
           />
-        {/if}
+        {/if} -->
         {#if sharedLink.showMetadata && featureFlagsManager.value.map}
           <AlbumMap {album} />
         {/if}

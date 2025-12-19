@@ -1,4 +1,6 @@
+import { embeddedInApp } from '$lib/stores/preferences.store';
 import { MediaQuery } from 'svelte/reactivity';
+import { get } from 'svelte/store';
 
 const pointerCoarse = new MediaQuery('pointer:coarse');
 const maxMd = new MediaQuery('max-width: 767px');
@@ -12,6 +14,6 @@ export const mobileDevice = {
     return maxMd.current;
   },
   get isFullSidebar() {
-    return sidebar.current;
+    return sidebar.current && !get(embeddedInApp);
   },
 };

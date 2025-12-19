@@ -3,7 +3,7 @@
   import { user } from '$lib/stores/user.store';
   import { userInteraction } from '$lib/stores/user.svelte';
   import { requestServerInfo } from '$lib/utils/auth';
-  import { getByteUnitString } from '$lib/utils/byte-units';
+  import { getDecimalByteUnitString } from '$lib/utils/decimal-byte-units';
   import { LoadingSpinner } from '@immich/ui';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
@@ -49,8 +49,8 @@
   class="storage-status p-4 bg-gray-100 dark:bg-immich-dark-primary/10 ms-4 rounded-lg text-sm min-w-52"
   title={$t('storage_usage', {
     values: {
-      used: getByteUnitString(usedBytes, $locale, 3),
-      available: getByteUnitString(availableBytes, $locale, 3),
+      used: getDecimalByteUnitString(usedBytes, $locale, 3),
+      available: getDecimalByteUnitString(availableBytes, $locale, 3),
     },
   })}
 >
@@ -60,8 +60,8 @@
     <p class="text-gray-500 dark:text-gray-300">
       {$t('storage_usage', {
         values: {
-          used: getByteUnitString(usedBytes, $locale),
-          available: getByteUnitString(availableBytes, $locale),
+          used: getDecimalByteUnitString(usedBytes, $locale),
+          available: getDecimalByteUnitString(availableBytes, $locale),
         },
       })}
     </p>

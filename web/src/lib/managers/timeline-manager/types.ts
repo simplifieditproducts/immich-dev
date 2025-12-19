@@ -35,6 +35,9 @@ export type TimelineAsset = {
   people: string[] | null;
   latitude?: number | null;
   longitude?: number | null;
+  deviceAssetId?: string;
+  originalFileName?: string;
+  fileSizeInByte?: number | null;
 };
 
 export type MoveAsset = { asset: TimelineAsset; date: TimelineDate };

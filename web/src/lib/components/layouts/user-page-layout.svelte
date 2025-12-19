@@ -3,10 +3,16 @@
 </script>
 
 <script lang="ts">
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { useActions, type ActionArray } from '$lib/actions/use-actions';
+  import NavigationBarEmbedded from '$lib/components/shared-components/navigation-bar/navigation-bar-embedded.svelte';
   import NavigationBar from '$lib/components/shared-components/navigation-bar/navigation-bar.svelte';
   import UserSidebar from '$lib/components/shared-components/side-bar/user-sidebar.svelte';
+  import { QueryParameter } from '$lib/constants';
+  import { embeddedInApp, initialUrl } from '$lib/stores/preferences.store';
   import { openFileUploadDialog } from '$lib/utils/file-uploader';
+  import { isExternalUrl } from '$lib/utils/navigation';
   import type { Snippet } from 'svelte';
 
   interface Props {
@@ -16,6 +22,7 @@
     description?: string | undefined;
     scrollbar?: boolean;
     use?: ActionArray;
+    onBack?: () => boolean;
     header?: Snippet;
     sidebar?: Snippet;
     buttons?: Snippet;
@@ -29,6 +36,7 @@
     description = undefined,
     scrollbar = true,
     use = [],
+    onBack = () => false,
     header,
     sidebar,
     buttons,
@@ -37,26 +45,48 @@
 
   let scrollbarClass = $derived(scrollbar ? 'immich-scrollbar' : 'scrollbar-hidden');
   let hasTitleClass = $derived(title ? 'top-16 h-[calc(100%-(--spacing(16)))]' : 'top-0 h-full');
+
+  async function onBackClick() {
+    if (!onBack()) {
+      const previousRoute = page.url.searchParams.get(QueryParameter.PREVIOUS_ROUTE);
+      await (previousRoute && !isExternalUrl(previousRoute) ? goto(previousRoute) : goto($initialUrl));
+    }
+  }
 </script>
 
 <header>
   {#if !hideNavbar}
-    <NavigationBar {showUploadButton} onUploadClick={() => openFileUploadDialog()} />
+    {#if $embeddedInApp}
+      <NavigationBarEmbedded {showUploadButton} onUploadClick={() => openFileUploadDialog()} onBackClick={onBackClick} />
+    {:else}
+      <NavigationBar {showUploadButton} onUploadClick={() => openFileUploadDialog()} />
+    {/if}
   {/if}
 
   {@render header?.()}
 </header>
 <div
   tabindex="-1"
-  class="relative z-0 grid grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]
-    {hideNavbar ? 'h-dvh' : 'h-[calc(100dvh-var(--navbar-height))] max-md:h-[calc(100dvh-var(--navbar-height-md))]'}
-    {hideNavbar ? 'pt-(--navbar-height)' : ''}
-    {hideNavbar ? 'max-md:pt-(--navbar-height-md)' : ''}"
+  class="relative z-0 grid
+    {hideNavbar ? 'h-dvh' : $embeddedInApp ? 'max-md:h-[calc(100dvh-var(--navbar-height-embedded-md))] h-[calc(100dvh-var(--navbar-height-embedded))]' : 'max-md:h-[calc(100dvh-var(--navbar-height-md))] h-[calc(100dvh-var(--navbar-height))]'}
+    {hideNavbar ? ($embeddedInApp ? 'pt-(--navbar-height-embedded)' : 'pt-(--navbar-height)') : ''}
+    {hideNavbar ? ($embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md)' : 'max-md:pt-(--navbar-height-md)') : ''}
+    {$embeddedInApp ? '' : 'grid-cols-[--spacing(0)_auto] overflow-hidden sidebar:grid-cols-[--spacing(64)_auto]'}"
 >
-  {#if sidebar}
-    {@render sidebar()}
+  {#snippet sidebarContent()}
+    {#if sidebar}
+      {@render sidebar()}
+    {:else}
+      <UserSidebar />
+    {/if}
+  {/snippet}
+
+  {#if $embeddedInApp}
+    <div class="absolute right-2">
+      {@render sidebarContent()}
+    </div>
   {:else}
-    <UserSidebar />
+    {@render sidebarContent()}
   {/if}
 
   <main class="relative">
@@ -68,7 +98,7 @@
       <div class="absolute flex h-16 w-full place-items-center justify-between border-b p-2 text-dark">
         <div class="flex gap-2 items-center">
           {#if title}
-            <div class="font-medium outline-none pe-8" tabindex="-1" id={headerId}>{title}</div>
+            <div class="font-medium outline-none" tabindex="-1" id={headerId}>{title}</div>
           {/if}
           {#if description}
             <p class="text-sm text-gray-400 dark:text-gray-600">{description}</p>

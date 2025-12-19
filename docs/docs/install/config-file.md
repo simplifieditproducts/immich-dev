@@ -122,6 +122,12 @@ The default configuration looks like this:
       "interval": 30000,
       "timeout": 2000
     },
+    "filterExtraction": {
+      "enabled": false,
+      "modelName": "gpt-4.1-2025-04-14",
+      "prompt": "",
+      "showExtractedFilters": false
+    },
     "clip": {
       "enabled": true,
       "modelName": "ViT-B-32__openai"

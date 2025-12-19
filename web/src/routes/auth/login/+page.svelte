@@ -46,10 +46,12 @@
       try {
         const user = await oauth.login(globalThis.location);
 
+        /* Kevin: disable onboarding for regular users.
         if (!user.isOnboarded) {
           await onOnboarding();
           return;
         }
+        */
 
         await onSuccess(user);
         return;
@@ -94,12 +96,14 @@
         return;
       }
 
+      /* Kevin: disable onboarding for regular users.
       // We want to onboard after the first login since their password will change
       // and handleLogin will be called again (relogin). We then do onboarding on that next call.
       if (!user.isOnboarded) {
         await onOnboarding();
         return;
       }
+      */
 
       await onSuccess(user);
       return;

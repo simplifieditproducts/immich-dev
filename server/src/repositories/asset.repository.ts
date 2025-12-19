@@ -3,6 +3,7 @@ import { ExpressionBuilder, Insertable, Kysely, NotNull, Selectable, sql, Update
 import { isEmpty, isUndefined, omitBy } from 'lodash';
 import { InjectKysely } from 'nestjs-kysely';
 import { LockableProperty, Stack } from 'src/database';
+import { type Buffer } from 'node:buffer';
 import { Chunked, ChunkedArray, DummyValue, GenerateSql } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { AssetFileType, AssetMetadataKey, AssetOrder, AssetStatus, AssetType, AssetVisibility } from 'src/enum';
@@ -30,6 +31,7 @@ import {
   withTags,
 } from 'src/utils/database';
 import { globToSqlPattern } from 'src/utils/misc';
+import { PaginationOptions, paginationHelper, type PaginationResult } from 'src/utils/pagination';
 
 export type AssetStats = Record<AssetType, number>;
 
@@ -348,8 +350,13 @@ export class AssetRepository {
 
   @GenerateSql({ params: [[DummyValue.UUID]] })
   @ChunkedArray()
-  getByIds(ids: string[]) {
-    return this.db.selectFrom('asset').selectAll('asset').where('asset.id', '=', anyUuid(ids)).execute();
+  getByIds(ids: string[], { exifInfo }: { exifInfo?: boolean } = {}) {
+    return this.db
+      .selectFrom('asset')
+      .selectAll('asset')
+      .where('asset.id', '=', anyUuid(ids))
+      .$if(!!exifInfo, withExif)
+      .execute();
   }
 
   @GenerateSql({ params: [[DummyValue.UUID]] })
@@ -376,6 +383,18 @@ export class AssetRepository {
       .select(['deviceAssetId'])
       .where('deviceAssetId', 'in', deviceAssetIds)
       .where('deviceId', '=', deviceId)
+      .where('ownerId', '=', asUuid(ownerId))
+      .execute();
+
+    return assets.map((asset) => asset.deviceAssetId);
+  }
+
+  async checkExistingAssets(ownerId: string, deviceAssetIds: string[], deviceId?: string): Promise<string[]> {
+    const assets = await this.db
+      .selectFrom('asset')
+      .select(['deviceAssetId'])
+      .where('deviceAssetId', 'in', deviceAssetIds)
+      .$if(!!deviceId, (qb) => qb.where('deviceId', '=', deviceId!))
       .where('ownerId', '=', asUuid(ownerId))
       .execute();
 
@@ -412,6 +431,33 @@ export class AssetRepository {
       .execute();
 
     return items.map((asset) => asset.deviceAssetId);
+  }
+
+  @GenerateSql({ params: [DummyValue.UUID] })
+  getNumberOfAssets(ownerId: string) {
+    const zero = sql.lit(0);
+    return this.db
+      .selectFrom('asset')
+      .select((eb) => eb.fn.coalesce(eb.fn.countAll<number>(), zero).as('total'))
+      .where('ownerId', '=', asUuid(ownerId))
+      .where('visibility', '!=', AssetVisibility.Hidden)
+      .where('deletedAt', 'is', null)
+      .executeTakeFirstOrThrow();
+  }
+
+  @GenerateSql({ params: [{ take: 1, skip: 0 }, DummyValue.STRING] })
+  async getAll(pagination: PaginationOptions, ownerId: string) {
+    const items = await this.db
+      .selectFrom('asset')
+      .select(['deviceAssetId', 'deviceFilePath', 'deviceId', 'checksum', 'isOriginalQuality', 'id'])
+      .where('ownerId', '=', asUuid(ownerId))
+      .where('visibility', '!=', AssetVisibility.Hidden)
+      .where('deletedAt', 'is', null)
+      .offset(pagination.skip ?? 0)
+      .limit(pagination.take + 1)
+      .execute();
+
+    return paginationHelper(items, pagination.take);
   }
 
   @GenerateSql({ params: [DummyValue.UUID] })
@@ -578,6 +624,35 @@ export class AssetRepository {
       .$if(isFavorite !== undefined, (qb) => qb.where('isFavorite', '=', isFavorite!))
       .$if(!!isTrashed, (qb) => qb.where('asset.status', '!=', AssetStatus.Deleted))
       .where('deletedAt', isTrashed ? 'is not' : 'is', null)
+      .executeTakeFirstOrThrow();
+  }
+
+  @GenerateSql()
+  getAssetCount(sourceApp: string) {
+    return this.db
+      .selectFrom('user')
+      .leftJoin('asset', (join) => join.onRef('asset.ownerId', '=', 'user.id').on('asset.deletedAt', 'is', null))
+      .where('user.sourceApp', '=', sourceApp)
+      .select((eb) => [
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.and([
+              eb('asset.type', '=', sql.lit(AssetType.Image)),
+              eb('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden)),
+            ]),
+          )
+          .as('photos'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.and([
+              eb('asset.type', '=', sql.lit(AssetType.Video)),
+              eb('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden)),
+            ]),
+          )
+          .as('videos'),
+      ])
       .executeTakeFirstOrThrow();
   }
 
@@ -768,24 +843,31 @@ export class AssetRepository {
   @GenerateSql({ params: [DummyValue.UUID, { minAssetsPerField: 5, maxFields: 12 }] })
   async getAssetIdByCity(ownerId: string, { minAssetsPerField, maxFields }: AssetExploreFieldOptions) {
     const items = await this.db
+      .with('filtered_assets', (qb) =>
+        qb
+          .selectFrom('asset')
+          .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
+          .select(['asset.id', 'asset.fileCreatedAt', 'asset_exif.city'])
+          .where('asset.ownerId', '=', asUuid(ownerId))
+          .where('asset.visibility', '=', AssetVisibility.Timeline)
+          .where('asset.type', '=', AssetType.Image)
+          .where('asset.deletedAt', 'is', null)
+          .where('asset_exif.city', 'is not', null),
+      )
       .with('cities', (qb) =>
         qb
-          .selectFrom('asset_exif')
+          .selectFrom('filtered_assets')
           .select('city')
-          .where('city', 'is not', null)
           .groupBy('city')
-          .having((eb) => eb.fn('count', [eb.ref('assetId')]), '>=', minAssetsPerField),
+          .having((eb) => eb.fn.countAll(), '>=', minAssetsPerField),
       )
-      .selectFrom('asset')
-      .innerJoin('asset_exif', 'asset.id', 'asset_exif.assetId')
-      .innerJoin('cities', 'asset_exif.city', 'cities.city')
-      .distinctOn('asset_exif.city')
-      .select(['assetId as data', 'asset_exif.city as value'])
+      .selectFrom('filtered_assets')
+      .innerJoin('cities', 'filtered_assets.city', 'cities.city')
+      .distinctOn('filtered_assets.city')
+      .select(['filtered_assets.id as data', 'filtered_assets.city as value'])
       .$narrowType<{ value: NotNull }>()
-      .where('ownerId', '=', asUuid(ownerId))
-      .where('visibility', '=', AssetVisibility.Timeline)
-      .where('type', '=', AssetType.Image)
-      .where('deletedAt', 'is', null)
+      .orderBy('filtered_assets.city')
+      .orderBy('filtered_assets.fileCreatedAt', 'desc')
       .limit(maxFields)
       .execute();
 
@@ -958,5 +1040,25 @@ export class AssetRepository {
       .executeTakeFirstOrThrow();
 
     return count;
+  }
+
+  async adminGetNumberOfAssets(): Promise<number> {
+    const { count } = await this.db
+      .selectFrom('asset')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirstOrThrow();
+
+    return count;
+  }
+
+  @GenerateSql({ params: [{ take: 1, skip: 0 }, DummyValue.STRING] })
+  async adminGetAll(pagination: PaginationOptions): Promise<PaginationResult<{ id: string; originalPath: string; checksum: Buffer }>> {
+    const items = await this.db
+      .selectFrom('asset')
+      .select(['id', 'originalPath', 'checksum'])
+      .offset(pagination.skip ?? 0)
+      .limit(pagination.take + 1)
+      .execute();
+    return paginationHelper(items, pagination.take);
   }
 }

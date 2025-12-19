@@ -8,9 +8,10 @@
   import AppleHeader from '$lib/components/shared-components/apple-header.svelte';
   import NavigationLoadingBar from '$lib/components/shared-components/navigation-loading-bar.svelte';
   import UploadPanel from '$lib/components/shared-components/upload-panel.svelte';
-  import { AppRoute } from '$lib/constants';
+  import { AppRoute, appName } from '$lib/constants';
   import { eventManager } from '$lib/managers/event-manager.svelte';
   import { serverConfigManager } from '$lib/managers/server-config-manager.svelte';
+  import { initialUrl } from '$lib/stores/preferences.store';
   import { themeManager } from '$lib/managers/theme-manager.svelte';
   import ServerRestartingModal from '$lib/modals/ServerRestartingModal.svelte';
   import VersionAnnouncementModal from '$lib/modals/VersionAnnouncementModal.svelte';
@@ -59,6 +60,9 @@
     const element = document.querySelector('#stencil');
     element?.remove();
     // if the browser theme changes, changes the Immich theme too
+
+    // Save the initial URL when the app is first loaded
+    initialUrl.set(page.url.href);
   });
 
   eventManager.emit('AppInit');
@@ -183,7 +187,7 @@
 <CommandPaletteContext {commands} />
 
 <svelte:head>
-  <title>{page.data.meta?.title || 'Web'} - Immich</title>
+  <title>{page.data.meta?.title || 'Web'} - {appName}</title>
   <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
   <meta name="theme-color" content="currentColor" />
   <AppleHeader />

@@ -3,6 +3,7 @@
   import { focusTrap } from '$lib/actions/focus-trap';
   import { menuButtonId } from '$lib/components/shared-components/navigation-bar/navigation-bar.svelte';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import { onMount, type Snippet } from 'svelte';
 
@@ -35,17 +36,17 @@
   id="sidebar"
   aria-label={ariaLabel}
   tabindex="-1"
-  class="immich-scrollbar relative z-1 w-0 sidebar:w-64 overflow-y-auto overflow-x-hidden pt-8 transition-all duration-200 bg-light"
+  class="immich-scrollbar relative z-10 sidebar:w-64 overflow-y-auto overflow-x-hidden transition-all duration-200 bg-light
+    {$embeddedInApp ? 'w-[min(100vw,16rem)] h-0' : 'w-0 pt-8'} {sidebarStore.isOpen ? ($embeddedInApp ? 'pt-3 h-full border rounded-lg' : 'w-[min(100vw,16rem)]') : ''}"
   class:shadow-2xl={isExpanded}
   class:dark:border-e-immich-dark-gray={isExpanded}
   class:border-r={isExpanded}
-  class:w-[min(100vw,16rem)]={sidebarStore.isOpen}
   data-testid="sidebar-parent"
   inert={isHidden}
   use:clickOutside={{ onOutclick: closeSidebar, onEscape: closeSidebar }}
   use:focusTrap={{ active: isExpanded }}
 >
-  <div class="pe-6 flex flex-col gap-1 h-max min-h-full">
+  <div class="{$embeddedInApp ? 'pe-4' : 'pe-6'} flex flex-col gap-1 h-max min-h-full">
     {@render children?.()}
   </div>
 </nav>

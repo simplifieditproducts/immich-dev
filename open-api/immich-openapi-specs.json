@@ -620,6 +620,18 @@
             }
           },
           {
+            "name": "ids",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "withDeleted",
             "required": false,
             "in": "query",
@@ -2486,6 +2498,62 @@
         "x-immich-permission": "asset.delete",
         "x-immich-state": "Stable"
       },
+      "get": {
+        "description": "Get all assets of current user that are in the database.",
+        "operationId": "getAllUserAssets",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 5000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAssetsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get all assets of current user that are in the database.",
+        "tags": [
+          "Assets"
+        ]
+      },
       "post": {
         "description": "Uploads a new asset to the server.",
         "operationId": "uploadAsset",
@@ -2509,7 +2577,7 @@
           {
             "name": "x-immich-checksum",
             "in": "header",
-            "description": "sha1 checksum that can be used for duplicate detection before the file is uploaded",
+            "description": "xxHash64 checksum that can be used for duplicate detection before the file is uploaded",
             "required": false,
             "schema": {
               "type": "string"
@@ -2852,6 +2920,49 @@
           }
         ],
         "x-immich-state": "Stable"
+      }
+    },
+    "/assets/info": {
+      "post": {
+        "operationId": "getAssetsInfo",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIdsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAssetsInfoResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Assets"
+        ],
+        "x-immich-permission": "asset.read"
       }
     },
     "/assets/jobs": {
@@ -7525,6 +7636,39 @@
         "x-immich-state": "Stable"
       }
     },
+    "/people/count": {
+      "get": {
+        "operationId": "getNumberOfPeople",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NumberOfPeopleResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "People"
+        ],
+        "x-immich-permission": "person.read"
+      }
+    },
     "/people/{id}": {
       "delete": {
         "description": "Delete an individual person.",
@@ -9723,6 +9867,54 @@
           }
         ],
         "x-immich-state": "Stable"
+      }
+    },
+    "/server/simple-statistics": {
+      "get": {
+        "operationId": "getSimpleServerStatistics",
+        "parameters": [
+          {
+            "name": "sourceApp",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "default": "picturekeeper",
+              "type": "string",
+              "enum": [
+                "picturekeeper",
+                "ultimatebackup"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleServerStatsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Server"
+        ],
+        "x-immich-admin-only": true,
+        "x-immich-permission": "server.statistics"
       }
     },
     "/server/statistics": {
@@ -14965,7 +15157,7 @@
       "AssetBulkUploadCheckItem": {
         "properties": {
           "checksum": {
-            "description": "base64 or hex encoded sha1 hash",
+            "description": "base64 or hex encoded xxHash64 hash",
             "type": "string"
           },
           "id": {
@@ -15388,6 +15580,9 @@
           "deviceAssetId": {
             "type": "string"
           },
+          "deviceFilePath": {
+            "type": "string"
+          },
           "deviceId": {
             "type": "string"
           },
@@ -15406,6 +15601,9 @@
             "type": "string"
           },
           "isFavorite": {
+            "type": "boolean"
+          },
+          "isOriginalQuality": {
             "type": "boolean"
           },
           "livePhotoVideoId": {
@@ -15449,6 +15647,9 @@
           "deviceAssetId": {
             "type": "string"
           },
+          "deviceFilePath": {
+            "type": "string"
+          },
           "deviceId": {
             "type": "string"
           },
@@ -15465,6 +15666,12 @@
           },
           "filename": {
             "type": "string"
+          },
+          "isOriginalQuality": {
+            "type": "boolean"
+          },
+          "skipReprocess": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -15478,6 +15685,9 @@
       },
       "AssetMediaResponseDto": {
         "properties": {
+          "checksum": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -15666,7 +15876,7 @@
       "AssetResponseDto": {
         "properties": {
           "checksum": {
-            "description": "base64 encoded sha1 hash",
+            "description": "base64 encoded xxHash64 hash",
             "type": "string"
           },
           "createdAt": {
@@ -15676,6 +15886,10 @@
             "type": "string"
           },
           "deviceAssetId": {
+            "type": "string"
+          },
+          "deviceFilePath": {
+            "nullable": true,
             "type": "string"
           },
           "deviceId": {
@@ -15716,6 +15930,9 @@
             "type": "boolean"
           },
           "isOffline": {
+            "type": "boolean"
+          },
+          "isOriginalQuality": {
             "type": "boolean"
           },
           "isTrashed": {
@@ -15841,6 +16058,7 @@
           "isArchived",
           "isFavorite",
           "isOffline",
+          "isOriginalQuality",
           "isTrashed",
           "localDateTime",
           "originalFileName",
@@ -16082,8 +16300,7 @@
           }
         },
         "required": [
-          "deviceAssetIds",
-          "deviceId"
+          "deviceAssetIds"
         ],
         "type": "object"
       },
@@ -16554,6 +16771,33 @@
         ],
         "type": "object"
       },
+      "FilterExtractionConfig": {
+        "properties": {
+          "cacheEnabled": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "showExtractedFilters": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cacheEnabled",
+          "enabled",
+          "modelName",
+          "prompt",
+          "showExtractedFilters"
+        ],
+        "type": "object"
+      },
       "FoldersResponse": {
         "properties": {
           "enabled": {
@@ -16582,6 +16826,71 @@
         },
         "type": "object"
       },
+      "GetAssetsInfoResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssetResponseDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "GetAssetsResponseDto": {
+        "properties": {
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "checksum": {
+                  "type": "string"
+                },
+                "deviceAssetId": {
+                  "type": "string"
+                },
+                "deviceFilePath": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "deviceId": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "isOriginalQuality": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "deviceAssetId",
+                "deviceFilePath",
+                "deviceId",
+                "checksum",
+                "isOriginalQuality",
+                "id"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNextPage",
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
       "ImageFormat": {
         "enum": [
           "jpeg",
@@ -16597,6 +16906,9 @@
                 "$ref": "#/components/schemas/ManualJobName"
               }
             ]
+          },
+          "ownerId": {
+            "type": "string"
           }
         },
         "required": [
@@ -16620,6 +16932,8 @@
           "AssetFileMigration",
           "AssetGenerateThumbnailsQueueAll",
           "AssetGenerateThumbnails",
+          "AssetMissingCheckQueueAll",
+          "AssetMissingCheck",
           "AuditLogCleanup",
           "AuditTableCleanup",
           "DatabaseBackup",
@@ -16840,6 +17154,12 @@
           "profileImagePath": {
             "type": "string"
           },
+          "quotaSizeInBytes": {
+            "type": "number"
+          },
+          "quotaUsageInBytes": {
+            "type": "number"
+          },
           "shouldChangePassword": {
             "type": "boolean"
           },
@@ -16856,6 +17176,8 @@
           "isOnboarded",
           "name",
           "profileImagePath",
+          "quotaSizeInBytes",
+          "quotaUsageInBytes",
           "shouldChangePassword",
           "userEmail",
           "userId"
@@ -16929,7 +17251,9 @@
           "user-cleanup",
           "memory-cleanup",
           "memory-create",
-          "backup-database"
+          "backup-database",
+          "facial-recognition",
+          "asset-missing-check"
         ],
         "type": "string"
       },
@@ -17518,6 +17842,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "NumberOfPeopleResponseDto": {
+        "properties": {
+          "hidden": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unnamed": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hidden",
+          "total",
+          "unnamed"
+        ],
         "type": "object"
       },
       "OAuthAuthorizeResponseDto": {
@@ -19039,6 +19382,9 @@
           },
           "assets": {
             "$ref": "#/components/schemas/SearchAssetResponseDto"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/SmartSearchDto"
           }
         },
         "required": [
@@ -19230,6 +19576,9 @@
           "facialRecognition": {
             "type": "boolean"
           },
+          "filterExtraction": {
+            "type": "boolean"
+          },
           "importFaces": {
             "type": "boolean"
           },
@@ -19269,6 +19618,7 @@
           "duplicateDetection",
           "email",
           "facialRecognition",
+          "filterExtraction",
           "importFaces",
           "map",
           "oauth",
@@ -19834,6 +20184,40 @@
         ],
         "type": "object"
       },
+      "SimpleServerStatsResponseDto": {
+        "properties": {
+          "diskTotal": {
+            "default": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "diskUsed": {
+            "default": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "photos": {
+            "default": 0,
+            "type": "integer"
+          },
+          "users": {
+            "default": 0,
+            "type": "integer"
+          },
+          "videos": {
+            "default": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "diskTotal",
+          "diskUsed",
+          "photos",
+          "users",
+          "videos"
+        ],
+        "type": "object"
+      },
       "SmartSearchDto": {
         "properties": {
           "albumIds": {
@@ -19861,6 +20245,13 @@
           },
           "deviceId": {
             "type": "string"
+          },
+          "excludeAssetIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
           },
           "isEncoded": {
             "type": "boolean"
@@ -19981,6 +20372,9 @@
             "type": "boolean"
           },
           "withExif": {
+            "type": "boolean"
+          },
+          "withFilterExtraction": {
             "type": "boolean"
           }
         },
@@ -21541,7 +21935,13 @@
           "backgroundTask": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
+          "duplicateDetection": {
+            "$ref": "#/components/schemas/JobSettingsDto"
+          },
           "faceDetection": {
+            "$ref": "#/components/schemas/JobSettingsDto"
+          },
+          "facialRecognition": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
           "library": {
@@ -21580,7 +21980,9 @@
         },
         "required": [
           "backgroundTask",
+          "duplicateDetection",
           "faceDetection",
+          "facialRecognition",
           "library",
           "metadataExtraction",
           "migration",
@@ -21672,6 +22074,9 @@
           "facialRecognition": {
             "$ref": "#/components/schemas/FacialRecognitionConfig"
           },
+          "filterExtraction": {
+            "$ref": "#/components/schemas/FilterExtractionConfig"
+          },
           "ocr": {
             "$ref": "#/components/schemas/OcrConfig"
           },
@@ -21691,6 +22096,7 @@
           "duplicateDetection",
           "enabled",
           "facialRecognition",
+          "filterExtraction",
           "ocr",
           "urls"
         ],

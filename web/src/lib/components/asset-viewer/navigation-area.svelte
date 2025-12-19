@@ -12,9 +12,9 @@
 
 <button
   type="button"
-  class="my-auto mx-4 rounded-full p-3 text-gray-500 transition hover:bg-gray-500 hover:text-white"
+  class="my-auto mx-4 rounded-full p-2 bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none"
   aria-label={label}
-  onclick={onClick}
+  onclick={(e) => { onClick(e); e.stopPropagation(); }}
 >
   {@render children?.()}
 </button>

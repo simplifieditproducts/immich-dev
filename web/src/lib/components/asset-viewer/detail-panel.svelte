@@ -15,7 +15,7 @@
   import { preferences, user } from '$lib/stores/user.store';
   import { getAssetThumbnailUrl, getPeopleThumbnailUrl } from '$lib/utils';
   import { delay, getDimensions } from '$lib/utils/asset-utils';
-  import { getByteUnitString } from '$lib/utils/byte-units';
+  import { getDecimalByteUnitString } from '$lib/utils/decimal-byte-units';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import { fromISODateTime, fromISODateTimeUTC, toTimelineAsset } from '$lib/utils/timeline-util';
   import { getParentPath } from '$lib/utils/tree-utils';
@@ -28,10 +28,12 @@
     mdiClose,
     mdiEye,
     mdiEyeOff,
+    mdiImageCheckOutline,
     mdiImageOutline,
+    mdiImageSizeSelectLarge,
     mdiInformationOutline,
     mdiPencil,
-    mdiPlus,
+    mdiPlus
   } from '@mdi/js';
   import { DateTime } from 'luxon';
   import { t } from 'svelte-i18n';
@@ -272,6 +274,23 @@
       <p class="uppercase text-sm">{$t('no_exif_info_available')}</p>
     {/if}
 
+    <div class="flex gap-4 py-4">
+      <div>
+        <Icon icon={asset.isOriginalQuality ? mdiImageCheckOutline : mdiImageSizeSelectLarge} size="24" />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <p class="font-medium">
+          {asset.isOriginalQuality ? 'Original Quality' : 'Compressed'}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {asset.isOriginalQuality 
+            ? 'Full resolution, unmodified file' 
+            : 'Optimized for storage and streaming'}
+        </p>
+      </div>    
+    </div>
+
     {#if dateTime}
       <button
         type="button"
@@ -370,7 +389,7 @@
               <p>{width} x {height}</p>
             {/if}
             {#if asset.exifInfo?.fileSizeInByte}
-              <p>{getByteUnitString(asset.exifInfo.fileSizeInByte, $locale)}</p>
+              <p>{getDecimalByteUnitString(asset.exifInfo.fileSizeInByte, $locale)}</p>
             {/if}
           </div>
         {/if}

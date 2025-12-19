@@ -73,25 +73,28 @@
   {/if}
 
   <div class="flex justify-between justify-items-center">
-    {#if $connected && version}
-      <button
-        type="button"
-        onclick={() => info && modalManager.show(ServerAboutModal, { versions, info })}
-        class="dark:text-immich-gray flex gap-1 place-items-center place-content-center"
-      >
-        {#if isMain}
-          <Icon icon={mdiAlert} size="1.5em" color="#ffcc4d" /> {info?.sourceRef}
-        {:else}
-          {version}
-        {/if}
-      </button>
-    {:else}
-      <p class="text-red-500">{$t('unknown')}</p>
+    <!-- Gavin has made 'Immich Version' button visible only for admins. -->
+    {#if $user.isAdmin}
+      {#if $connected && version}
+        <button
+          type="button"
+          onclick={() => info && modalManager.show(ServerAboutModal, { versions, info })}
+          class="dark:text-immich-gray flex gap-1 place-items-center place-content-center"
+        >
+          {#if isMain}
+            <Icon icon={mdiAlert} size="1.5em" color="#ffcc4d" /> {info?.sourceRef}
+          {:else}
+            {version}
+          {/if}
+        </button>
+      {:else}
+        <p class="text-red-500">{$t('unknown')}</p>
+      {/if}
     {/if}
   </div>
 </div>
 
-{#if releaseInfo}
+{#if releaseInfo && $user.isAdmin}
   <a
     href={releaseInfo.releaseUrl}
     target="_blank"

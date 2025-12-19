@@ -8,8 +8,9 @@ import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
 import { assetsSnapshot } from '$lib/managers/timeline-manager/utils.svelte';
 import type { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
 import { isSelectingAllAssets } from '$lib/stores/assets-store.svelte';
+import { embeddedInApp } from '$lib/stores/preferences.store';
 import { preferences } from '$lib/stores/user.store';
-import { downloadRequest, sleep, withError } from '$lib/utils';
+import { downloadRequest, sendMessageToApp, sleep, withError } from '$lib/utils';
 import { getByteUnitString } from '$lib/utils/byte-units';
 import { getFormatter } from '$lib/utils/i18n';
 import { navigate } from '$lib/utils/navigation';
@@ -24,12 +25,14 @@ import {
   deleteAssets,
   deleteStacks,
   getAssetInfo,
+  getAssetsInfo,
   getBaseUrl,
   getDownloadInfo,
   getStack,
   untagAssets,
   updateAsset,
   updateAssets,
+  type AlbumResponseDto,
   type AssetResponseDto,
   type AssetTypeEnum,
   type DownloadInfoDto,
@@ -155,6 +158,19 @@ export const removeTag = async ({
   return assetIds;
 };
 
+export const downloadAlbum = async (album: AlbumResponseDto) => {
+
+  // If embedded in app, use the app's download functionality
+  if (get(embeddedInApp)) {
+    downloadAlbumViaApp(album);
+    return;
+  }
+
+  await downloadArchive(`${album.albumName}.zip`, {
+    albumId: album.id,
+  });
+};
+
 export const downloadBlob = (data: Blob, filename: string) => {
   const url = URL.createObjectURL(data);
 
@@ -179,6 +195,49 @@ export const downloadUrl = (url: string, filename: string) => {
   anchor.remove();
 
   URL.revokeObjectURL(url);
+};
+
+// Sends a download request to the native app when in embedded mode
+export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
+  let assetList = [];
+
+  if (assets.some(a => !a.originalFileName || !a.fileSizeInByte)) {
+    // Fetch assets info for incomplete assets
+    const assetIds = assets.map(a => a.id);
+    const [error, assetsInfo] = await withError(() => getAssetsInfo({ ids: assetIds }));
+    if (error) {
+      const $t = get(t);
+      handleError(error, $t('errors.unable_to_download_files'));
+      return;
+    }
+
+    if (!assetsInfo) {
+      return;
+    }
+
+    assetList = assetsInfo.items.map((a) => ({
+      id: a.id,
+      originalFileName: a.originalFileName,
+      deviceAssetId: a.deviceAssetId,
+      fileSizeInByte: a.exifInfo?.fileSizeInByte ?? 0,
+    }));
+  } else {
+    assetList = assets.map(a => ({
+      id: a.id,
+      originalFileName: a.originalFileName,
+      deviceAssetId: a.deviceAssetId,
+      fileSizeInByte: a.fileSizeInByte,
+    }));
+  }
+
+  sendMessageToApp('CMD_DOWNLOAD_ASSETS ' + JSON.stringify({ assets: assetList }));
+};
+
+// Sends a download request to the native app when in embedded mode
+export const downloadAlbumViaApp = (album: AlbumResponseDto) => {
+  const albumData = { id: album.id, albumName: album.albumName, assetCount: album.assetCount, description: album.description, createdAt: album.createdAt };
+
+  sendMessageToApp('CMD_DOWNLOAD_ALBUM ' + JSON.stringify({ album: albumData }));
 };
 
 export const downloadArchive = async (fileName: string, options: Omit<DownloadInfoDto, 'archiveSize'>) => {
@@ -238,6 +297,7 @@ export const downloadFile = async (asset: AssetResponseDto) => {
     {
       filename: asset.originalFileName,
       id: asset.id,
+      deviceAssetId: asset.deviceAssetId,
       size: asset.exifInfo?.fileSizeInByte || 0,
     },
   ];
@@ -253,8 +313,17 @@ export const downloadFile = async (asset: AssetResponseDto) => {
         filename: motionAsset.originalFileName,
         id: asset.livePhotoVideoId,
         size: motionAsset.exifInfo?.fileSizeInByte || 0,
+        deviceAssetId: motionAsset.deviceAssetId,
       });
     }
+  }
+
+  // If the web app is in embedded mode, send assets to native app for downloading instead.
+  if (get(embeddedInApp)) {
+    downloadAssetsViaApp(assets.map(a => {
+      return { id: a.id, originalFileName: a.filename, deviceAssetId: a.deviceAssetId, fileSizeInByte: a.size } as TimelineAsset;
+    }));
+    return;
   }
 
   const queryParams = asQueryString(authManager.params);

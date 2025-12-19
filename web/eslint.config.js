@@ -72,6 +72,7 @@ export default typescriptEslint.config(
       '**/svelte.config.js',
       'eslint.config.js',
       'tailwind.config.js',
+      'custom-build.js',
       'coverage',
     ],
   },

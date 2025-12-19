@@ -14,6 +14,7 @@
   import ControlAppBar from '$lib/components/shared-components/control-app-bar.svelte';
   import UserAvatar from '$lib/components/shared-components/user-avatar.svelte';
   import AddToAlbum from '$lib/components/timeline/actions/AddToAlbumAction.svelte';
+  import { AppRoute, AlbumPageViewMode, mdiArrowBackIos } from '$lib/constants';
   import ArchiveAction from '$lib/components/timeline/actions/ArchiveAction.svelte';
   import ChangeDate from '$lib/components/timeline/actions/ChangeDateAction.svelte';
   import ChangeDescription from '$lib/components/timeline/actions/ChangeDescriptionAction.svelte';
@@ -28,7 +29,6 @@
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
-  import { AlbumPageViewMode, AppRoute } from '$lib/constants';
   import { activityManager } from '$lib/managers/activity-manager.svelte';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
@@ -40,6 +40,7 @@
   import { handleDeleteAlbum, handleDownloadAlbum } from '$lib/services/album.service';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { preferences, user } from '$lib/stores/user.store';
   import { handlePromiseError } from '$lib/utils';
@@ -68,7 +69,6 @@
   import {
     mdiAccountEye,
     mdiAccountEyeOutline,
-    mdiArrowLeft,
     mdiCogOutline,
     mdiDeleteOutline,
     mdiDotsVertical,
@@ -423,7 +423,7 @@
 
 <div class="flex overflow-hidden" use:scrollMemoryClearer={{ routeStartsWith: AppRoute.ALBUMS }}>
   <div class="relative w-full shrink">
-    <main class="relative h-dvh overflow-hidden px-2 md:px-6 max-md:pt-(--navbar-height-md) pt-(--navbar-height)">
+    <main class="relative h-dvh overflow-hidden px-2 md:px-6 {$embeddedInApp ? 'max-md:pt-(--navbar-height-embedded-md) pt-(--navbar-height-embedded)' : 'max-md:pt-(--navbar-height-md) pt-(--navbar-height)'}">
       <Timeline
         enableRouting={viewMode === AlbumPageViewMode.SELECT_ASSETS ? false : true}
         {album}
@@ -550,7 +550,7 @@
       >
         <CreateSharedLink />
         <SelectAllAssets {timelineManager} {assetInteraction} />
-        <ButtonContextMenu icon={mdiPlus} title={$t('add_to')}>
+        <ButtonContextMenu icon={mdiPlus} title={$t('add_to')} offset={{ x: 0, y: 42 }}>
           <AddToAlbum />
           <AddToAlbum shared />
         </ButtonContextMenu>
@@ -573,12 +573,15 @@
                 onClick={() => updateThumbnailUsingCurrentSelection()}
               />
             {/if}
-            <ArchiveAction
-              menuItem
-              unarchive={assetInteraction.isAllArchived}
-              onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
-            />
-            <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+            <!-- Kevin has made 'Archive' and 'Move to locked folder' buttons visible only for admins -->
+            {#if $user.isAdmin}
+              <ArchiveAction
+                menuItem
+                unarchive={assetInteraction.isAllArchived}
+                onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
+              />
+              <SetVisibilityAction menuItem onVisibilitySet={handleSetVisibility} />
+            {/if}
           {/if}
 
           {#if $preferences.tags.enabled && assetInteraction.isAllUserOwned}
@@ -595,7 +598,7 @@
       </AssetSelectControlBar>
     {:else}
       {#if viewMode === AlbumPageViewMode.VIEW}
-        <ControlAppBar showBackButton backIcon={mdiArrowLeft} onClose={() => goto(backUrl)}>
+        <ControlAppBar showBackButton backIcon={mdiArrowBackIos} onClose={() => goto(backUrl)}>
           {#snippet trailing()}
             <CastButton />
 
@@ -642,6 +645,9 @@
                 onclick={handleStartSlideshow}
                 icon={mdiPresentationPlay}
               />
+
+              <!-- Kevin has made 'Download' button visible only for admins -->
+              {#if $user.isAdmin}
               <IconButton
                 shape="round"
                 variant="ghost"
@@ -650,6 +656,7 @@
                 onclick={() => handleDownloadAlbum(album)}
                 icon={mdiDownload}
               />
+              {/if}
             {/if}
 
             {#if isOwned}
@@ -705,9 +712,12 @@
           {/snippet}
 
           {#snippet trailing()}
-            <Button variant="ghost" leadingIcon={mdiUpload} onclick={handleSelectFromComputer}
-              >{$t('select_from_computer')}</Button
-            >
+            <!-- Gavin has made 'Select from computer' button visible only for admins -->
+            {#if $user.isAdmin}          
+              <Button variant="ghost" leadingIcon={mdiUpload} onclick={handleSelectFromComputer}
+                >{$t('select_from_computer')}</Button
+              >
+            {/if}
             <Button disabled={!timelineInteraction.selectionActive} onclick={handleAddAssets}>{$t('done')}</Button>
           {/snippet}
         </ControlAppBar>

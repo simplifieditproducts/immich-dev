@@ -1,133 +1,51 @@
-<p align="center"> 
-  <br/>
-  <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a>
-  <a href="https://discord.immich.app">
-    <img src="https://img.shields.io/discord/979116623879368755.svg?label=Discord&logo=Discord&style=for-the-badge&logoColor=000000&labelColor=ececec" alt="Discord"/>
-  </a>
-  <br/>
-  <br/>
-</p>
+Steps to run development server locally on a Unix-based computer:
+1. Clone this repo: `git clone https://github.com/simplifieditproducts/immich-dev`
+2. Navigate to project root directory: `cd immich-dev`
+3. Check out `custom-patch-v2` branch: `git checkout custom-patch-v2` (our customizations should be made on `custom-patch-v2` branch and then rebased onto `main` branch)
+4. Create the necessary `.env` file: `cp docker/example.dev.env docker/.env`
+5. Add an OpenAI API key in the `.env` file to allow ChatGPT-enhanced smart search
+6. Start the dev server using the provided Makefile: `make dev`
+7. Access the instance in your web browser by using `http://localhost:3000` or `http://your-machine-ip:3000`
 
-<p align="center">
-<img src="design/immich-logo-stacked-light.svg" width="300" title="Login With Custom URL">
-</p>
-<h3 align="center">High performance self-hosted photo and video management solution</h3>
-<br/>
-<a href="https://immich.app">
-<img src="design/immich-screenshots.png" title="Main Screenshot">
-</a>
-<br/>
+Other possibly useful commands:
+- To delete Immich in Terminal, go to `/immich-dev/docker` and run `docker compose -f docker-compose.yml down -v`
+- To stage a list of all our customizations since the original forked Immich commit: `git checkout TBD -- .`
 
-<p align="center">
-  <a href="readme_i18n/README_ca_ES.md">Català</a>
-  <a href="readme_i18n/README_es_ES.md">Español</a>
-  <a href="readme_i18n/README_fr_FR.md">Français</a>
-  <a href="readme_i18n/README_it_IT.md">Italiano</a>
-  <a href="readme_i18n/README_ja_JP.md">日本語</a>
-  <a href="readme_i18n/README_ko_KR.md">한국어</a>
-  <a href="readme_i18n/README_de_DE.md">Deutsch</a>
-  <a href="readme_i18n/README_nl_NL.md">Nederlands</a>
-  <a href="readme_i18n/README_tr_TR.md">Türkçe</a>
-  <a href="readme_i18n/README_zh_CN.md">简体中文</a>
-  <a href="readme_i18n/README_zh_TW.md">正體中文</a>
-  <a href="readme_i18n/README_uk_UA.md">Українська</a>
-  <a href="readme_i18n/README_ru_RU.md">Русский</a>
-  <a href="readme_i18n/README_pt_BR.md">Português Brasileiro</a>
-  <a href="readme_i18n/README_sv_SE.md">Svenska</a>
-  <a href="readme_i18n/README_ar_JO.md">العربية</a>
-  <a href="readme_i18n/README_vi_VN.md">Tiếng Việt</a>
-  <a href="readme_i18n/README_th_TH.md">ภาษาไทย</a>
-</p>
+Image assets are stored in various locations within the codebase:
+- The `web/src/lib/assets/` directory stores assets that are importable into Svelte. Changing any of these assets requires restarting the Docker container.
+- The `web/static` directory stores static assets that are served with no processing. These are unavailable to Svelte.
+- The `design` directory stores images used in `README` files.
+- The `@immich/ui` Node module stores some assets internally.
 
+Useful info:
+- To get a user's admin status, add `import { user } from '$lib/stores/user.store';` and then use `$user.isAdmin`. 
 
-> [!WARNING]
-> ⚠️ Always follow [3-2-1](https://www.backblaze.com/blog/the-3-2-1-backup-strategy/) backup plan for your precious photos and videos!
-> 
- 
+These are various important files in the codebase:
+- `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` is the main photo viewer UI, including the top bar and context (3-dot) menu.
+- `web/src/lib/utils/auth.ts` checks if user is already logged in, and redirect to Login page if not.
+- `web/src/routes/auth/login/+page.svelte` handles the login logic.
+- `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` is the search results UI.
+- `web/src/routes/+page.ts` is the default route page. It displays a "Welcome to Immich" message for first-time users, or redirects to the Login or Photos page for existing users.
+- `web/src/lib/stores/user.store.ts` stores the active user and its preferences, and also contains a method for clearing them.
+- `web/src/lib/components/user-settings-page/user-settings-list.svelte` defines the Settings UI.
+- `web/src/lib/components/shared-components/navigation-bar/navigation-bar.svelte` defines the top bar that contains the Profile icon, Search bar, and more.
+- `web/src/lib/components/shared-components/side-bar/user-sidebar.svelte` defines the left bar items (these go in hamburger menu on mobile).
+- `server/src/services/search.service.ts` is where Kevin implemented filter extraction functionality for Smart Search.
 
-> [!NOTE]
-> You can find the main documentation, including installation guides, at https://immich.app/.
+API changes we made in our fork compared to the [official API documentation](https://immich.app/docs/api):
+- The `checkExistingAssets` API function now permits the `deviceId` parameter to be optional. When `deviceId` is not included, the method returns all matching `deviceAssetIds` for the user regardless of `deviceId`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/1efe8565d48f304eb334f8f001c672ec892ba2b2).
+- The `getAllUserAssets` API function has been added to paginate all existing assets for the current user regardless of `deviceId`. It can be used with `GET /api/assets?page=1&size=5000`, which allows a maximum of 5000 assets per request. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/b2b5d28f68d748e7b9c30a614bd89138a16ceded).
+- The `login` API function now returns `quotaSizeInBytes` and `quotaUsageInBytes`. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/15161f1d1b51f759fe8b85ee8b94ac4368524f23).
+- The `uploadAsset` API function now returns the `checksum` of the asset if it is accepted. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/4f28651d4fd28d9cab849a22f6c213f37bc6602f).
+- The `replaceAsset` API function now has an optional boolean parameter `skipReprocess` which will prevent the server from recreating thumbnails and detecting faces on the new asset. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/c531d8c6bf94f241c63a2568cee969edfadc15ea).
+- The `uploadAsset` and `replaceAsset` API functions now accept two additional parameters: `deviceFilePath` (optional) and `isOriginalQuality` (defaults to `false`). The `deviceFilePath` parameter tracks the asset's file path on the user's device, while `isOriginalQuality` indicates whether the asset is in original quality. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
+- The `getAssetsInfo` API function has been added to accept a list of asset IDs and return the asset info for each of them. This API supports the 'Download' feature, which requires fetching asset info in bulk. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 
-## Links
+Communication between the Immich app and the native app is handled via `postMessage`:
+- The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
+- The `CMD_SETBGMODE_DARK` message instructs the native app to set the app’s background to dark (black).
+- The `CMD_SETBGMODE_DEFAULT` message instructs the native app to reset the background to its default.
+- The `CMD_DOWNLOAD_ASSETS` message instructs the native app to download a list of assets. It comes with a list of assets in JSON format.
+- (Optional) The `CMD_DOWNLOAD_ALBUM` message instructs the native app to download an album. Currently, this command is not sent as the 'Download' button is hidden from end users.
 
-- [Documentation](https://docs.immich.app/)
-- [About](https://docs.immich.app/overview/introduction)
-- [Installation](https://docs.immich.app/install/requirements)
-- [Roadmap](https://immich.app/roadmap)
-- [Demo](#demo)
-- [Features](#features)
-- [Translations](https://docs.immich.app/developer/translations)
-- [Contributing](https://docs.immich.app/overview/support-the-project)
-
-## Demo
-
-Access the demo [here](https://demo.immich.app). For the mobile app, you can use `https://demo.immich.app` for the `Server Endpoint URL`.
-
-### Login credentials
-
-| Email           | Password |
-| --------------- | -------- |
-| demo@immich.app | demo     |
-
-## Features
-
-| Features                                     | Mobile | Web |
-| :------------------------------------------- | ------ | --- |
-| Upload and view videos and photos            | Yes    | Yes |
-| Auto backup when the app is opened           | Yes    | N/A |
-| Prevent duplication of assets                | Yes    | Yes |
-| Selective album(s) for backup                | Yes    | N/A |
-| Download photos and videos to local device   | Yes    | Yes |
-| Multi-user support                           | Yes    | Yes |
-| Album and Shared albums                      | Yes    | Yes |
-| Scrubbable/draggable scrollbar               | Yes    | Yes |
-| Support raw formats                          | Yes    | Yes |
-| Metadata view (EXIF, map)                    | Yes    | Yes |
-| Search by metadata, objects, faces, and CLIP | Yes    | Yes |
-| Administrative functions (user management)   | No     | Yes |
-| Background backup                            | Yes    | N/A |
-| Virtual scroll                               | Yes    | Yes |
-| OAuth support                                | Yes    | Yes |
-| API Keys                                     | N/A    | Yes |
-| LivePhoto/MotionPhoto backup and playback    | Yes    | Yes |
-| Support 360 degree image display             | No     | Yes |
-| User-defined storage structure               | Yes    | Yes |
-| Public Sharing                               | Yes    | Yes |
-| Archive and Favorites                        | Yes    | Yes |
-| Global Map                                   | Yes    | Yes |
-| Partner Sharing                              | Yes    | Yes |
-| Facial recognition and clustering            | Yes    | Yes |
-| Memories (x years ago)                       | Yes    | Yes |
-| Offline support                              | Yes    | No  |
-| Read-only gallery                            | Yes    | Yes |
-| Stacked Photos                               | Yes    | Yes |
-| Tags                                         | No     | Yes |
-| Folder View                                  | Yes    | Yes |
-
-## Translations
-
-Read more about translations [here](https://docs.immich.app/developer/translations).
-
-<a href="https://hosted.weblate.org/engage/immich/">
-<img src="https://hosted.weblate.org/widget/immich/immich/multi-auto.svg" alt="Translation status" />
-</a>
-
-## Repository activity
-
-![Activities](https://repobeats.axiom.co/api/embed/9e86d9dc3ddd137161f2f6d2e758d7863b1789cb.svg "Repobeats analytics image")
-
-## Star history
-
-<a href="https://star-history.com/#immich-app/immich&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=immich-app/immich&type=date" width="100%" />
- </picture>
-</a>
-
-## Contributors
-
-<a href="https://github.com/immich-app/immich/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=immich-app/immich" width="100%"/>
-</a>
+More documentation can be found [here](https://github.com/simplifieditproducts/immich-devops/tree/main/docs).

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -17,6 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
+import { AssetResponseDto } from 'src/dtos/asset-response.dto';
 import { AssetMetadataKey, AssetType, AssetVisibility } from 'src/enum';
 import { AssetStats } from 'src/repositories/asset.repository';
 import { IsNotSiblingOf, Optional, ValidateBoolean, ValidateEnum, ValidateUUID } from 'src/validation';
@@ -26,6 +27,34 @@ export class DeviceIdDto {
   @IsString()
   deviceId!: string;
 }
+
+export class GetAssetsDto {
+  /** Page number for pagination */
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page: number = 1;
+
+  /** Number of items per page */
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  @Type(() => Number)
+  size: number = 5000;
+}
+
+export class GetAssetsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  total!: number;
+  items!: { deviceAssetId: string; deviceFilePath: string | null; deviceId: string; checksum: string; isOriginalQuality: boolean; id: string }[];
+  hasNextPage!: boolean;
+}
+
+export class GetAssetsInfoResponseDto {
+  items!: AssetResponseDto[];
+};
 
 const hasGPS = (o: { latitude: undefined; longitude: undefined }) =>
   o.latitude !== undefined || o.longitude !== undefined;

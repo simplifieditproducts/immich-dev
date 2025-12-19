@@ -7,6 +7,7 @@
   import { clickOutside } from '$lib/actions/click-outside';
   import CastButton from '$lib/cast/cast-button.svelte';
   import NotificationPanel from '$lib/components/shared-components/navigation-bar/notification-panel.svelte';
+  import Logo from '$lib/components/shared-components/logo.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
   import { AppRoute } from '$lib/constants';
   import SkipLink from '$lib/elements/SkipLink.svelte';
@@ -16,7 +17,7 @@
   import { notificationManager } from '$lib/stores/notification-manager.svelte';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import { user } from '$lib/stores/user.store';
-  import { Button, IconButton, Logo } from '@immich/ui';
+  import { Button, IconButton } from '@immich/ui';
   import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
@@ -76,9 +77,11 @@
         }}
         class="sidebar:hidden"
       />
-      <a data-sveltekit-preload-data="hover" href={AppRoute.PHOTOS}>
-        <Logo variant={mobileDevice.isFullSidebar ? 'inline' : 'icon'} class="max-md:h-12" />
-      </a>
+      {#if mobileDevice.isFullSidebar}
+        <a data-sveltekit-preload-data="hover" href={AppRoute.PHOTOS}>
+          <Logo variant="inline" />
+        </a>
+      {/if}
     </div>
     <div class="flex justify-between gap-4 lg:gap-8 pe-6">
       <div class="hidden w-full max-w-5xl flex-1 tall:ps-0 sm:block">
@@ -125,38 +128,44 @@
           />
         {/if}
 
-        <ThemeButton />
+        <!-- Gavin has made the "Theme Switch" button visible only for admins. -->
+        {#if $user.isAdmin}
+          <ThemeButton />
+        {/if}
 
-        <div
-          use:clickOutside={{
-            onOutclick: () => (shouldShowNotificationPanel = false),
-            onEscape: () => (shouldShowNotificationPanel = false),
-          }}
-        >
-          <div class="relative">
-            <IconButton
-              shape="round"
-              color={hasUnreadNotifications ? 'primary' : 'secondary'}
-              variant="ghost"
-              size="medium"
-              icon={hasUnreadNotifications ? mdiBellBadge : mdiBellOutline}
-              onclick={() => (shouldShowNotificationPanel = !shouldShowNotificationPanel)}
-              aria-label={$t('notifications')}
-            />
+        <!-- Kevin/Gavin have made the 'Notifications' button visible only for admins. -->
+        {#if $user.isAdmin}
+          <div
+            use:clickOutside={{
+              onOutclick: () => (shouldShowNotificationPanel = false),
+              onEscape: () => (shouldShowNotificationPanel = false),
+            }}
+          >
+            <div class="relative">
+              <IconButton
+                shape="round"
+                color={hasUnreadNotifications ? 'primary' : 'secondary'}
+                variant="ghost"
+                size="medium"
+                icon={hasUnreadNotifications ? mdiBellBadge : mdiBellOutline}
+                onclick={() => (shouldShowNotificationPanel = !shouldShowNotificationPanel)}
+                aria-label={$t('notifications')}
+              />
 
-            {#if hasUnreadNotifications}
-              <div
-                class="pointer-events-none absolute border top-0 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-light"
-              >
-                {notificationManager.notifications.length}
-              </div>
+              {#if hasUnreadNotifications}
+                <div
+                  class="pointer-events-none absolute border top-0 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-light"
+                >
+                  {notificationManager.notifications.length}
+                </div>
+              {/if}
+            </div>
+
+            {#if shouldShowNotificationPanel}
+              <NotificationPanel />
             {/if}
           </div>
-
-          {#if shouldShowNotificationPanel}
-            <NotificationPanel />
-          {/if}
-        </div>
+        {/if}
 
         <CastButton />
 

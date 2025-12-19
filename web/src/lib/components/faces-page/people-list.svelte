@@ -1,10 +1,10 @@
 <script lang="ts">
   import SearchPeople from '$lib/components/faces-page/people-search.svelte';
   import { type PersonResponseDto } from '@immich/sdk';
+  import { IconButton } from '@immich/ui';
+  import { mdiSwapVertical } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import FaceThumbnail from './face-thumbnail.svelte';
-  import { mdiSwapVertical } from '@mdi/js';
-  import { IconButton } from '@immich/ui';
 
   interface Props {
     screenHeight: number;
@@ -26,7 +26,7 @@
   );
 </script>
 
-<div class="w-40 sm:w-48 md:w-full h-14 flex gap-4 place-items-center">
+<div class="h-14 flex gap-4 place-items-center">
   <div class="md:w-96">
     <SearchPeople type="searchBar" placeholder={$t('search_people')} bind:searchName={name} bind:searchedPeopleLocal />
   </div>

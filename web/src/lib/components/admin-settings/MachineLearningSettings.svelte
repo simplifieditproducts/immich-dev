@@ -4,6 +4,7 @@
   import SettingSelect from '$lib/components/shared-components/settings/setting-select.svelte';
   import SettingSwitch from '$lib/components/shared-components/settings/setting-switch.svelte';
   import SettingButtonsRow from '$lib/components/shared-components/settings/SystemConfigButtonRow.svelte';
+  import SettingTextarea from '$lib/components/shared-components/settings/setting-textarea.svelte';
   import { SettingInputFieldType } from '$lib/constants';
   import FormatMessage from '$lib/elements/FormatMessage.svelte';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
@@ -108,6 +109,61 @@
           />
         </div>
       </SettingAccordion>
+
+      <SettingAccordion
+        key="filter-extraction"
+        title="Filter Extraction"
+        subtitle="Extract search filters from the query using external LLM"
+      >
+        <div class="ms-4 mt-4 flex flex-col gap-4">
+          <SettingSwitch
+            title="Enable filter extraction"
+            subtitle="If disabled, the system will not use a language model to extract filters from queries."
+            bind:checked={configToEdit.machineLearning.filterExtraction.enabled}
+            disabled={disabled || !configToEdit.machineLearning.enabled}
+          />
+
+          <hr />
+
+          <SettingInputField
+            inputType={SettingInputFieldType.TEXT}
+            label="Model name"
+            bind:value={configToEdit.machineLearning.filterExtraction.modelName}
+            required={true}
+            disabled={disabled || !configToEdit.machineLearning.enabled || !configToEdit.machineLearning.filterExtraction.enabled}
+            isEdited={configToEdit.machineLearning.filterExtraction.modelName !== config.machineLearning.filterExtraction.modelName}
+          >
+            {#snippet descriptionSnippet()}
+              <p class="immich-form-label pb-2 text-sm">
+                Enter the exact name of the LLM to use for filter extraction (e.g., "gpt-4.1-2025-04-14").
+              </p>
+            {/snippet}
+          </SettingInputField>
+
+          <SettingTextarea
+            label="Prompt"
+            bind:value={configToEdit.machineLearning.filterExtraction.prompt}
+            required={true}
+            disabled={disabled || !configToEdit.machineLearning.enabled || !configToEdit.machineLearning.filterExtraction.enabled}
+            description="Provide a system prompt that guides the model to extract specific search filters from the query. Supported variables: $USER_NAME, $TODAY, $BIRTHDAY, $COUNTRIES, $STATES, $CITIES and $PEOPLE_NAMES."
+            isEdited={configToEdit.machineLearning.filterExtraction.prompt !== config.machineLearning.filterExtraction.prompt}
+          />  
+
+          <SettingSwitch
+            title="Cache extracted filters"
+            subtitle="If enabled, the extracted search filters will be cached to reduce repetitive calls to the LLM."
+            bind:checked={configToEdit.machineLearning.filterExtraction.cacheEnabled}
+            disabled={disabled || !configToEdit.machineLearning.enabled || !configToEdit.machineLearning.filterExtraction.enabled}
+          />
+
+          <SettingSwitch
+            title="Show extracted filters (debug only)"
+            subtitle='If enabled, the extracted search filters will be shown in the "Search Options" dialog.'
+            bind:checked={configToEdit.machineLearning.filterExtraction.showExtractedFilters}
+            disabled={disabled || !configToEdit.machineLearning.enabled || !configToEdit.machineLearning.filterExtraction.enabled}
+          />          
+        </div>
+      </SettingAccordion>      
 
       <SettingAccordion
         key="smart-search"

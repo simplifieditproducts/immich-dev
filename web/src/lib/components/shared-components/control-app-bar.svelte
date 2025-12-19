@@ -2,6 +2,7 @@
   import { browser } from '$app/environment';
 
   import { isSelectingAllAssets } from '$lib/stores/assets-store.svelte';
+  import { embeddedInApp } from '$lib/stores/preferences.store';
   import { IconButton } from '@immich/ui';
   import { mdiClose } from '@mdi/js';
   import { onDestroy, onMount, type Snippet } from 'svelte';
@@ -32,7 +33,7 @@
     trailing,
   }: Props = $props();
 
-  let appBarBorder = $state('bg-light border border-transparent');
+  let appBarBorder = $state('bg-light border-b border-transparent');
 
   const onScroll = () => {
     if (window.scrollY > 80) {
@@ -42,7 +43,7 @@
         appBarBorder = 'border border-gray-600';
       }
     } else {
-      appBarBorder = 'bg-light border border-transparent';
+      appBarBorder = 'bg-light border-b border-transparent';
     }
   };
 
@@ -64,18 +65,19 @@
   });
 </script>
 
-<div in:fly={{ y: 10, duration: 200 }} class="absolute top-0 w-full bg-transparent">
+<div in:fly={{ y: 10, duration: 200 }} class="absolute top-0 w-full bg-transparent border-b">
   <nav
     id="asset-selection-app-bar"
     class={[
       'grid',
-      multiRow && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
-      !multiRow && 'grid-cols-[10%_80%_10%] sm:grid-cols-[25%_50%_25%]',
+      multiRow && !$embeddedInApp && 'grid-cols-[100%] md:grid-cols-[25%_50%_25%]',
+      !multiRow && !$embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem] sm:grid-cols-[25%_50%_25%]',
       'justify-between lg:grid-cols-[25%_50%_25%]',
       appBarBorder,
-      'mx-2 my-2 place-items-center rounded-lg p-2 max-md:p-0 transition-all',
+      $embeddedInApp && 'grid-cols-[2.125rem_1fr_2.125rem]',
+      'place-items-center p-2 max-md:p-0 transition-all',
       tailwindClasses,
-      forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-subtle dark:bg-immich-dark-gray',
+      forceDark ? 'bg-immich-dark-gray! text-white' : 'bg-white dark:bg-immich-dark-gray',
     ]}
   >
     <div class="flex place-items-center sm:gap-6 justify-self-start dark:text-immich-dark-fg {forceDark ? 'dark' : ''}">
@@ -83,11 +85,12 @@
         <IconButton
           aria-label={$t('close')}
           onclick={handleClose}
-          color="secondary"
+          color={$embeddedInApp ? 'primary' : 'secondary'}
           shape="round"
           variant="ghost"
           icon={backIcon}
           size="large"
+          class="-ml-1"
         />
       {/if}
       {@render leading?.()}
@@ -97,7 +100,7 @@
       {@render children?.()}
     </div>
 
-    <div class="max-[350px]:me-0 max-[350px]:gap-0 me-4 flex place-items-center gap-1 justify-self-end">
+    <div class="flex place-items-center gap-1 justify-self-end">
       {@render trailing?.()}
     </div>
   </nav>

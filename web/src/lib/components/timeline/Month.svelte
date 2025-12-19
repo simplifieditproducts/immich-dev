@@ -11,6 +11,7 @@
   import { fromTimelinePlainDate, getDateLocaleString } from '$lib/utils/timeline-util';
   import { Icon } from '@immich/ui';
   import { mdiCheckCircle, mdiCircleOutline } from '@mdi/js';
+  import { fly } from 'svelte/transition';
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -73,11 +74,10 @@
       class="flex pt-7 pb-5 max-md:pt-5 max-md:pb-3 h-6 place-items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm"
       style:width={dayGroup.width + 'px'}
     >
-      {#if !singleSelect}
+      {#if assetInteraction.selectedAssets.length > 0}
         <div
-          class="hover:cursor-pointer transition-all duration-200 ease-out overflow-hidden w-0"
-          class:w-8={(hoveredDayGroup === dayGroup.groupTitle && isMouseOverGroup) ||
-            assetInteraction.selectedGroup.has(dayGroup.groupTitle)}
+          transition:fly={{ x: -24, duration: 200, opacity: 0.5 }}
+          class="inline-block pe-2 hover:cursor-pointer"
           onclick={() => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets()))}
           onkeydown={() => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets()))}
         >

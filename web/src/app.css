@@ -4,7 +4,7 @@
 /* @import '/usr/ui/dist/theme/default.css'; */
 
 @utility immich-form-input {
-  @apply rounded-xl bg-slate-200 px-3 py-3 text-sm focus:border-immich-primary disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 dark:bg-gray-600 dark:text-immich-dark-fg dark:disabled:bg-gray-800 dark:disabled:text-gray-200;
+  @apply rounded-xl border px-3 py-3 text-sm focus:border-immich-primary disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 dark:bg-gray-600 dark:text-immich-dark-fg dark:disabled:bg-gray-800 dark:disabled:text-gray-200;
 }
 
 @utility immich-form-label {
@@ -59,21 +59,35 @@
   --breakpoint-lg: 1023px;
   --breakpoint-md: 767px;
   --breakpoint-sm: 639px;
+  --breakpoint-xs: 375px;
   --breakpoint-sidebar: 850px;
 }
 
 @layer base {
   :root {
     /* light */
-    --immich-primary: 66 80 175;
+    --immich-primary: 0, 165, 237;
     --immich-bg: 255 255 255;
     --immich-fg: 0 0 0;
 
     /* dark */
-    --immich-dark-primary: 172 203 250;
+    --immich-dark-primary: 0, 165, 237;
     --immich-dark-bg: 10 10 10;
     --immich-dark-fg: 229 231 235;
     --immich-dark-gray: 33 33 33;
+
+    /* overwrite */
+    --immich-ui-primary-50: rgb(240, 249, 254);
+    --immich-ui-primary-100: rgb(224, 242, 253);
+    --immich-ui-primary-200: rgb(186, 230, 253);
+    --immich-ui-primary-300: rgb(125, 211, 252);
+    --immich-ui-primary-400: rgb(56, 189, 248);
+    --immich-ui-primary-500: rgb(0, 165, 237); /* default primary color */
+    --immich-ui-primary-600: rgb(0, 145, 208);
+    --immich-ui-primary-700: rgb(0, 120, 172);
+    --immich-ui-primary-800: rgb(0, 99, 142);
+    --immich-ui-primary-900: rgb(0, 75, 108);
+    --immich-ui-primary-950: rgb(0, 40, 58);
   }
 
   button:not(:disabled),
@@ -106,6 +120,8 @@
     /* Used by layouts to ensure proper spacing between navbar and content */
     --navbar-height: calc(4.5rem + 4px);
     --navbar-height-md: calc(4.5rem + 4px - 14px);
+    --navbar-height-embedded: calc(4.5rem);
+    --navbar-height-embedded-md: calc(3rem);
   }
 
   :root.dark {
@@ -148,6 +164,12 @@
     color: #3a3a3a;
   }
 
+  img {
+    -webkit-touch-callout: none; /* Prevents iOS image menu */
+    -webkit-user-select: none;   /* Prevents text/image selection */
+    user-select: none;
+  }
+
   input:focus-visible {
     outline-offset: 0px !important;
     outline: none !important;
@@ -159,6 +181,32 @@
 
   .icon-white-drop-shadow {
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
+    animation-fill-mode: both; /* Keep the element visible after animation */
+  }
+
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animate-delay-500 {
+    animation-delay: 500ms;
   }
 }
 

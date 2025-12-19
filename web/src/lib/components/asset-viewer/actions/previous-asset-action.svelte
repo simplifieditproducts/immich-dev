@@ -20,5 +20,5 @@
 />
 
 <NavigationArea onClick={onPreviousAsset} label={$t('view_previous_asset')}>
-  <Icon icon={mdiChevronLeft} size="36" aria-hidden />
+  <Icon icon={mdiChevronLeft} size="48" aria-hidden />
 </NavigationArea>

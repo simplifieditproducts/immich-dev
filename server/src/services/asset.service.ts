@@ -4,6 +4,7 @@ import { DateTime, Duration } from 'luxon';
 import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { AssetFile } from 'src/database';
 import { OnJob } from 'src/decorators';
+import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { AssetResponseDto, MapAsset, SanitizedAssetResponseDto, mapAsset } from 'src/dtos/asset-response.dto';
 import {
   AssetBulkDeleteDto,
@@ -14,6 +15,8 @@ import {
   AssetMetadataResponseDto,
   AssetMetadataUpsertDto,
   AssetStatsDto,
+  GetAssetsDto,
+  GetAssetsResponseDto,
   UpdateAssetDto,
   mapStats,
 } from 'src/dtos/asset.dto';
@@ -34,6 +37,7 @@ import { JobItem, JobOf } from 'src/types';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getAssetFiles, getMyPartnerIds, onAfterUnlink, onBeforeLink, onBeforeUnlink } from 'src/utils/asset.util';
 import { updateLockedColumns } from 'src/utils/database';
+import { hexOrBufferToBase64 } from 'src/utils/bytes';
 
 @Injectable()
 export class AssetService extends BaseService {
@@ -58,6 +62,24 @@ export class AssetService extends BaseService {
 
   async getUserAssetsByDeviceId(auth: AuthDto, deviceId: string) {
     return this.assetRepository.getAllByDeviceId(auth.user.id, deviceId);
+  }
+
+  async getUserAssets(auth: AuthDto, dto: GetAssetsDto): Promise<GetAssetsResponseDto> {
+    const { page, size } = dto;
+    const pagination = {
+      take: size,
+      skip: (page - 1) * size,
+    };
+    const { items, hasNextPage } = await this.assetRepository.getAll(pagination, auth.user.id);
+    const { total } = await this.assetRepository.getNumberOfAssets(auth.user.id);
+
+    return {
+      items: items.map((item) => {
+        return { deviceAssetId: item.deviceAssetId, deviceFilePath: item.deviceFilePath, deviceId: item.deviceId, checksum: hexOrBufferToBase64(item.checksum), isOriginalQuality: item.isOriginalQuality, id: item.id };
+      }),
+      hasNextPage,
+      total,
+    };
   }
 
   async get(auth: AuthDto, id: string): Promise<AssetResponseDto | SanitizedAssetResponseDto> {
@@ -90,6 +112,15 @@ export class AssetService extends BaseService {
     }
 
     return data;
+  }
+
+  async getAssetsInfo(auth: AuthDto, dto: BulkIdsDto): Promise<AssetResponseDto[]> {
+    await this.requireAccess({ auth, permission: Permission.AssetRead, ids: dto.ids });
+
+    const assets = await this.assetRepository.getByIds(dto.ids, { exifInfo: true });
+    return assets.map((asset: MapAsset) => {
+      return mapAsset(asset, { auth });
+    });
   }
 
   async update(auth: AuthDto, id: string, dto: UpdateAssetDto): Promise<AssetResponseDto> {
@@ -301,6 +332,63 @@ export class AssetService extends BaseService {
     await queueChunk();
 
     return JobStatus.Success;
+  }
+
+  @OnJob({ name: JobName.AssetMissingCheckQueueAll, queue: QueueName.BackgroundTask })
+  async handleAssetMissingCheckQueueAll(): Promise<JobStatus> {
+    let chunk: Array<{ id: string }> = [];
+    const queueChunk = async () => {
+      if (chunk.length > 0) {
+        await this.jobRepository.queueAll(
+          chunk.map(({ id }) => ({
+            name: JobName.AssetMissingCheck,
+            data: { id },
+          })),
+        );
+        chunk = [];
+      }
+    };
+
+    const assets = this.assetJobRepository.streamForMissingCheck();
+    for await (const asset of assets) {
+      chunk.push(asset);
+      if (chunk.length >= JOBS_ASSET_PAGINATION_SIZE) {
+        await queueChunk();
+      }
+    }
+
+    await queueChunk();
+
+    return JobStatus.Success;
+  }
+
+  @OnJob({ name: JobName.AssetMissingCheck, queue: QueueName.BackgroundTask })
+  async handleAssetMissingCheck(job: JobOf<JobName.AssetMissingCheck>): Promise<JobStatus> {
+    const { id } = job;
+
+    const asset = await this.assetRepository.getById(id);
+    if (!asset) {
+      return JobStatus.Skipped;
+    }
+
+    // Check if the original file exists on disk
+    try {
+      await this.storageRepository.stat(asset.originalPath);
+      this.logger.log(`Enqueue background tasks for processing asset ${id}.`);
+
+      // File exists, enqueue metadata extraction job
+      await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: { id: asset.id, source: 'upload' } });
+
+      return JobStatus.Success;
+    } catch {
+      // File does not exist - mark as deleted
+      this.logger.warn(`Asset ${id} original file not found, marking as deleted`);
+
+      const deletedDate = new Date('2100-01-01T00:00:00Z');
+      await this.assetRepository.update({ id, deletedAt: deletedDate, status: AssetStatus.Deleted });
+
+      return JobStatus.Success;
+    }
   }
 
   @OnJob({ name: JobName.AssetDelete, queue: QueueName.BackgroundTask })

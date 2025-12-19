@@ -73,10 +73,15 @@
           toastManager.warning($t('errors.unable_to_change_visibility', { values: { count: failCount } }));
         }
         toastManager.success($t('visibility_changed', { values: { count: successCount } }));
-      }
 
-      for (const person of people) {
-        person.isHidden = personIsHidden[person.id];
+        // Update people array based on successful results
+        const successfulResults = new Set(results.filter(result => result.success).map(result => result.id));
+        const changedById = Object.fromEntries(changed.map(item => [item.id, item]));
+        for (const person of people) {
+          if (successfulResults.has(person.id) && changedById[person.id]) {
+            person.isHidden = changedById[person.id].isHidden;
+          }
+        }
       }
 
       onClose();
@@ -139,7 +144,7 @@
   </div>
 </div>
 
-<div class="flex flex-wrap gap-1 p-2 pb-8 md:px-8 mt-16">
+<div class="fixed top-16 inset-0 p-2 pb-8 md:px-8 overflow-y-auto">
   <PeopleInfiniteScroll {people} hasNextPage={true} {loadNextPage}>
     {#snippet children({ person })}
       {@const hidden = personIsHidden[person.id]}
@@ -156,11 +161,11 @@
           url={getPeopleThumbnailUrl(person)}
           altText={person.name}
           widthStyle="100%"
-          hiddenIconClass="text-white group-hover:text-black transition-colors"
+          hiddenIconClass="text-white group-hover:text-primary transition-colors"
           preload={false}
         />
         {#if person.name}
-          <span class="absolute bottom-2 start-0 w-full select-text px-1 text-center font-medium text-white">
+          <span class="absolute bottom-0 start-0 w-full select-text p-2 text-center font-medium text-sm text-gray-100 bg-black/30 backdrop-blur-sm">
             {person.name}
           </span>
         {/if}

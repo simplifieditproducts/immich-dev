@@ -32,6 +32,10 @@ class AssetMediaBase {
   @IsString()
   deviceAssetId!: string;
 
+  @Optional()
+  @IsString()
+  deviceFilePath?: string;
+
   @IsNotEmpty()
   @IsString()
   deviceId!: string;
@@ -49,6 +53,9 @@ class AssetMediaBase {
   @Optional()
   @IsString()
   filename?: string;
+
+  @ValidateBoolean({ optional: true })
+  isOriginalQuality?: boolean;
 
   // The properties below are added to correctly generate the API docs
   // and client SDKs. Validation should be handled in the controller.
@@ -84,14 +91,17 @@ export class AssetMediaCreateDto extends AssetMediaBase {
   [UploadFieldName.SIDECAR_DATA]?: any;
 }
 
-export class AssetMediaReplaceDto extends AssetMediaBase {}
+export class AssetMediaReplaceDto extends AssetMediaBase {
+  @ValidateBoolean({ optional: true })
+  skipReprocess?: boolean;
+}
 
 export class AssetBulkUploadCheckItem {
   @IsString()
   @IsNotEmpty()
   id!: string;
 
-  /** base64 or hex encoded sha1 hash */
+  /** base64 or hex encoded xxHash64 hash */
   @IsString()
   @IsNotEmpty()
   checksum!: string;
@@ -110,6 +120,7 @@ export class CheckExistingAssetsDto {
   @IsNotEmpty({ each: true })
   deviceAssetIds!: string[];
 
-  @IsNotEmpty()
-  deviceId!: string;
+  @Optional()
+  @IsString()
+  deviceId?: string;
 }

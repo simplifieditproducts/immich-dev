@@ -1,6 +1,7 @@
 <script lang="ts">
+  import Logo from '$lib/components/shared-components/logo.svelte';
   import { copyToClipboard } from '$lib/utils';
-  import { Icon, IconButton, Logo } from '@immich/ui';
+  import { Icon, IconButton } from '@immich/ui';
   import { mdiCodeTags, mdiContentCopy, mdiMessage, mdiPartyPopper } from '@mdi/js';
   import { t } from 'svelte-i18n';
 
