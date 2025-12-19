@@ -25,6 +25,9 @@ importers:
 
   cli:
     dependencies:
+      '@node-rs/xxhash':
+        specifier: ^1.7.6
+        version: 1.7.6
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3

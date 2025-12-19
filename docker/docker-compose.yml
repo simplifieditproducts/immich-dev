@@ -17,7 +17,7 @@ services:
     #   file: hwaccel.transcoding.yml
     #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     volumes:
-      - ${UPLOAD_LOCATION}:/data
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
       - ${THUMB_LOCATION}:/usr/src/app/upload/thumbs
       - ${ENCODED_VIDEO_LOCATION}:/usr/src/app/upload/encoded-video
       - /etc/localtime:/etc/localtime:ro
@@ -112,5 +112,24 @@ services:
     ports:
       - "127.0.0.1:5432:5432"  # Expose port to localhost only for security reasons
 
+  immich-prometheus:
+    container_name: immich_prometheus
+    # ports:
+    #   - 9090:9090
+    image: prom/prometheus@sha256:d936808bdea528155c0154a922cd42fd75716b8bb7ba302641350f9f3eaeba09
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+  immich-grafana:
+    container_name: immich_grafana
+    command: ['./run.sh', '-disable-reporting']
+    ports:
+      - 61209:3000
+    image: grafana/grafana:12.3.0-ubuntu@sha256:cee936306135e1925ab21dffa16f8a411535d16ab086bef2309339a8e74d62df
+    volumes:
+      - grafana-data:/var/lib/grafana
+
 volumes:
   model-cache:
+  prometheus-data:
+  grafana-data:

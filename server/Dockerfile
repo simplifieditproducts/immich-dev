@@ -19,7 +19,7 @@ RUN --mount=type=cache,id=pnpm-server,target=/buildcache/pnpm-store \
   --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
   --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
   SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter immich --frozen-lockfile build && \
-  SHARP_FORCE_GLOBAL_LIBVIPS=true pnpm --filter immich --frozen-lockfile --prod --no-optional deploy /output/server-pruned
+  SHARP_FORCE_GLOBAL_LIBVIPS=true pnpm --filter immich --frozen-lockfile --prod deploy /output/server-pruned
 
 FROM builder AS web
 
@@ -46,7 +46,7 @@ RUN --mount=type=cache,id=pnpm-cli,target=/buildcache/pnpm-store \
   --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
   pnpm --filter @immich/sdk --filter @immich/cli --frozen-lockfile install && \
   pnpm --filter @immich/sdk --filter @immich/cli build && \
-  pnpm --filter @immich/cli --prod --no-optional deploy /output/cli-pruned
+  pnpm --filter @immich/cli --prod deploy /output/cli-pruned
 
 FROM builder AS plugins
 

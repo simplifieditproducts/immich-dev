@@ -19,20 +19,18 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
-      - id: token
-        uses: immich-app/devtools/actions/create-workflow-token@da177fa133657503ddb7503f8ba53dccefec5da1 # create-workflow-token-action-v1.0.0
-        with:
-          app-id: ${{ secrets.PUSH_O_MATIC_APP_ID }}
-          private-key: ${{ secrets.PUSH_O_MATIC_APP_KEY }}
-
       - name: Check what should run
         id: check
         uses: immich-app/devtools/actions/pre-job@08bac802a312fc89808e0dd589271ca0974087b5 # pre-job-action-v2.0.0
         with:
-          github-token: ${{ steps.token.outputs.token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           filters: |
             server:
               - 'server/**'
+              - 'openapi/**'
+              - 'web/**'
+              - 'i18n/**'
+            web:
               - 'openapi/**'
               - 'web/**'
               - 'i18n/**'
@@ -65,7 +63,7 @@ jobs:
   web-ub:
     name: Build and Push Web App (Ultimate Backup)
     needs: pre-job
-    if: ${{ fromJSON(needs.pre-job.outputs.should_run).server == true }}
+    if: ${{ fromJSON(needs.pre-job.outputs.should_run).web == true }}
     uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@0477486d82313fba68f7c82c034120a4b8981297 # multi-runner-build-workflow-v2.1.0
     permissions:
       contents: read

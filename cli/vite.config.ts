@@ -13,8 +13,9 @@ export default defineConfig({
     ssr: true,
   },
   ssr: {
-    // bundle everything except for Node built-ins
+    // bundle everything except for Node built-ins and native modules
     noExternal: /^(?!node:).*$/,
+    external: ['@node-rs/xxhash'],
   },
   plugins: [tsconfigPaths()],
 });
