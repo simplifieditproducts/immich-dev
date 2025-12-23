@@ -59,6 +59,11 @@ export class PersonController {
 
   @Get('/count')
   @Authenticated({ permission: Permission.PersonRead })
+  @Endpoint({
+    summary: 'Get number of people',
+    description: 'Retrieve the number of people recognized in the current user\'s photo library.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })  
   getNumberOfPeople(@Auth() auth: AuthDto): Promise<NumberOfPeopleResponseDto> {
     return this.service.getNumberOfPeople(auth);
   }

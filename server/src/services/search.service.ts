@@ -203,7 +203,7 @@ export class SearchService extends BaseService {
       // filter data, unset any fields with value undefined or null or empty string
       data = Object.fromEntries(
         Object.entries(data as Record<string, any>).filter(([_, value]) => value !== undefined && value !== null && value !== "" && value !== "undefined" && value !== "null")
-      ) as typeof FilterExtractionResponse._type;
+      ) as z.infer<typeof FilterExtractionResponse>;
 
       // extract the taken dates and convert them to Date objects. sometimes, GPT may return a date range
       // from the beginning of the year 1970 to the end of the current year, which is meaningless.

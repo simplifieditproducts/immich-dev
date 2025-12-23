@@ -2552,7 +2552,22 @@
         "summary": "Get all assets of current user that are in the database.",
         "tags": [
           "Assets"
-        ]
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-state": "Stable"
       },
       "post": {
         "description": "Uploads a new asset to the server.",
@@ -2924,6 +2939,7 @@
     },
     "/assets/info": {
       "post": {
+        "description": "Retrieve detailed information about a list of assets.",
         "operationId": "getAssetsInfo",
         "parameters": [],
         "requestBody": {
@@ -2959,10 +2975,26 @@
             "api_key": []
           }
         ],
+        "summary": "Retrieve a list of assets",
         "tags": [
           "Assets"
         ],
-        "x-immich-permission": "asset.read"
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "asset.read",
+        "x-immich-state": "Stable"
       }
     },
     "/assets/jobs": {
@@ -4429,7 +4461,22 @@
         "summary": "Retrieve auth status",
         "tags": [
           "Authentication"
-        ]
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-state": "Stable"
       }
     },
     "/auth/validateToken": {
@@ -7638,6 +7685,7 @@
     },
     "/people/count": {
       "get": {
+        "description": "Retrieve the number of people recognized in the current user's photo library.",
         "operationId": "getNumberOfPeople",
         "parameters": [],
         "responses": {
@@ -7663,10 +7711,26 @@
             "api_key": []
           }
         ],
+        "summary": "Get number of people",
         "tags": [
           "People"
         ],
-        "x-immich-permission": "person.read"
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "person.read",
+        "x-immich-state": "Stable"
       }
     },
     "/people/{id}": {
@@ -9871,6 +9935,7 @@
     },
     "/server/simple-statistics": {
       "get": {
+        "description": "Retrieve simple statistics per source application.",
         "operationId": "getSimpleServerStatistics",
         "parameters": [
           {
@@ -9910,11 +9975,27 @@
             "api_key": []
           }
         ],
+        "summary": "Get simple statistics",
         "tags": [
           "Server"
         ],
         "x-immich-admin-only": true,
-        "x-immich-permission": "server.statistics"
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "server.statistics",
+        "x-immich-state": "Stable"
       }
     },
     "/server/statistics": {

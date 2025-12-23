@@ -139,6 +139,11 @@ export class ServerController {
   }
 
   @Get('simple-statistics')
+  @Endpoint({
+    summary: 'Get simple statistics',
+    description: 'Retrieve simple statistics per source application.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })  
   @Authenticated({ permission: Permission.ServerStatistics, admin: true })
   getSimpleServerStatistics(@Auth() auth: AuthDto, @Query() dto: SimpleServerStatsDto): Promise<SimpleServerStatsResponseDto> {
     return this.service.getSimpleStatistics(dto.sourceApp);

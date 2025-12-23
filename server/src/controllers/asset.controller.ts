@@ -61,6 +61,7 @@ export class AssetController {
   @Endpoint({
     summary: 'getAllUserAssets',
     description: 'Get all assets of current user that are in the database.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
   })
   @Authenticated()
   getAllUserAssets(@Auth() auth: AuthDto, @Query() options: GetAssetsDto): Promise<GetAssetsResponseDto> {
@@ -127,6 +128,11 @@ export class AssetController {
 
   @Post('info')
   @Authenticated({ permission: Permission.AssetRead })
+  @Endpoint({
+    summary: 'Retrieve a list of assets',
+    description: 'Retrieve detailed information about a list of assets.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })  
   async getAssetsInfo(@Auth() auth: AuthDto, @Body() dto: BulkIdsDto): Promise<GetAssetsInfoResponseDto> {
     return {
       items: await this.service.getAssetsInfo(auth, dto),

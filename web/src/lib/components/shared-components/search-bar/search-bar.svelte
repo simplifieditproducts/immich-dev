@@ -352,8 +352,8 @@
         </div>
       </div>
     {/if}
-    
-    
+
+    <!-- Kevin has moved the filter icon to the right side of the search box on mobile. -->
     <div class="absolute inset-y-0 {!$embeddedInApp && (showClearIcon ? 'sm:end-14' : 'sm:end-2')} -end-10.5 flex items-center ps-6 transition-all">
     {#if $embeddedInApp}
       <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 6, y: 42 }} onButtonClick={onMoreClick}>
@@ -364,20 +364,6 @@
         />
       </ButtonContextMenu>
     {:else}
-      <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
-        <IconButton
-          aria-label={$t('show_search_options')}
-          shape="round"
-          icon={mdiTune}
-          onclick={onFilterClick}
-          size="medium"
-          color="secondary"
-          variant="ghost"
-        />
-      </div>
-    {/if}    
-
-    <div class="absolute inset-y-0 {showClearIcon ? 'end-14' : 'end-2'} flex items-center ps-6 transition-all">
       <IconButton
         aria-label={$t('show_search_options')}
         shape="round"
@@ -387,6 +373,7 @@
         color="secondary"
         variant="ghost"
       />
+    {/if} 
     </div>
 
     {#if showClearIcon}
