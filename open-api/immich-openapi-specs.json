@@ -16989,6 +16989,7 @@
             ]
           },
           "ownerId": {
+            "format": "uuid",
             "type": "string"
           }
         },
