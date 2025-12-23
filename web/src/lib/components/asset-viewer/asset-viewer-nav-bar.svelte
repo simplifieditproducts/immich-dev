@@ -41,7 +41,7 @@
     type PersonResponseDto,
     type StackResponseDto,
   } from '@immich/sdk';
-  import { IconButton } from '@immich/ui';
+  import { toastManager, IconButton } from '@immich/ui';
   import {
     mdiAlertOutline,
     mdiCogRefreshOutline,
@@ -161,14 +161,14 @@
         onclick={onZoomImage}
       />
     {/if}
-    {#if canCopyImageToClipboard() && asset.type === AssetTypeEnum.Image && $photoViewerImgElement}
+    {#if canCopyImageToClipboard() && asset.type === AssetTypeEnum.Image}
       <IconButton
         color="secondary"
         variant="ghost"
         shape="round"
         icon={mdiContentCopy}
         aria-label={$t('copy_image')}
-        onclick={() => onCopyImage?.()}
+        onclick={() => $photoViewerImgElement ? onCopyImage?.() : toastManager.danger('Image not loaded yet')}
       />
     {/if}
 
@@ -207,14 +207,17 @@
         {/if}
 
         {#if isOwner}
-          <AddToStackAction {asset} {stack} {onAction} />
-          {#if stack}
-            <UnstackAction {stack} {onAction} />
-            <KeepThisDeleteOthersAction {stack} {asset} {onAction} />
-            {#if stack?.primaryAssetId !== asset.id}
-              <SetStackPrimaryAsset {stack} {asset} {onAction} />
-              {#if stack?.assets?.length > 2}
-                <RemoveAssetFromStack {asset} {stack} {onAction} />
+          <!-- Kevin has made 'Add to stack', 'Unstack', 'Keep this delete others', 'Set stack primary asset' and 'Remove asset from stack' buttons visible only for admins -->
+          {#if $user.isAdmin}
+            <AddToStackAction {asset} {stack} {onAction} />
+            {#if stack}
+              <UnstackAction {stack} {onAction} />
+              <KeepThisDeleteOthersAction {stack} {asset} {onAction} />
+              {#if stack?.primaryAssetId !== asset.id}
+                <SetStackPrimaryAsset {stack} {asset} {onAction} />
+                {#if stack?.assets?.length > 2}
+                  <RemoveAssetFromStack {asset} {stack} {onAction} />
+                {/if}
               {/if}
             {/if}
           {/if}

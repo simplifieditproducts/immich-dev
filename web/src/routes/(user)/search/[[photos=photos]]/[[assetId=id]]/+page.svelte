@@ -411,8 +411,7 @@
       {@const value = terms[searchKey]}
       <div class="flex place-content-center place-items-center items-stretch text-xs">
         <div
-          class="bg-immich-primary py-2 pl-4 pr-3 text-white dark:text-black dark:bg-immich-dark-primary
-          {value === true ? 'rounded-full' : 'rounded-s-full'}"
+          class="bg-immich-primary py-2 pl-4 pr-3 text-white dark:text-black dark:bg-immich-dark-primary shrink-0 {value === true ? 'rounded-full' : 'rounded-s-full'}"
         >
           {getHumanReadableSearchKey(searchKey as keyof SearchTerms)}
         </div>

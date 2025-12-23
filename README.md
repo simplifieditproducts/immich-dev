@@ -9,7 +9,7 @@ Steps to run development server locally on a Unix-based computer:
 
 Other possibly useful commands:
 - To delete Immich in Terminal, go to `/immich-dev/docker` and run `docker compose -f docker-compose.yml down -v`
-- To stage a list of all our customizations since the original forked Immich commit: `git checkout TBD -- .`
+- To stage a list of all our customizations since the original forked Immich commit: `git checkout 50d7956c0770de5543c7b7da80ff2b9c29649720 -- .`
 
 Image assets are stored in various locations within the codebase:
 - The `web/src/lib/assets/` directory stores assets that are importable into Svelte. Changing any of these assets requires restarting the Docker container.
