@@ -9,6 +9,7 @@
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import { photoViewerImgElement } from '$lib/stores/assets-store.svelte';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { ocrManager } from '$lib/stores/ocr.svelte';
   import { boundingBoxesArray } from '$lib/stores/people.store';
   import { alwaysLoadOriginalFile } from '$lib/stores/preferences.store';
@@ -59,6 +60,7 @@
   let imageLoaded: boolean = $state(false);
   let originalImageLoaded: boolean = $state(false);
   let imageError: boolean = $state(false);
+  let usingMobileDevice = $derived(mobileDevice.pointerCoarse);
 
   let loader = $state<HTMLImageElement>();
 
@@ -252,7 +254,7 @@
   {:else if !imageError}
     <div
       use:zoomImageAction={{ disabled: isOcrActive }}
-      {...useSwipe(onSwipe)}
+      {...(isOcrActive && usingMobileDevice ? {} : useSwipe(onSwipe))}
       class="h-full w-full"
       transition:fade={{ duration: haveFadeTransition ? assetViewerFadeDuration : 0 }}
     >
@@ -274,17 +276,35 @@
         draggable="false"
       />
       <!-- eslint-disable-next-line svelte/require-each-key -->
-      {#each getBoundingBox($boundingBoxesArray, $photoZoomState, $photoViewerImgElement) as boundingbox}
-        <div
-          class="absolute border-solid border-white border-3 rounded-lg"
-          style="top: {boundingbox.top}px; left: {boundingbox.left}px; height: {boundingbox.height}px; width: {boundingbox.width}px;"
-        ></div>
-      {/each}
+      {#if isOcrActive && !usingMobileDevice}
+        {#each getBoundingBox($boundingBoxesArray, $photoZoomState, $photoViewerImgElement) as boundingbox}
+          <div
+            class="absolute border-solid border-white border-3 rounded-lg"
+            style="top: {boundingbox.top}px; left: {boundingbox.left}px; height: {boundingbox.height}px; width: {boundingbox.width}px;"
+          ></div>
+        {/each}
 
-      {#each ocrBoxes as ocrBox (ocrBox.id)}
-        <OcrBoundingBox {ocrBox} />
-      {/each}
+        {#each ocrBoxes as ocrBox (ocrBox.id)}
+          <OcrBoundingBox {ocrBox} />
+        {/each}
+      {/if}
     </div>
+    
+    {#if isOcrActive && usingMobileDevice}
+      <div class="absolute inset-0 bg-black/40" onclick={() => ocrManager.toggleOcrBoundingBox()}>
+        <div class="absolute top-20 bottom-20 left-0 right-0 flex flex-col items-end gap-2 px-4 overflow-y-auto overscroll-contain">
+          {#each ocrBoxes as ocrBox (ocrBox.id)}
+            <button type="button" class="bg-gray-200 text-black px-3 py-1.5 rounded-lg break-words shadow-lg shadow-white/10 active:bg-gray-300 transition-colors duration-150 ease-in-out" onclick={(e: MouseEvent) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(ocrBox.text);
+              toastManager.info($t('copied_to_clipboard'));
+            }}>
+              {ocrBox.text}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     {#if isFaceEditMode.value}
       <FaceEditor htmlElement={$photoViewerImgElement} {containerWidth} {containerHeight} assetId={asset.id} />

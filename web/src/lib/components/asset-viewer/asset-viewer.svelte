@@ -268,7 +268,7 @@
 
   // Swipe to dismiss gesture handlers
   const handleTouchStart = (e: TouchEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay) {
       return;
     }
 
@@ -284,7 +284,7 @@
   };
 
   const handleMouseDown = (e: MouseEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay) {
       return;
     }
 
@@ -648,7 +648,7 @@
     </div>
   {/if}
 
-  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
+  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay}
     <div 
       class="z-1 my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
@@ -763,7 +763,7 @@
     {/if}
   </div>
 
-  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor}
+  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay}
     <div 
       class="z-1 my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
