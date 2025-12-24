@@ -225,10 +225,10 @@ export class SearchService extends BaseService {
         dto.personIds = namedPeople.filter(p => data.people!.includes(p.name)).map((p) => p.id);
       }
 
-      // add the rest of the fields to the dto
+      // add the rest of the fields to the dto, 'refinedQuery' has been dismissed since it causes problems
+      // while incorporating with OCR based search.
       dto = { 
         ...dto, 
-        query: data.refinedQuery || "",
         country: dto.country || data.country, 
         state: dto.state || data.state, 
         city: dto.city || data.city 

@@ -8,7 +8,7 @@ import { AssetStatus, AssetType, AssetVisibility, VectorIndex } from 'src/enum';
 import { probes } from 'src/repositories/database.repository';
 import { DB } from 'src/schema';
 import { AssetExifTable } from 'src/schema/tables/asset-exif.table';
-import { anyUuid, searchAssetBuilder, withExif } from 'src/utils/database';
+import { anyUuid, searchAssetBuilder, tokenizeForSearch, withExif } from 'src/utils/database';
 import { paginationHelper } from 'src/utils/pagination';
 import { isValidInteger } from 'src/validation';
 
@@ -82,6 +82,7 @@ export interface SearchExifOptions {
 
 export interface SearchEmbeddingOptions {
   embedding: string;
+  query?: string; // the original query string
   userIds: string[];
 }
 
@@ -300,7 +301,12 @@ export class SearchRepository {
       await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.Clip])}`.execute(trx);
       const items = await searchAssetBuilder(trx, options)
         .selectAll('asset')
-        .innerJoin('smart_search', 'asset.id', 'smart_search.assetId')
+        .leftJoin('smart_search', 'asset.id', 'smart_search.assetId')
+        .leftJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
+        .orderBy(
+          // currently use the same logic as OCR search, but this can be tweaked using the <->>> operator with a weight if needed.
+          sql`CASE WHEN ocr_search.text IS NULL THEN 0 ELSE (f_unaccent(ocr_search.text) %>> f_unaccent(${tokenizeForSearch(options.query!).join(' ')}))::integer END DESC`,
+        )
         .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
         .limit(pagination.size + 1)
         .offset((pagination.page - 1) * pagination.size)
