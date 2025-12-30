@@ -62,7 +62,11 @@ export class StorageRepository {
   }
 
   createWriteStream(filepath: string): Writable {
-    return createWriteStream(filepath, { flags: 'w' });
+    return createWriteStream(filepath, { flags: 'w', highWaterMark: 1024 * 1024 });
+  }
+
+  createOrAppendWriteStream(filepath: string): Writable {
+    return createWriteStream(filepath, { flags: 'a', highWaterMark: 1024 * 1024 });
   }
 
   createOrOverwriteFile(filepath: string, buffer: Buffer) {
@@ -158,6 +162,10 @@ export class StorageRepository {
         await fs.rmdir(directory);
       }
     }
+  }
+
+  mkdir(filepath: string): Promise<string | undefined> {
+    return fs.mkdir(filepath, { recursive: true });
   }
 
   mkdirSync(filepath: string): void {

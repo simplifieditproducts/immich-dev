@@ -290,6 +290,10 @@ export class QueueService extends BaseService {
       jobs.push({ name: JobName.FacialRecognitionQueueAll, data: { force: false, nightly: true } });
     }
 
+    if (config.nightlyTasks.removeStaleUploads) {
+      jobs.push({ name: JobName.PartialAssetCleanupQueueAll });
+    }
+    
     await this.jobRepository.queueAll(jobs);
   }
 }
