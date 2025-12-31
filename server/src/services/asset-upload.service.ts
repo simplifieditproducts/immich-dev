@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Xxh64 } from '@node-rs/xxhash';
 import { Response } from 'express';
 import { DateTime } from 'luxon';
-import { createHash } from 'node:crypto';
 import { dirname, extname, join } from 'node:path';
 import { Readable, Writable } from 'node:stream';
 import { SystemConfig } from 'src/config';
@@ -53,7 +53,6 @@ export class AssetUploadService extends BaseService {
   }
 
   async startUpload(auth: AuthDto, req: Readable, res: Response, dto: StartUploadDto): Promise<void> {
-    this.logger.log(`POST /upload - startUpload (version=${dto.version}, length=${dto.contentLength}, complete=${dto.uploadComplete})`);
     this.logger.verboseFn(() => `Starting upload: ${JSON.stringify(dto)}`);
     const { uploadComplete, assetData, uploadLength, contentLength, version } = dto;
     const isComplete = uploadComplete !== false;
@@ -101,9 +100,13 @@ export class AssetUploadService extends BaseService {
         : this.storageRepository.createOrAppendWriteStream(asset.path);
       this.pipe(req, writeStream, contentLength);
       if (isComplete) {
-        const hash = createHash('sha1');
+        const hash = new Xxh64(0xABCDn);
         req.on('data', (data: Buffer) => hash.update(data));
-        writeStream.on('finish', () => (checksumBuffer = hash.digest()));
+        writeStream.on('finish', () => {
+          const buf = Buffer.alloc(8);
+          buf.writeBigUInt64BE(hash.digest(), 0);
+          checksumBuffer = buf;
+        });
       }
       await new Promise((resolve, reject) => writeStream.on('close', resolve).on('error', reject));
       if (isResumable) {
@@ -123,7 +126,6 @@ export class AssetUploadService extends BaseService {
   }
 
   resumeUpload(auth: AuthDto, req: Readable, res: Response, id: string, dto: ResumeUploadDto): Promise<void> {
-    this.logger.log(`PATCH /upload/${id} - resumeUpload (version=${dto.version}, offset=${dto.uploadOffset}, length=${dto.contentLength}, complete=${dto.uploadComplete})`);
     this.logger.verboseFn(() => `Resuming upload for ${id}: ${JSON.stringify(dto)}`);
     const { uploadComplete, uploadLength, uploadOffset, contentLength, version } = dto;
     this.setCompleteHeader(res, version, false);
@@ -186,7 +188,6 @@ export class AssetUploadService extends BaseService {
   }
 
   cancelUpload(auth: AuthDto, assetId: string, res: Response): Promise<void> {
-    this.logger.log(`DELETE /upload/${assetId} - cancelUpload`);
     this.abortExistingRequest(assetId);
     return this.databaseRepository.withUuidLock(assetId, async () => {
       const asset = await this.assetRepository.getCompletionMetadata(assetId, auth.user.id);
@@ -203,7 +204,6 @@ export class AssetUploadService extends BaseService {
   }
 
   async getUploadStatus(auth: AuthDto, res: Response, id: string, { version }: GetUploadStatusDto): Promise<void> {
-    this.logger.log(`HEAD /upload/${id} - getUploadStatus (version=${version})`);
     this.logger.verboseFn(() => `Getting upload status for ${id} with version ${version}`);
     const { backup } = await this.getConfig({ withCache: true });
     this.abortExistingRequest(id);
@@ -226,7 +226,6 @@ export class AssetUploadService extends BaseService {
   }
 
   async getUploadOptions(res: Response): Promise<void> {
-    this.logger.log(`OPTIONS /upload - getUploadOptions`);
     const { backup } = await this.getConfig({ withCache: true });
     res.status(204).setHeader('Upload-Limit', this.getUploadLimits(backup)).send();
   }
@@ -383,7 +382,6 @@ export class AssetUploadService extends BaseService {
 
   private sendInterimResponse({ socket }: Response, location: string, interopVersion: number, limits: string): void {
     if (socket && !socket.destroyed) {
-      this.logger.log(`Sending 104 interim response: Location=${location}, version=${interopVersion}`);
       // Express doesn't understand interim responses, so write directly to socket
       socket.write(
         'HTTP/1.1 104 Upload Resumption Supported\r\n' +
@@ -391,8 +389,6 @@ export class AssetUploadService extends BaseService {
           `Upload-Limit: ${limits}\r\n` +
           `Upload-Draft-Interop-Version: ${interopVersion}\r\n\r\n`,
       );
-    } else {
-      this.logger.warn(`Cannot send 104 response: socket is ${socket ? 'destroyed' : 'missing'}`);
     }
   }
 
@@ -404,7 +400,6 @@ export class AssetUploadService extends BaseService {
   }
 
   private sendAlreadyCompleted(res: Response): void {
-    this.logger.log(`Sending 400: upload is already completed`);
     res.status(400).contentType('application/problem+json').send({
       type: 'https://iana.org/assignments/http-problem-types#completed-upload',
       title: 'upload is already completed',
@@ -412,7 +407,6 @@ export class AssetUploadService extends BaseService {
   }
 
   private sendOffsetMismatch(res: Response, expected: number, actual: number): void {
-    this.logger.log(`Sending 409: offset mismatch (expected=${expected}, actual=${actual})`);
     res.status(409).contentType('application/problem+json').setHeader('Upload-Offset', expected.toString()).send({
       type: 'https://iana.org/assignments/http-problem-types#mismatching-upload-offset',
       title: 'offset from request does not match offset of resource',
