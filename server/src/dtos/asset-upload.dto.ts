@@ -98,8 +98,8 @@ export class StartUploadDto extends BaseUploadHeadersDto {
       throw new BadRequestException(`Missing ${Header.ReprDigest} header`);
     }
 
-    const checksum = parseDictionary(value).get('sha')?.[0];
-    if (checksum instanceof ArrayBuffer && checksum.byteLength === 20) {
+    const checksum = parseDictionary(value).get('xxh64')?.[0];
+    if (checksum instanceof ArrayBuffer && checksum.byteLength === 8) {
       return Buffer.from(checksum);
     }
     throw new BadRequestException(`Invalid ${Header.ReprDigest} header`);

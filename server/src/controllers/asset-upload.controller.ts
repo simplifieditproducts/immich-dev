@@ -56,7 +56,7 @@ export class AssetUploadController {
   @ApiHeader({
     name: Header.ReprDigest,
     description:
-      'RFC 9651 structured dictionary containing an `sha` (bytesequence) checksum used to detect duplicate files and validate data integrity.',
+      'RFC 9651 structured dictionary containing an `xxh64` (bytesequence) checksum used to detect duplicate files and validate data integrity.',
     required: true,
   })
   @ApiHeader({ ...apiInteropVersion, required: false })

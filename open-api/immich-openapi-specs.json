@@ -13400,7 +13400,7 @@
           {
             "name": "repr-digest",
             "in": "header",
-            "description": "RFC 9651 structured dictionary containing an `sha` (bytesequence) checksum used to detect duplicate files and validate data integrity.",
+            "description": "RFC 9651 structured dictionary containing an `xxh64` (bytesequence) checksum used to detect duplicate files and validate data integrity.",
             "required": true,
             "schema": {
               "type": "string"
