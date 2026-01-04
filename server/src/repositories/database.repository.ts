@@ -179,31 +179,40 @@ export class DatabaseRepository {
   }
 
   async reindexVectorsIfNeeded(names: VectorIndex[]): Promise<void> {
+    this.logger.log(`reindexVectorsIfNeeded called for indexes: ${names.join(', ')}`);
     const { rows } = await sql<{
       indexdef: string;
       indexname: string;
     }>`SELECT indexdef, indexname FROM pg_indexes WHERE indexname = ANY(ARRAY[${sql.join(names)}])`.execute(this.db);
 
+    this.logger.log(`Found ${rows.length} existing indexes: ${rows.map((r) => r.indexname).join(', ') || 'none'}`);
+
     const vectorExtension = await getVectorExtension(this.db);
+    this.logger.log(`Active vector extension: ${vectorExtension}`);
 
     const promises = [];
     for (const indexName of names) {
       const row = rows.find((index) => index.indexname === indexName);
       const table = VECTOR_INDEX_TABLES[indexName];
       if (!row) {
+        this.logger.warn(`Index ${indexName} does NOT exist - will reindex`);
         promises.push(this.reindexVectors(indexName));
         continue;
       }
 
+      this.logger.log(`Index ${indexName} exists. Definition: ${row.indexdef}`);
+
       switch (vectorExtension) {
         case DatabaseExtension.Vector: {
           if (!row.indexdef.toLowerCase().includes('using hnsw')) {
+            this.logger.log(`Index ${indexName} is not HNSW - will reindex`);
             promises.push(this.reindexVectors(indexName));
           }
           break;
         }
         case DatabaseExtension.Vectors: {
           if (!row.indexdef.toLowerCase().includes('using vectors')) {
+            this.logger.log(`Index ${indexName} is not using vectors extension - will reindex`);
             promises.push(this.reindexVectors(indexName));
           }
           break;
@@ -211,18 +220,48 @@ export class DatabaseRepository {
         case DatabaseExtension.VectorChord: {
           const matches = row.indexdef.match(/(?<=lists = \[)\d+/g);
           const lists = matches && matches.length > 0 ? Number(matches[0]) : 1;
+          this.logger.log(`VectorChord check for ${indexName}: parsed lists=${lists} from indexdef`);
           promises.push(
             this.getRowCount(table).then((count) => {
               const targetLists = this.targetListCount(count);
-              this.logger.log(`targetLists=${targetLists}, current=${lists} for ${indexName} of ${count} rows`);
-              if (
-                !row.indexdef.toLowerCase().includes('using vchordrq') ||
-                // slack factor is to avoid frequent reindexing if the count is borderline
-                (lists !== targetLists && lists !== this.targetListCount(count * VECTORCHORD_LIST_SLACK_FACTOR))
-              ) {
+              const slackLists = this.targetListCount(count * VECTORCHORD_LIST_SLACK_FACTOR);
+              const usesVchordrq = row.indexdef.toLowerCase().includes('using vchordrq');
+
+              this.logger.log(
+                `VectorChord ${indexName}: count=${count}, targetLists=${targetLists}, currentLists=${lists}, ` +
+                  `slackLists=${slackLists}, usesVchordrq=${usesVchordrq}`,
+              );
+
+              const needsReindexType = !usesVchordrq;
+              const needsReindexLists = lists !== targetLists && lists !== slackLists;
+
+              // Skip reindex for lists changes when current lists >= 8192
+              // At this scale, reindexing takes hours and the marginal benefit is minimal
+              // Only reindex if the index type is wrong (not using vchordrq)
+              const skipListsReindex = lists >= 8192;
+              if (skipListsReindex && needsReindexLists && !needsReindexType) {
+                this.logger.warn(
+                  `VectorChord ${indexName}: lists mismatch (${lists} vs ${targetLists}) but skipping reindex ` +
+                    `because current lists (${lists}) >= 8192. Reindexing at this scale is too expensive.`,
+                );
+                probes[indexName] = this.targetProbeCount(lists);
+                return;
+              }
+
+              this.logger.log(
+                `VectorChord ${indexName}: needsReindexType=${needsReindexType}, needsReindexLists=${needsReindexLists}`,
+              );
+
+              if (needsReindexType || needsReindexLists) {
+                this.logger.warn(
+                  `VectorChord ${indexName}: WILL REINDEX - ` +
+                    `${needsReindexType ? 'wrong index type' : ''}${needsReindexType && needsReindexLists ? ' AND ' : ''}` +
+                    `${needsReindexLists ? `lists mismatch (${lists} != ${targetLists} and ${lists} != ${slackLists})` : ''}`,
+                );
                 probes[indexName] = this.targetProbeCount(targetLists);
                 return this.reindexVectors(indexName, { lists: targetLists });
               } else {
+                this.logger.log(`VectorChord ${indexName}: index is OK, no reindex needed`);
                 probes[indexName] = this.targetProbeCount(lists);
               }
             }),
