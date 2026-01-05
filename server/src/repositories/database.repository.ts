@@ -155,8 +155,10 @@ export class DatabaseRepository {
       }
     });
 
+    // Process indexes sequentially to avoid parallel reindex operations
     if (!restartRequired) {
-      await Promise.all([this.reindexVectors(VectorIndex.Clip), this.reindexVectors(VectorIndex.Face)]);
+      await this.reindexVectors(VectorIndex.Clip);
+      await this.reindexVectors(VectorIndex.Face);
     }
 
     return { restartRequired };
@@ -183,13 +185,13 @@ export class DatabaseRepository {
     const vectorExtension = await getVectorExtension(this.db);
     this.logger.log(`Active vector extension: ${vectorExtension}`);
 
-    const promises = [];
+    // Process indexes sequentially to avoid parallel reindex operations
     for (const indexName of names) {
       const row = rows.find((index) => index.indexname === indexName);
       const table = VECTOR_INDEX_TABLES[indexName];
       if (!row) {
         this.logger.warn(`Index ${indexName} does NOT exist - will reindex`);
-        promises.push(this.reindexVectors(indexName));
+        await this.reindexVectors(indexName);
         continue;
       }
 
@@ -199,14 +201,14 @@ export class DatabaseRepository {
         case DatabaseExtension.Vector: {
           if (!row.indexdef.toLowerCase().includes('using hnsw')) {
             this.logger.log(`Index ${indexName} is not HNSW - will reindex`);
-            promises.push(this.reindexVectors(indexName));
+            await this.reindexVectors(indexName);
           }
           break;
         }
         case DatabaseExtension.Vectors: {
           if (!row.indexdef.toLowerCase().includes('using vectors')) {
             this.logger.log(`Index ${indexName} is not using vectors extension - will reindex`);
-            promises.push(this.reindexVectors(indexName));
+            await this.reindexVectors(indexName);
           }
           break;
         }
@@ -214,58 +216,59 @@ export class DatabaseRepository {
           const matches = row.indexdef.match(/(?<=lists = \[)\d+/g);
           const lists = matches && matches.length > 0 ? Number(matches[0]) : 1;
           this.logger.log(`VectorChord check for ${indexName}: parsed lists=${lists} from indexdef`);
-          promises.push(
-            this.getRowCount(table).then((count) => {
-              const targetLists = this.targetListCount(count);
-              const slackLists = this.targetListCount(count * VECTORCHORD_LIST_SLACK_FACTOR);
-              const usesVchordrq = row.indexdef.toLowerCase().includes('using vchordrq');
 
-              this.logger.log(
-                `VectorChord ${indexName}: count=${count}, targetLists=${targetLists}, currentLists=${lists}, ` +
-                  `slackLists=${slackLists}, usesVchordrq=${usesVchordrq}`,
-              );
+          const count = await this.getRowCount(table);
+          const targetLists = this.targetListCount(count);
+          const slackLists = this.targetListCount(count * VECTORCHORD_LIST_SLACK_FACTOR);
+          const usesVchordrq = row.indexdef.toLowerCase().includes('using vchordrq');
 
-              const needsReindexType = !usesVchordrq;
-              const needsReindexLists = lists !== targetLists && lists !== slackLists;
-
-              // Skip reindex for lists changes when current lists >= 8192
-              // At this scale, reindexing takes hours and the marginal benefit is minimal
-              // Only reindex if the index type is wrong (not using vchordrq)
-              const skipListsReindex = lists >= 8192;
-              if (skipListsReindex && needsReindexLists && !needsReindexType) {
-                this.logger.warn(
-                  `VectorChord ${indexName}: lists mismatch (${lists} vs ${targetLists}) but skipping reindex ` +
-                    `because current lists (${lists}) >= 8192. Reindexing at this scale is too expensive.`,
-                );
-                probes[indexName] = this.targetProbeCount(lists);
-                return;
-              }
-
-              this.logger.log(
-                `VectorChord ${indexName}: needsReindexType=${needsReindexType}, needsReindexLists=${needsReindexLists}`,
-              );
-
-              if (needsReindexType || needsReindexLists) {
-                this.logger.warn(
-                  `VectorChord ${indexName}: WILL REINDEX - ` +
-                    `${needsReindexType ? 'wrong index type' : ''}${needsReindexType && needsReindexLists ? ' AND ' : ''}` +
-                    `${needsReindexLists ? `lists mismatch (${lists} != ${targetLists} and ${lists} != ${slackLists})` : ''}`,
-                );
-                probes[indexName] = this.targetProbeCount(targetLists);
-                return this.reindexVectors(indexName, { lists: targetLists });
-              } else {
-                this.logger.log(`VectorChord ${indexName}: index is OK, no reindex needed`);
-                probes[indexName] = this.targetProbeCount(lists);
-              }
-            }),
+          this.logger.log(
+            `VectorChord ${indexName}: count=${count}, targetLists=${targetLists}, currentLists=${lists}, ` +
+              `slackLists=${slackLists}, usesVchordrq=${usesVchordrq}`,
           );
+
+          const needsReindexType = !usesVchordrq;
+          const needsReindexLists = lists !== targetLists && lists !== slackLists;
+
+          // Skip reindex for lists changes when current lists >= 4096
+          // At this scale, reindexing takes hours and the marginal benefit is minimal
+          // Only reindex if the index type is wrong (not using vchordrq)
+          //
+          // Let the system auto reindex when the number of vectors grows:
+          // - At 1,024,000 rows → reindex to 2,048 lists (~15-30 min)
+          // - At 2,048,000 rows → reindex to 4,096 lists (~15-30 min)
+          // - Beyond 2M rows, auto-reindex is disabled. If needed, manually create
+          //   the index in psql during a maintenance window.
+          const skipListsReindex = lists >= 4096;
+          if (skipListsReindex && needsReindexLists && !needsReindexType) {
+            this.logger.warn(
+              `VectorChord ${indexName}: lists mismatch (current: ${lists}, target: ${targetLists}) but skipping ` +
+                `auto-reindex because current lists >= 4096. At this scale, reindexing takes hours. ` +
+                `If you need optimal performance, manually run CREATE INDEX in psql during a maintenance window.`,
+            );
+            probes[indexName] = this.targetProbeCount(lists);
+            break;
+          }
+
+          this.logger.log(
+            `VectorChord ${indexName}: needsReindexType=${needsReindexType}, needsReindexLists=${needsReindexLists}`,
+          );
+
+          if (needsReindexType || needsReindexLists) {
+            this.logger.warn(
+              `VectorChord ${indexName}: WILL REINDEX - ` +
+                `${needsReindexType ? 'wrong index type' : ''}${needsReindexType && needsReindexLists ? ' AND ' : ''}` +
+                `${needsReindexLists ? `lists mismatch (${lists} != ${targetLists} and ${lists} != ${slackLists})` : ''}`,
+            );
+            probes[indexName] = this.targetProbeCount(targetLists);
+            await this.reindexVectors(indexName, { lists: targetLists });
+          } else {
+            this.logger.log(`VectorChord ${indexName}: index is OK, no reindex needed`);
+            probes[indexName] = this.targetProbeCount(lists);
+          }
           break;
         }
       }
-    }
-
-    if (promises.length > 0) {
-      await Promise.all(promises);
     }
   }
 
@@ -285,11 +288,14 @@ export class DatabaseRepository {
     }
     const dimSize = await this.getDimensionSize(table);
     lists ||= this.targetListCount(await this.getRowCount(table));
-    await this.db.schema.dropIndex(indexName).ifExists().execute();
-    if (table === 'smart_search') {
-      await this.db.schema.alterTable(table).dropConstraint('dim_size_constraint').ifExists().execute();
-    }
+
+    // All index operations are inside the transaction to ensure atomicity.
+    // If CREATE INDEX fails, the DROP INDEX is also rolled back.
     await this.db.transaction().execute(async (tx) => {
+      await sql`DROP INDEX IF EXISTS ${sql.raw(indexName)}`.execute(tx);
+      if (table === 'smart_search') {
+        await sql`ALTER TABLE ${sql.raw(table)} DROP CONSTRAINT IF EXISTS dim_size_constraint`.execute(tx);
+      }
       if (!rows.some((row) => row.columnName === 'embedding')) {
         this.logger.warn(`Column 'embedding' does not exist in table '${table}', truncating and adding column.`);
         await sql`TRUNCATE TABLE ${sql.raw(table)}`.execute(tx);

@@ -491,7 +491,7 @@ export function vectorIndexQuery({ vectorExtension, table, indexName, lists }: V
         [build.internal]
         lists = [${lists ?? 1}]
         spherical_centroids = true
-        build_threads = 4
+        build_threads = 8
         sampling_factor = 1024
         $$)`;
     }
