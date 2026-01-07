@@ -300,6 +300,7 @@ export class AssetUploadService extends BaseService {
           localDateTime: assetData.fileCreatedAt,
           type,
           isFavorite: assetData.isFavorite,
+          isOriginalQuality: assetData.isOriginalQuality,
           livePhotoVideoId: assetData.livePhotoVideoId,
           visibility: AssetVisibility.Hidden,
           originalFileName: assetData.filename,

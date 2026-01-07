@@ -44,6 +44,9 @@ export class UploadAssetDataDto {
   @ValidateBoolean({ optional: true })
   isFavorite?: boolean;
 
+  @ValidateBoolean({ optional: true })
+  isOriginalQuality?: boolean;  
+
   @Optional()
   @IsString()
   @IsNotEmpty()
@@ -89,6 +92,7 @@ export class StartUploadDto extends BaseUploadHeadersDto {
         fileCreatedAt: dict.get('file-created-at')?.[0],
         fileModifiedAt: dict.get('file-modified-at')?.[0],
         isFavorite: dict.get('is-favorite')?.[0],
+        isOriginalQuality: dict.get('is-original-quality')?.[0] ?? true,
         livePhotoVideoId: dict.get('live-photo-video-id')?.[0],
         iCloudId: dict.get('icloud-id')?.[0],
       });
