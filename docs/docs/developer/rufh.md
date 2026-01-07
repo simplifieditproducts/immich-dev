@@ -93,7 +93,7 @@ upload-incomplete: ?0
   Example: `/api/upload/97213f15-c05a-4538-9771-950bcca931c7`
 - **201 (Success)**: Returns the created asset ID
 
-### HEAD /api/upload/{upload-id}
+### HEAD /api/upload/{asset-id}
 
 Queries the current upload offset when resuming an interrupted upload.
 
@@ -115,7 +115,7 @@ upload-draft-interop-version: 3
 **Response:**
 - **204 (No Content)**: Returns `Upload-Offset` header with the current byte offset
 
-### PATCH /api/upload/{upload-id}
+### PATCH /api/upload/{asset-id}
 
 Resumes an interrupted upload from a specific offset.
 
@@ -140,6 +140,18 @@ content-type: video/mp4
 
 **Response:**
 - **201 (Success)**: Returns the created asset ID
+
+### DELETE /api/upload/{asset-id}
+
+Cancels an incomplete upload. Partially uploaded assets can be identified using the SQL query: `SELECT * FROM asset WHERE status = 'partial'`.
+
+**Request Headers:**
+```http
+x-api-key: ********
+```
+
+**Response:**
+- **204 (Success)**: No content
 
 ## Upload Flow
 
