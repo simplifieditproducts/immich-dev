@@ -74,7 +74,7 @@ Initiates a new upload. This request is always sent first.
 **Request Headers:**
 ```http
 repr-digest: xxh64=:2Dw7zeWSRAI=:
-x-immich-asset-data: device-asset-id="pk-500gb-video-1BE98BB7", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:12:43Z", file-modified-at="2026-01-07T03:12:43Z"
+x-immich-asset-data: device-asset-id="9D27DEAF-8428-4935-B6AA-41BB68583A77", device-file-path="C:\\Users\\me\\Desktop\\500gb.mp4", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:12:43Z", file-modified-at="2026-01-07T03:12:43Z"
 x-api-key: ********
 content-length: 486285949
 content-type: video/mp4
@@ -99,9 +99,11 @@ Queries the current upload offset when resuming an interrupted upload.
 
 **Request Headers:**
 ```http
-repr-digest: xxh64=:2Dw7zeWSRAI=:
-x-immich-asset-data: device-asset-id="pk-500gb-video-53474B84", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:16:44Z", file-modified-at="2026-01-07T03:16:44Z"
 x-api-key: ********
+
+# iOS sends those which are not used by the server
+repr-digest: xxh64=:2Dw7zeWSRAI=:
+x-immich-asset-data: device-asset-id="9D27DEAF-8428-4935-B6AA-41BB68583A77", device-file-path="C:\\Users\\me\\Desktop\\500gb.mp4", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:16:44Z", file-modified-at="2026-01-07T03:16:44Z"
 content-type: video/mp4
 
 # iOS 18 & iOS 26
@@ -122,10 +124,12 @@ Resumes an interrupted upload from a specific offset.
 **Request Headers:**
 ```http
 upload-offset: 87188440
-repr-digest: xxh64=:2Dw7zeWSRAI=:
-x-immich-asset-data: device-asset-id="pk-500gb-video-53474B84", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:16:44Z", file-modified-at="2026-01-07T03:16:44Z"
 x-api-key: ********
 content-length: 399097509
+
+# iOS sends those which are not used by the server
+repr-digest: xxh64=:2Dw7zeWSRAI=:
+x-immich-asset-data: device-asset-id="9D27DEAF-8428-4935-B6AA-41BB68583A77", device-file-path="C:\\Users\\me\\Desktop\\500gb.mp4", device-id="ios-rufh-test", filename="500gb.mp4", file-created-at="2026-01-07T03:16:44Z", file-modified-at="2026-01-07T03:16:44Z"
 
 # iOS 18 & iOS 26
 upload-draft-interop-version: 6

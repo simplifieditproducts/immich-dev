@@ -293,6 +293,7 @@ export class AssetUploadService extends BaseService {
           checksum,
           originalPath: path,
           deviceAssetId: assetData.deviceAssetId,
+          deviceFilePath: assetData.deviceFilePath,
           deviceId: assetData.deviceId,
           fileCreatedAt: assetData.fileCreatedAt,
           fileModifiedAt: assetData.fileModifiedAt,

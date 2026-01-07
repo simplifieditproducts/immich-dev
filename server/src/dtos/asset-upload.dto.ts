@@ -22,6 +22,11 @@ export class UploadAssetDataDto {
   @IsString()
   deviceAssetId!: string;
 
+  @Optional()
+  @IsString()
+  @IsNotEmpty()
+  deviceFilePath?: string;
+
   @IsNotEmpty()
   @IsString()
   deviceId!: string;
@@ -77,6 +82,7 @@ export class StartUploadDto extends BaseUploadHeadersDto {
       const dict = parseDictionary(value);
       return plainToInstance(UploadAssetDataDto, {
         deviceAssetId: dict.get('device-asset-id')?.[0],
+        deviceFilePath: dict.get('device-file-path')?.[0],
         deviceId: dict.get('device-id')?.[0],
         filename: dict.get('filename')?.[0],
         duration: dict.get('duration')?.[0],
