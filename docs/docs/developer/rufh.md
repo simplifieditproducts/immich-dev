@@ -58,6 +58,7 @@ Indicates the byte offset in the file where the next chunk should be uploaded. U
 
 Custom Immich header containing a structured dictionary with asset metadata:
 - Device asset ID
+- Device file path
 - Device ID
 - Filename
 - File creation timestamp
