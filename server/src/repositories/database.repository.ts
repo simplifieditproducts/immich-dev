@@ -484,6 +484,20 @@ export class DatabaseRepository {
     return res as R;
   }
 
+  async withUuidLock<R>(uuid: string, callback: () => Promise<R>): Promise<R> {
+    let res;
+    await this.db.connection().execute(async (connection) => {
+      try {
+        await this.acquireUuidLock(uuid, connection);
+        res = await callback();
+      } finally {
+        await this.releaseUuidLock(uuid, connection);
+      }
+    });
+
+    return res as R;
+  }
+
   tryLock(lock: DatabaseLock): Promise<boolean> {
     return this.db.connection().execute(async (connection) => this.acquireTryLock(lock, connection));
   }
@@ -498,6 +512,10 @@ export class DatabaseRepository {
 
   private async acquireLock(lock: DatabaseLock, connection: Kysely<DB>): Promise<void> {
     await sql`SELECT pg_advisory_lock(${lock})`.execute(connection);
+  }
+
+  private async acquireUuidLock(uuid: string, connection: Kysely<DB>): Promise<void> {
+    await sql`SELECT pg_advisory_lock(uuid_hash_extended(${uuid}, 0))`.execute(connection);
   }
 
   private async acquireTryLock(lock: DatabaseLock, connection: Kysely<DB>): Promise<boolean> {
@@ -555,5 +573,9 @@ export class DatabaseRepository {
         migrationFolder: join(__dirname, '..', 'schema/migrations'),
       }),
     });
+  }
+
+  private async releaseUuidLock(uuid: string, connection: Kysely<DB>): Promise<void> {
+    await sql`SELECT pg_advisory_unlock(uuid_hash_extended(${uuid}, 0))`.execute(connection);
   }
 }

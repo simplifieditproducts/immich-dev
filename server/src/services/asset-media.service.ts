@@ -54,12 +54,12 @@ export class AssetMediaService extends BaseService {
       return;
     }
 
-    const assetId = await this.assetRepository.getUploadAssetIdByChecksum(auth.user.id, fromChecksum(checksum));
-    if (!assetId) {
+    const asset = await this.assetRepository.getUploadAssetIdByChecksum(auth.user.id, fromChecksum(checksum));
+    if (!asset) {
       return;
     }
 
-    return { id: assetId, status: AssetMediaStatus.DUPLICATE, checksum };
+    return { id: asset.id, status: AssetMediaStatus.DUPLICATE, checksum };
   }
 
   canUploadFile({ auth, fieldName, file, body }: UploadRequest): true {
@@ -174,6 +174,10 @@ export class AssetMediaService extends BaseService {
 
       if (!asset) {
         throw new Error('Asset not found');
+      }
+
+      if (asset.status === AssetStatus.Partial) {
+        throw new BadRequestException('Cannot replace a partial asset');
       }
 
       if (asset.type !== AssetType.Image && dto.skipReprocess) {
@@ -340,12 +344,12 @@ export class AssetMediaService extends BaseService {
 
     // handle duplicates with a success response
     if (isAssetChecksumConstraint(error)) {
-      const duplicateId = await this.assetRepository.getUploadAssetIdByChecksum(auth.user.id, file.checksum);
-      if (!duplicateId) {
+      const duplicate = await this.assetRepository.getUploadAssetIdByChecksum(auth.user.id, file.checksum);
+      if (!duplicate) {
         this.logger.error(`Error locating duplicate for checksum constraint`);
         throw new InternalServerErrorException();
       }
-      return { status: AssetMediaStatus.DUPLICATE, id: duplicateId, checksum: hexOrBufferToBase64(file.checksum) };
+      return { status: AssetMediaStatus.DUPLICATE, id: duplicate.id, checksum: hexOrBufferToBase64(file.checksum) };
     }
 
     this.logger.error(`Error uploading file ${error}`, error?.stack);
