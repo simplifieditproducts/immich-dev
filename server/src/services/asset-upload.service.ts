@@ -69,11 +69,7 @@ export class AssetUploadService extends BaseService {
       if (isResumable) {
         this.sendInterimResponse(res, location, version, this.getUploadLimits(backup));
         // this is a 5xx to indicate the client should do offset retrieval and resume
-        // res.status(500).send('Incomplete asset already exists');
-
-        // Simulate network interruption: destroy the request stream without sending a response
-        // Ensure the interim response is fully transmitted before destroying the connection
-        await this.flushAndDestroy(res.socket, req);
+        res.status(500).send('Incomplete asset already exists');
         return;
       }
     }
@@ -460,34 +456,5 @@ export class AssetUploadService extends BaseService {
 
   private getUploadLimits({ upload }: SystemConfig['backup']) {
     return `min-size=1, max-age=${upload.maxAgeHours * 3600}`;
-  }
-
-  private async flushAndDestroy(socket: any, req: Readable, delayMs: number = 100): Promise<void> {
-    if (!socket || socket.destroyed) {
-      req.destroy(new Error('Socket already destroyed'));
-      return;
-    }
-
-    // Flush the socket buffer to ensure interim response is sent
-    return new Promise((resolve) => {
-      const onDrained = () => {
-        // Wait additional time for network transmission
-        setTimeout(() => {
-          this.logger.debug('Destroying request stream after flushing interim response');
-          req.destroy(new Error('Incomplete asset already exists - simulated network interruption for RUFH'));
-          resolve();
-        }, delayMs);
-      };
-
-      // If writable buffer is empty, it's already flushed
-      if (!socket.writableLength || socket.writableLength === 0) {
-        onDrained();
-      } else {
-        // Wait for drain event when buffer is flushed
-        socket.once('drain', onDrained);
-        // Also set a timeout in case drain never fires
-        setTimeout(onDrained, delayMs * 2);
-      }
-    });
   }
 }
