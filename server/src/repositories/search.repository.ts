@@ -302,10 +302,13 @@ export class SearchRepository {
       const items = await searchAssetBuilder(trx, options)
         .selectAll('asset')
         .leftJoin('smart_search', 'asset.id', 'smart_search.assetId')
-        .leftJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
-        .orderBy(
-          // currently use the same logic as OCR search, but this can be tweaked using the <->>> operator with a weight if needed.
-          sql`CASE WHEN ocr_search.text IS NULL THEN 0 ELSE (f_unaccent(ocr_search.text) %>> f_unaccent(${tokenizeForSearch(options.query!).join(' ')}))::integer END DESC`,
+        .$if(!!options.query, (qb) =>
+          qb
+            .leftJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
+            .orderBy(
+              // currently use the same logic as OCR search, but this can be tweaked using the <->>> operator with a weight if needed.
+              sql`CASE WHEN ocr_search.text IS NULL THEN 0 ELSE (f_unaccent(ocr_search.text) %>> f_unaccent(${tokenizeForSearch(options.query!).join(' ')}))::integer END DESC`,
+            ),
         )
         .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
         .limit(pagination.size + 1)
