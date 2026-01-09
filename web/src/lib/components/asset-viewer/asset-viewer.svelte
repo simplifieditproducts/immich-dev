@@ -13,6 +13,8 @@
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import { closeEditorCofirm } from '$lib/stores/asset-editor.store';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
+  import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
+  import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { ocrManager } from '$lib/stores/ocr.svelte';
   import { embeddedInApp, alwaysLoadOriginalVideo, isShowDetail } from '$lib/stores/preferences.store';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
@@ -268,7 +270,7 @@
 
   // Swipe to dismiss gesture handlers
   const handleTouchStart = (e: TouchEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay || isFaceEditMode.value) {
       return;
     }
 
@@ -284,7 +286,7 @@
   };
 
   const handleMouseDown = (e: MouseEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay) {
+    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay || isFaceEditMode.value) {
       return;
     }
 
@@ -576,6 +578,24 @@
       handlePromiseError(ocrManager.getAssetOcr(asset.id));
     }
   });
+
+  // Send background mode command to app when detail panel visibility changes
+  $effect(() => {
+    if ($embeddedInApp) {
+      if ($isShowDetail) {
+        sendMessageToApp('CMD_SETBGMODE_DEFAULT');
+      } else {
+        sendMessageToApp('CMD_SETBGMODE_DARK');
+      }
+    }
+  });
+
+  // Hide detail panel when face edit mode is on with a touch device
+  $effect(() => {
+    if (mobileDevice.pointerCoarse) {
+      $isShowDetail = !isFaceEditMode.value;
+    }
+  });
 </script>
 
 <OnEvents onAssetReplace={handleAssetReplace} />
@@ -600,7 +620,7 @@
   tabindex="0"
 >
   <!-- Top navigation bar -->
-  {#if $slideshowState === SlideshowState.None && !isShowEditor}
+  {#if $slideshowState === SlideshowState.None && !isShowEditor && !isFaceEditMode.value}
     <div 
       class="z-2 col-span-4 col-start-1 row-span-1 row-start-1 transition-all duration-300"
       class:opacity-0={!controlsVisible}
@@ -648,8 +668,8 @@
     </div>
   {/if}
 
-  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay}
-    <div 
+  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay && !isFaceEditMode.value}
+    <div
       class="z-1 my-auto column-span-1 col-start-1 row-span-full row-start-1 justify-self-start transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
       class:pointer-events-none={!controlsVisible}
@@ -749,7 +769,7 @@
           </div>
         {/if}
 
-        {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData}
+        {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData && !isFaceEditMode.value}
           <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300 rounded-full bg-black/50"
             class:opacity-0={!controlsVisible}
             class:pointer-events-none={!controlsVisible}
@@ -763,8 +783,8 @@
     {/if}
   </div>
 
-  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay}
-    <div 
+  {#if $slideshowState === SlideshowState.None && showNavigation && !isShowEditor && !ocrManager.showOverlay && !isFaceEditMode.value}
+    <div
       class="z-1 my-auto col-span-1 col-start-4 row-span-full row-start-1 justify-self-end transition-opacity duration-300"
       class:opacity-0={!controlsVisible}
       class:pointer-events-none={!controlsVisible}

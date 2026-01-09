@@ -17,8 +17,8 @@
     type AssetFaceResponseDto,
     type PersonResponseDto,
   } from '@immich/sdk';
-  import { Icon, IconButton, LoadingSpinner, modalManager, toastManager } from '@immich/ui';
-  import { mdiAccountOff, mdiArrowLeftThin, mdiPencil, mdiRestart, mdiTrashCan } from '@mdi/js';
+  import { IconButton, LoadingSpinner, modalManager, toastManager } from '@immich/ui';
+  import { mdiArrowLeftThin, mdiPencil, mdiRestart, mdiTrashCan } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
   import { linear } from 'svelte/easing';
@@ -186,7 +186,7 @@
 
 <section
   transition:fly={{ x: 360, duration: 100, easing: linear }}
-  class="absolute top-0 h-full w-90 overflow-x-hidden p-2 dark:text-immich-dark-fg bg-light"
+  class="fixed inset-0 sm:inset-auto sm:absolute sm:top-0 sm:h-full sm:w-90 overflow-x-hidden p-2 dark:text-immich-dark-fg bg-light"
 >
   <div class="flex place-items-center justify-between gap-2">
     <div class="flex items-center gap-2">
@@ -214,7 +214,7 @@
   </div>
 
   <div class="px-4 py-4 text-sm">
-    <div class="mt-4 flex flex-wrap gap-2">
+    <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
       {#if isShowLoadingPeople}
         <div class="flex w-full justify-center">
           <LoadingSpinner />
@@ -326,6 +326,7 @@
                   />
                 {/if}
               </div>
+              <!-- Kevin has hidden this icon as the UI is too cluttered with it.
               <div class="absolute end-8 -top-[3px] h-5 w-5 rounded-full">
                 {#if !selectedPersonToCreate[face.id] && !selectedPersonToReassign[face.id] && !face.person}
                   <div
@@ -334,9 +335,10 @@
                     <Icon color="primary" icon={mdiAccountOff} aria-hidden size="24" />
                   </div>
                 {/if}
-              </div>
+              </div> 
+              -->
               {#if face.person != null}
-                <div class="absolute -end-[3px] top-8 h-5 w-5 rounded-full">
+                <div class="absolute -end-[3px] top-18 h-5 w-5 rounded-full">
                   <IconButton
                     shape="round"
                     color="danger"

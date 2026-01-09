@@ -73,7 +73,7 @@
 
 <section
   transition:fly={{ x: 360, duration: 100, easing: linear }}
-  class="absolute top-0 h-full w-90 overflow-x-hidden p-2 dark:text-immich-dark-fg bg-light"
+  class="fixed inset-0 sm:inset-auto sm:absolute sm:top-0 sm:h-full sm:w-90 overflow-x-hidden p-2 dark:text-immich-dark-fg bg-light"
 >
   <div class="flex place-items-center justify-between gap-2">
     {#if !searchFaces}
@@ -122,6 +122,7 @@
         icon={mdiArrowLeftThin}
         aria-label={$t('back')}
         onclick={onClose}
+        class="flex-none"
       />
       <div class="w-full flex">
         <SearchPeople
@@ -143,6 +144,7 @@
         icon={mdiClose}
         aria-label={$t('cancel_search')}
         onclick={() => (searchFaces = false)}
+        class="flex-none"
       />
     {/if}
   </div>
@@ -153,7 +155,7 @@
         <LoadingSpinner />
       </div>
     {:else}
-      <div class="immich-scrollbar mt-4 flex flex-wrap gap-2 overflow-y-auto">
+      <div class="immich-scrollbar mt-4 flex flex-wrap gap-x-4 gap-y-2 overflow-y-auto">
         {#each showPeople as person (person.id)}
           {#if !editedFace.person || person.id !== editedFace.person.id}
             <div class="w-fit">
