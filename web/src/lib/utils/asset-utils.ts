@@ -197,8 +197,8 @@ export const downloadUrl = (url: string, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-// Sends a download request to the native app when in embedded mode
-export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
+// Sends assets to the native app with a specified command when in embedded mode
+const sendAssetsToApp = async (assets: TimelineAsset[], command: string, errorMessageKey: string) => {
   let assetList = [];
 
   if (assets.some(a => !a.originalFileName || !a.fileSizeInByte)) {
@@ -207,7 +207,7 @@ export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
     const [error, assetsInfo] = await withError(() => getAssetsInfo({ ids: assetIds }));
     if (error) {
       const $t = get(t);
-      handleError(error, $t('errors.unable_to_download_files'));
+      handleError(error, $t(errorMessageKey));
       return;
     }
 
@@ -230,7 +230,17 @@ export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
     }));
   }
 
-  sendMessageToApp('CMD_DOWNLOAD_ASSETS ' + JSON.stringify({ assets: assetList }));
+  sendMessageToApp(command + ' ' + JSON.stringify({ assets: assetList }));
+};
+
+// Sends a download request to the native app when in embedded mode
+export const downloadAssetsViaApp = async (assets: TimelineAsset[]) => {
+  await sendAssetsToApp(assets, 'CMD_DOWNLOAD_ASSETS', 'errors.unable_to_download_files');
+};
+
+// Sends a share request to the native app when in embedded mode
+export const shareAssetsViaApp = async (assets: TimelineAsset[]) => {
+  await sendAssetsToApp(assets, 'CMD_SHARE_ASSETS', 'errors.unable_to_share_files');
 };
 
 // Sends a download request to the native app when in embedded mode

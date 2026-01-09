@@ -337,7 +337,10 @@
 <RightClickContextMenu title={$t('album_options')} {...contextMenuPosition} {isOpen} onClose={closeAlbumContextMenu}>
   {#if showFullContextMenu}
     <MenuOption icon={mdiRenameOutline} text={$t('edit_album')} onClick={() => handleSelect('edit')} />
-    <MenuOption icon={mdiShareVariantOutline} text={$t('share')} onClick={() => handleSelect('share')} />
+    <!-- Kevin has made 'Share' menu visible only for admins -->
+    {#if $user.isAdmin}
+      <MenuOption icon={mdiShareVariantOutline} text={$t('share')} onClick={() => handleSelect('share')} />
+    {/if}
   {/if}
   <!-- Kevin has made 'Download' menu visible only for admins -->
   {#if $user.isAdmin}
