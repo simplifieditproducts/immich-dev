@@ -132,7 +132,7 @@
           <div use:listNavigation={suggestionContainer}>
             <button type="button" class="w-full" onclick={() => (hideSuggestion = false)}>
               <SearchBar
-                placeholder={$t('search_places')}
+                placeholder='City, State, or Country'
                 bind:name={searchWord}
                 {showLoadingSpinner}
                 onReset={() => (suggestedPlaces = [])}

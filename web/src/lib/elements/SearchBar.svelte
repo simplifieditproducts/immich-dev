@@ -50,6 +50,7 @@
     aria-label={$t('search')}
     size="small"
     onclick={() => onSearch({ force: true })}
+    class="flex-none"
   />
   <input
     class="w-full gap-2 bg-gray-200 dark:bg-immich-dark-gray dark:text-white"
@@ -74,6 +75,7 @@
       aria-label={$t('clear_value')}
       size="small"
       onclick={resetSearch}
+      class="flex-none"
     />
   {/if}
 </div>
