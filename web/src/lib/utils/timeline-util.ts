@@ -140,7 +140,6 @@ export function formatGroupTitle(_date: DateTime): string {
   if (today.hasSame(date, 'year')) {
     return date.toLocaleString(
       {
-        weekday: 'short',
         month: 'short',
         day: 'numeric',
       },
@@ -152,7 +151,7 @@ export function formatGroupTitle(_date: DateTime): string {
 }
 
 export const getDateLocaleString = (date: DateTime, opts?: LocaleOptions): string =>
-  date.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY, opts);
+  date.toLocaleString(DateTime.DATE_MED, opts);
 
 export const toTimelineAsset = (unknownAsset: AssetResponseDto | TimelineAsset): TimelineAsset => {
   if (isTimelineAsset(unknownAsset)) {
