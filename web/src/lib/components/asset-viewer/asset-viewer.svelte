@@ -750,7 +750,7 @@
         {/if}
 
         {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData}
-          <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300"
+          <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300 rounded-full bg-black/50"
             class:opacity-0={!controlsVisible}
             class:pointer-events-none={!controlsVisible}
             class:opacity-100={controlsVisible}
