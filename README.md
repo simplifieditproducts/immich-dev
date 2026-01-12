@@ -42,9 +42,11 @@ API changes we made in our fork compared to the [official API documentation](htt
 - The `getAssetsInfo` API function has been added to accept a list of asset IDs and return the asset info for each of them. This API supports the 'Download' feature, which requires fetching asset info in bulk. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 
 Communication between the Immich app and the native app is handled via `postMessage`:
+- The `CMD_PAGE_READY` message informs the native app that either the `/photos` or `/search` page has finished loading.
 - The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
 - The `CMD_SETBGMODE_DARK` message instructs the native app to set the app’s background to dark (black).
 - The `CMD_SETBGMODE_DEFAULT` message instructs the native app to reset the background to its default.
+- The `CMD_SHARE_ASSETS` message instructs the native app to share a list of assets using the system Share popup. It comes with a list of assets in JSON format.
 - The `CMD_DOWNLOAD_ASSETS` message instructs the native app to download a list of assets. It comes with a list of assets in JSON format.
 - (Optional) The `CMD_DOWNLOAD_ALBUM` message instructs the native app to download an album. Currently, this command is not sent as the 'Download' button is hidden from end users.
 

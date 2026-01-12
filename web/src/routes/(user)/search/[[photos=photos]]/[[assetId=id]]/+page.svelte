@@ -111,6 +111,15 @@
       }
   });
 
+  // Send CMD_PAGE_READY when initial search completes
+  let hasSentPageReady = false;
+  $effect(() => {
+    if ($embeddedInApp && !isLoading && !hasSentPageReady) {
+      hasSentPageReady = true;
+      sendMessageToApp('CMD_PAGE_READY');
+    }
+  });
+
   const onEscape = () => {
     if ($showAssetViewer) {
       return;

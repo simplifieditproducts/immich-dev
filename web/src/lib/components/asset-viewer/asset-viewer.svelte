@@ -591,9 +591,14 @@
   });
 
   // Hide detail panel when face edit mode is on with a touch device
+  let prevFaceEditMode = isFaceEditMode.value;
   $effect(() => {
     if (mobileDevice.pointerCoarse) {
-      $isShowDetail = !isFaceEditMode.value;
+      const current = isFaceEditMode.value;
+      if (current !== prevFaceEditMode) {
+        prevFaceEditMode = current;
+        $isShowDetail = !current;
+      }
     }
   });
 </script>

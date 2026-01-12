@@ -97,6 +97,15 @@
   beforeNavigate(() => {
     isFaceEditMode.value = false;
   });
+
+  // Send CMD_PAGE_READY when the timeline is initialized
+  let hasSentPageReady = false;
+  $effect(() => {
+    if ($embeddedInApp && timelineManager?.isInitialized && !hasSentPageReady) {
+      hasSentPageReady = true;
+      sendMessageToApp('CMD_PAGE_READY');
+    }
+  });
 </script>
 
 <!-- Gavin has made the 'Upload' Button visible only for admins -->
