@@ -8,7 +8,7 @@
   import { handleError } from '$lib/utils/handle-error';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
   import { deleteAssets, type AssetResponseDto } from '@immich/sdk';
-  import { IconButton, toastManager } from '@immich/ui';
+  import { IconButton, modalManager, toastManager } from '@immich/ui';
   import { mdiDeleteForeverOutline, mdiDeleteOutline } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { OnAction, PreAction } from './action';
@@ -30,6 +30,14 @@
         return;
       }
       await deleteAsset();
+      return;
+    }
+
+    const isConfirmed = await modalManager.showDialog({
+      prompt: $t('confirm_move_to_trash'),
+    });
+
+    if (!isConfirmed) {
       return;
     }
 

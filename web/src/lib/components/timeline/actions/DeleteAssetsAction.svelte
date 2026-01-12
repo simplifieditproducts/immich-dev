@@ -3,7 +3,7 @@
   import { getAssetControlContext } from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
   import { type OnDelete, type OnUndoDelete, deleteAssets } from '$lib/utils/actions';
-  import { IconButton } from '@immich/ui';
+  import { IconButton, modalManager } from '@immich/ui';
   import { mdiDeleteForeverOutline, mdiDeleteOutline, mdiTimerSand } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import MenuOption from '../../shared-components/context-menu/menu-option.svelte';
@@ -32,6 +32,15 @@
   const handleTrash = async () => {
     if (force) {
       isShowConfirmation = true;
+      return;
+    }
+
+    const count = getOwnedAssets().length;
+    const isConfirmed = await modalManager.showDialog({
+      prompt: $t('confirm_move_to_trash_count', { values: { count } }),
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
