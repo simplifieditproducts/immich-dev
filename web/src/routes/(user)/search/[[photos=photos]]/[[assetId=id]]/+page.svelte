@@ -140,7 +140,7 @@
 
   afterNavigate(({ from }) => {
     // Prevent setting previousRoute to the current page.
-    if (from?.url && from.route.id !== page.route.id) {
+    if (from?.url && from.url.href !== page.url.href) {
       previousRoute = from.url.href;
     }
     const route = from?.route?.id;
