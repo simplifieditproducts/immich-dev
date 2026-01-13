@@ -63,6 +63,8 @@ export const getKyselyConfig = (
   options: Partial<postgres.Options<Record<string, postgres.PostgresType>>> = {},
 ): KyselyConfig => {
   const config = asPostgresConnectionConfig(params);
+  const isApiServer = process.env.IMMICH_WORKERS_INCLUDE === ImmichWorker.Api;
+  const maxPoolSize = isApiServer ? 50 : 10;
 
   return {
     dialect: new PostgresJSDialect({
@@ -72,7 +74,8 @@ export const getKyselyConfig = (
             console.warn('Postgres notice:', notice);
           }
         },
-        max: 10,
+        max: maxPoolSize,
+        idle_timeout: 30,
         types: {
           date: {
             to: 1184,
@@ -113,7 +116,6 @@ export const getKyselyConfig = (
         // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
         // our deployment scripts can detect it and restart the appropriate container.
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
-          const isApiServer = process.env.IMMICH_WORKERS_INCLUDE === ImmichWorker.Api;
           const containerType = isApiServer ? 'server' : 'microservices';
           const tempFile = `/tmp/immich/connection_destroyed_${containerType}`;
           try {
