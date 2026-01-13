@@ -137,8 +137,12 @@
   };
 
   const onSubmit = () => {
-    handlePromiseError(handleSearch(buildSearchPayload(value)));
-    saveSearchTerm(value);
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      return;
+    }
+    handlePromiseError(handleSearch(buildSearchPayload(trimmedValue)));
+    saveSearchTerm(trimmedValue);
   };
 
   const onClear = () => {
