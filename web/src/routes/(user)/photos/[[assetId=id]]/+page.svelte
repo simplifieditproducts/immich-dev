@@ -40,7 +40,6 @@
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
 
   import { t } from 'svelte-i18n';
-  import { SvelteURL } from 'svelte/reactivity';
 
   let { isViewing: showAssetViewer } = assetViewingStore;
   let timelineManager = $state<TimelineManager>() as TimelineManager;
@@ -90,8 +89,8 @@
   };
 
   const onBack = () => {
-    // Send 'CMD_CLOSE_WINDOW' if embedded in app and the initial URL is '/photos'
-    return $embeddedInApp && (new SvelteURL($initialUrl)).pathname === AppRoute.PHOTOS && sendMessageToApp('CMD_CLOSE_WINDOW');
+    // Only close webview if we're at the exact initial entry URL
+    return $embeddedInApp && page.url.href === $initialUrl && sendMessageToApp('CMD_CLOSE_WINDOW');
   }
 
   beforeNavigate(() => {

@@ -26,7 +26,7 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
-  import { embeddedInApp, lang, locale, postponeNamingPeopleUntil } from '$lib/stores/preferences.store';
+  import { embeddedInApp, initialUrl, lang, locale, postponeNamingPeopleUntil } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
   import { handlePromiseError, sendMessageToApp } from '$lib/utils';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
@@ -352,9 +352,11 @@
   };
 
   const onClose = async () => {
-    if (!($embeddedInApp && sendMessageToApp('CMD_CLOSE_WINDOW'))) {
-      await goto(previousRoute);
+    // Only close webview if we're at the exact initial entry URL
+    if ($embeddedInApp && page.url.href === $initialUrl && sendMessageToApp('CMD_CLOSE_WINDOW')) {
+      return;
     }
+    await goto(previousRoute);
   }
 
   function getObjectKeys<T extends object>(obj: T): (keyof T)[] {
