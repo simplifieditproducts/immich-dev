@@ -29,7 +29,7 @@
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
   import { embeddedInApp, initialUrl } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
-  import { sendMessageToApp } from '$lib/utils';
+  import { sendMessageToApp, sendPageReadyToApp } from '$lib/utils';
   import {
     updateStackedAssetInTimeline,
     updateUnstackedAssetInTimeline,
@@ -89,8 +89,9 @@
   };
 
   const onBack = () => {
-    // Only close webview if we're at the exact initial entry URL
-    return $embeddedInApp && page.url.href === $initialUrl && sendMessageToApp('CMD_CLOSE_WINDOW');
+    // Close webview if on /photos and initial entry was also /photos
+    const initialPathname = new URL($initialUrl).pathname;
+    return $embeddedInApp && page.url.pathname === AppRoute.PHOTOS && initialPathname === AppRoute.PHOTOS && sendMessageToApp('CMD_CLOSE_WINDOW');
   }
 
   beforeNavigate(() => {
@@ -98,11 +99,9 @@
   });
 
   // Send CMD_PAGE_READY when the timeline is initialized
-  let hasSentPageReady = false;
   $effect(() => {
-    if ($embeddedInApp && timelineManager?.isInitialized && !hasSentPageReady) {
-      hasSentPageReady = true;
-      sendMessageToApp('CMD_PAGE_READY');
+    if ($embeddedInApp && timelineManager?.isInitialized) {
+      sendPageReadyToApp();
     }
   });
 </script>

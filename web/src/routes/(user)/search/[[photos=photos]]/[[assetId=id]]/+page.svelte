@@ -28,7 +28,7 @@
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { embeddedInApp, initialUrl, lang, locale, postponeNamingPeopleUntil } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
-  import { handlePromiseError, sendMessageToApp } from '$lib/utils';
+  import { handlePromiseError, sendMessageToApp, sendPageReadyToApp } from '$lib/utils';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { parseUtcDate } from '$lib/utils/date-time';
   import { handleError } from '$lib/utils/handle-error';
@@ -112,11 +112,9 @@
   });
 
   // Send CMD_PAGE_READY when initial search completes
-  let hasSentPageReady = false;
   $effect(() => {
-    if ($embeddedInApp && !isLoading && !hasSentPageReady) {
-      hasSentPageReady = true;
-      sendMessageToApp('CMD_PAGE_READY');
+    if ($embeddedInApp && !isLoading) {
+      sendPageReadyToApp();
     }
   });
 
@@ -140,7 +138,7 @@
 
   afterNavigate(({ from }) => {
     // Prevent setting previousRoute to the current page.
-    if (from?.url && from.url.href !== page.url.href) {
+    if (from?.url && from.route.id !== page.route.id) {
       previousRoute = from.url.href;
     }
     const route = from?.route?.id;
@@ -352,8 +350,10 @@
   };
 
   const onClose = async () => {
-    // Only close webview if we're at the exact initial entry URL
-    if ($embeddedInApp && page.url.href === $initialUrl && sendMessageToApp('CMD_CLOSE_WINDOW')) {
+    // Close webview if on /search and initial entry was also /search
+    const initialPathname = new URL($initialUrl).pathname;
+    const shouldCloseWebView = $embeddedInApp && page.url.pathname === AppRoute.SEARCH && initialPathname === AppRoute.SEARCH;
+    if (shouldCloseWebView && sendMessageToApp('CMD_CLOSE_WINDOW')) {
       return;
     }
     await goto(previousRoute);

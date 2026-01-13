@@ -432,4 +432,15 @@ export const sendMessageToApp = (data: string) => {
     return false;
   }
   return true;
-}
+};
+
+// Track whether CMD_PAGE_READY has been sent this session
+let hasSentPageReady = false;
+
+export const sendPageReadyToApp = () => {
+  if (hasSentPageReady) {
+    return false;
+  }
+  hasSentPageReady = true;
+  return sendMessageToApp('CMD_PAGE_READY');
+};
