@@ -116,7 +116,8 @@
       case AssetAction.UNARCHIVE:
       case AssetAction.FAVORITE:
       case AssetAction.UNFAVORITE:
-      case AssetAction.ADD: {
+      case AssetAction.ADD:
+      case AssetAction.RESTORE: {
         timelineManager.upsertAssets([action.asset]);
         break;
       }

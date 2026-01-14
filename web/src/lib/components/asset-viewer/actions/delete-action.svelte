@@ -1,14 +1,15 @@
 <script lang="ts">
   import { shortcuts } from '$lib/actions/shortcut';
   import DeleteAssetDialog from '$lib/components/photos-page/delete-asset-dialog.svelte';
+  import ToastAction from '$lib/components/ToastAction.svelte';
   import { AssetAction } from '$lib/constants';
   import Portal from '$lib/elements/Portal.svelte';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
   import { showDeleteModal } from '$lib/stores/preferences.store';
   import { handleError } from '$lib/utils/handle-error';
   import { toTimelineAsset } from '$lib/utils/timeline-util';
-  import { deleteAssets, type AssetResponseDto } from '@immich/sdk';
-  import { IconButton, modalManager, toastManager } from '@immich/ui';
+  import { deleteAssets, restoreAssets, type AssetResponseDto } from '@immich/sdk';
+  import { IconButton, toastManager } from '@immich/ui';
   import { mdiDeleteForeverOutline, mdiDeleteOutline } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { OnAction, PreAction } from './action';
@@ -33,24 +34,43 @@
       return;
     }
 
-    const isConfirmed = await modalManager.showDialog({
-      prompt: $t('confirm_move_to_trash'),
-    });
-
-    if (!isConfirmed) {
-      return;
-    }
-
     await trashAsset();
-    return;
   };
 
   const trashAsset = async () => {
+    // Capture asset data at trash time to avoid closure issues if user navigates to another asset
+    const trashedAsset = toTimelineAsset(asset);
+    const trashedAssetId = asset.id;
+
+    const undoTrash = async () => {
+      try {
+        await restoreAssets({ bulkIdsDto: { ids: [trashedAssetId] } });
+        onAction({ type: AssetAction.RESTORE, asset: trashedAsset });
+      } catch (error) {
+        handleError(error, $t('errors.unable_to_restore_assets'));
+      }
+    };
+
     try {
-      preAction({ type: AssetAction.TRASH, asset: toTimelineAsset(asset) });
-      await deleteAssets({ assetBulkDeleteDto: { ids: [asset.id] } });
-      onAction({ type: AssetAction.TRASH, asset: toTimelineAsset(asset) });
-      toastManager.success($t('moved_to_trash'));
+      preAction({ type: AssetAction.TRASH, asset: trashedAsset });
+      await deleteAssets({ assetBulkDeleteDto: { ids: [trashedAssetId] } });
+      onAction({ type: AssetAction.TRASH, asset: trashedAsset });
+      toastManager.custom(
+        {
+          component: ToastAction,
+          props: {
+            title: $t('success'),
+            description: $t('moved_to_trash'),
+            color: 'success',
+            button: {
+              color: 'secondary',
+              text: $t('undo'),
+              onClick: undoTrash,
+            },
+          },
+        },
+        { timeout: 5000 },
+      );
     } catch (error) {
       handleError(error, $t('errors.unable_to_trash_asset'));
     }
