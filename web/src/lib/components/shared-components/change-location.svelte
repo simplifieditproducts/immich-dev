@@ -43,8 +43,6 @@
   let mapLat = $derived(assetLat ?? previousLocation?.lat ?? undefined);
   let mapLng = $derived(assetLng ?? previousLocation?.lng ?? undefined);
 
-  let zoom = $derived(mapLat && mapLng ? 12.5 : 1);
-
   $effect(() => {
     if (mapElement && initialPoint) {
       mapElement.addClipMapMarker(initialPoint.lng, initialPoint.lat);
@@ -58,6 +56,7 @@
   });
 
   let point: Point | null = $state(initialPoint ?? null);
+  let zoom = $derived(point || (mapLat && mapLng) ? 12.5 : 1);
 
   const handleConfirm = (confirmed?: boolean) => {
     if (point && confirmed) {
@@ -193,7 +192,7 @@
                 ]
               : []}
             {zoom}
-            center={mapLat && mapLng ? { lat: mapLat, lng: mapLng } : undefined}
+            center={point ? { lat: point.lat, lng: point.lng } : mapLat && mapLng ? { lat: mapLat, lng: mapLng } : undefined}
             simplified={true}
             clickable={true}
             onClickPoint={(selected) => (point = selected)}

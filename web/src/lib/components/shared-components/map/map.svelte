@@ -290,7 +290,14 @@
       return;
     }
 
-    untrack(() => map?.jumpTo({ center, zoom }));
+    untrack(() =>
+      map?.flyTo({
+        center,
+        zoom,
+        duration: 1500,
+        essential: true,
+      }),
+    );
   });
 </script>
 
