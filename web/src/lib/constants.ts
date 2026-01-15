@@ -122,6 +122,10 @@ export const maximumLengthSearchPeople = 1000;
 // time to load the map before displaying the loading spinner
 export const timeToLoadTheMap: number = 100;
 
+// Map clustering thresholds
+export const mapClusterPhotoThreshold = 50;
+export const mapClusterZoomThreshold = 12;
+
 export const timeBeforeShowLoadingSpinner: number = 100;
 
 export const timeDebounceOnSearch: number = 300;

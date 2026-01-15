@@ -10,7 +10,7 @@
 
 <script lang="ts">
   import { afterNavigate } from '$app/navigation';
-  import { Theme } from '$lib/constants';
+  import { mapClusterPhotoThreshold, mapClusterZoomThreshold, Theme } from '$lib/constants';
   import { serverConfigManager } from '$lib/managers/server-config-manager.svelte';
   import { themeManager } from '$lib/managers/theme-manager.svelte';
   import MapSettingsModal from '$lib/modals/MapSettingsModal.svelte';
@@ -125,8 +125,21 @@
     onSelect([assetId]);
   }
 
-  async function handleClusterClick(clusterId: number, map: Map | null) {
+  async function handleClusterClick(clusterId: number, pointCount: number, coords: [number, number], map: Map | null) {
     if (!map) {
+      return;
+    }
+
+    const currentZoom = map.getZoom();
+
+    // If cluster doesn't have many photos, show them directly; Otherwise, zoom in until a designated zoom level
+    if (pointCount > mapClusterPhotoThreshold && currentZoom < mapClusterZoomThreshold) {
+      map.flyTo({
+        center: coords,
+        zoom: Math.min(currentZoom + 3, mapClusterZoomThreshold),
+        duration: 1500,
+        essential: true,
+      });
       return;
     }
 
@@ -359,12 +372,12 @@
         features: mapMarkers?.map((marker) => asFeature(marker)) ?? [],
       }}
       id="geojson"
-      cluster={{ radius: 35, maxZoom: 18 }}
+      cluster={{ radius: 35, maxZoom: 17 }}
     >
       <MarkerLayer
         applyToClusters
         asButton
-        onclick={(event) => handlePromiseError(handleClusterClick(event.feature.properties?.cluster_id, map))}
+        onclick={(event) => handlePromiseError(handleClusterClick(event.feature.properties?.cluster_id, event.feature.properties?.point_count ?? 0, event.feature.geometry.coordinates as [number, number], map))}
       >
         {#snippet children({ feature })}
           <div

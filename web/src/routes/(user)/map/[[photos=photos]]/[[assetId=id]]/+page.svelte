@@ -77,7 +77,8 @@
           </div>
         {/await}
       {:then { default: Map }}
-        <Map hash onSelect={onViewAssets} />
+        <!-- Centered in the United States -->
+        <Map hash onSelect={onViewAssets} center={{ lng: -98.5795, lat: 39.8283 }} zoom={1.5} />
       {/await}
     </div>
   </UserPageLayout>
