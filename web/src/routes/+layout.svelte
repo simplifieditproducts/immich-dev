@@ -23,7 +23,7 @@
   import { maintenanceShouldRedirect } from '$lib/utils/maintenance';
   import { isAssetViewerRoute } from '$lib/utils/navigation';
   import { CommandPaletteContext, modalManager, setTranslations, toastManager, type ActionItem } from '@immich/ui';
-  import { mdiAccountMultipleOutline, mdiBookshelf, mdiCog, mdiServer, mdiSync, mdiThemeLightDark } from '@mdi/js';
+  import { mdiAccountMultipleOutline, mdiCog, mdiSync, mdiThemeLightDark } from '@mdi/js';
   import { onMount, type Snippet } from 'svelte';
   import { t } from 'svelte-i18n';
   import '../app.css';
@@ -165,18 +165,6 @@
       icon: mdiSync,
       type: $t('page'),
       onAction: () => goto(AppRoute.ADMIN_QUEUES),
-    },
-    {
-      title: $t('external_libraries'),
-      description: $t('admin.external_libraries_page_description'),
-      icon: mdiBookshelf,
-      onAction: () => goto(AppRoute.ADMIN_LIBRARY_MANAGEMENT),
-    },
-    {
-      title: $t('server_stats'),
-      description: $t('admin.server_stats_page_description'),
-      icon: mdiServer,
-      onAction: () => goto(AppRoute.ADMIN_STATS),
     },
   ].map((route) => ({ ...route, type: $t('page'), isGlobal: true, $if: () => $user?.isAdmin }));
 

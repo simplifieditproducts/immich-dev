@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiTags } from '@nestjs/swagger';
 import { Endpoint, HistoryBuilder } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
@@ -135,7 +135,9 @@ export class ServerController {
     history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
   })
   getServerStatistics(): Promise<ServerStatsResponseDto> {
-    return this.service.getStatistics();
+    // Disabled due to performance issues - full table scan on millions of assets
+    // return this.service.getStatistics();
+    throw new BadRequestException('Statistics endpoint has been disabled');
   }
 
   @Get('simple-statistics')
