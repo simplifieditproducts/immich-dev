@@ -125,10 +125,9 @@ export class DatabaseService extends BaseService {
       if (!database.skipMigrations) {
         await this.databaseRepository.runMigrations();
       }
-      await Promise.all([
-        this.databaseRepository.prewarm(VectorIndex.Clip),
-        this.databaseRepository.prewarm(VectorIndex.Face),
-      ]);
+      // Sequential prewarm to avoid I/O contention on large indexes
+      await this.databaseRepository.prewarm(VectorIndex.Clip);
+      await this.databaseRepository.prewarm(VectorIndex.Face);
     });
   }
 

@@ -169,8 +169,15 @@ export class DatabaseRepository {
     if (vectorExtension !== DatabaseExtension.VectorChord) {
       return;
     }
-    this.logger.debug(`Prewarming ${index}`);
-    await sql`SELECT vchordrq_prewarm(${index})`.execute(this.db);
+    this.logger.log(`Prewarming ${index} started`);
+    const result = await sql`SELECT vchordrq_prewarm(${index})`.execute(this.db);
+    if (result.rows.length === 0) {
+      this.logger.warn(`Prewarming ${index} returned no result`);
+      return;
+    }
+    const output = (result.rows[0] as { vchordrq_prewarm?: string }).vchordrq_prewarm ?? '';
+    const lines = output.split('\n').filter((line) => line.trim());
+    this.logger.log(`Prewarming ${index} completed:\n${lines.join('\n')}`);
   }
 
   async reindexVectorsIfNeeded(names: VectorIndex[]): Promise<void> {
