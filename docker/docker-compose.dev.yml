@@ -11,7 +11,7 @@
 # - https://docs.immich.app/developer/setup
 # - https://docs.immich.app/developer/troubleshooting
 
-name: immich-dev
+name: keepsafe-dev
 
 services:
   immich-server:
