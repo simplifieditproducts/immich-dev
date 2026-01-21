@@ -3,7 +3,7 @@ import { ExpressionBuilder, Insertable, Kysely, NotNull, Selectable, sql, Update
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
 import { Chunked, ChunkedArray, DummyValue, GenerateSql } from 'src/decorators';
-import { AssetFileType, AssetVisibility, SourceType } from 'src/enum';
+import { AssetFileType, AssetStatus, AssetVisibility, SourceType } from 'src/enum';
 import { DB } from 'src/schema';
 import { AssetFaceTable } from 'src/schema/tables/asset-face.table';
 import { FaceSearchTable } from 'src/schema/tables/face-search.table';
@@ -527,12 +527,22 @@ export class PersonRepository {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const results = await this.db
+    // Find users who have new persons created AND new assets uploaded in the last 24 hours
+    const usersWithNewPersons = this.db
       .selectFrom('person')
       .select('person.ownerId')
       .distinct()
       .where('person.createdAt', '>=', yesterday)
-      .where('person.isHidden', '=', false)
+      .where('person.isHidden', '=', false);
+
+    const results = await this.db
+      .selectFrom('asset')
+      .select('asset.ownerId')
+      .distinct()
+      .where('asset.createdAt', '>=', yesterday)
+      .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
+      .where('asset.deletedAt', 'is', null)
+      .where('asset.ownerId', 'in', usersWithNewPersons)
       .execute();
 
     return results.map((row: { ownerId: string }) => row.ownerId);
