@@ -71,16 +71,16 @@
   >
     <!-- Month title -->
     <div
-      class="flex pt-7 pb-5 max-md:pt-5 max-md:pb-3 h-6 place-items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm"
+      class={[
+        'flex pt-7 pb-5 max-md:pt-5 max-md:pb-3 h-6 place-items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm',
+        assetInteraction.selectedAssets.length > 0 && 'hover:cursor-pointer',
+      ]}
       style:width={dayGroup.width + 'px'}
+      onclick={assetInteraction.selectedAssets.length > 0 ? () => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets())) : undefined}
+      onkeydown={assetInteraction.selectedAssets.length > 0 ? () => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets())) : undefined}
     >
       {#if assetInteraction.selectedAssets.length > 0}
-        <div
-          transition:fly={{ x: -24, duration: 200, opacity: 0.5 }}
-          class="inline-block pe-2 hover:cursor-pointer"
-          onclick={() => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets()))}
-          onkeydown={() => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets()))}
-        >
+        <div transition:fly={{ x: -24, duration: 200, opacity: 0.5 }} class="inline-block pe-2">
           {#if isDayGroupSelected}
             <Icon icon={mdiCheckCircle} size="24" class="text-primary" />
           {:else}
