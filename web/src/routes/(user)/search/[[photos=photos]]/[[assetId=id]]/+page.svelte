@@ -409,6 +409,7 @@
   Also, the text in the search chips is now truncated to prevent overflow.
 -->
 <div
+  id="asset-grid"
   class="mt-[3.5rem] sm:mt-20 overflow-y-auto w-full"
   style="height: {height};"
   bind:this={scrollingElement}

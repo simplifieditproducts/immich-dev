@@ -96,6 +96,16 @@
       } else {
         document.documentElement.classList.add('dark');
       }
+
+      // Native app bridge: scroll page to top when status bar is tapped
+      window.scrollToTop = function() {
+        const div = document.getElementById('detail-panel') || document.getElementById('asset-grid') || document.getElementById('main-content');
+        if (div) {
+          div.scrollTo({ top: 0, behavior: 'smooth' });
+          return true;
+        }
+        return false;
+      };
     </script>
 
     <link rel="stylesheet" href="/custom.css" />
