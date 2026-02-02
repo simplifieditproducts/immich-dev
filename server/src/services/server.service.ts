@@ -23,8 +23,8 @@ import { mimeTypes } from 'src/utils/mime-types';
 import {
   isDuplicateDetectionEnabled,
   isFacialRecognitionEnabled,
-  isOcrEnabled,
   isFilterExtractionEnabled,
+  isOcrEnabled,
   isSmartSearchEnabled,
 } from 'src/utils/misc';
 
@@ -90,6 +90,20 @@ export class ServerService extends BaseService {
     } catch (error) {
       this.logger.error('Database health check failed', error);
       throw new BadRequestException('Database is not responding');
+    }
+
+    // Check if machine learning (i.e. GPU) is responding
+    const { machineLearning } = await this.getConfig({ withCache: false });
+    if (isSmartSearchEnabled(machineLearning)) {
+      try {
+        await this.machineLearningRepository.encodeText('health check', {
+          modelName: machineLearning.clip.modelName,
+          language: 'en',
+        });
+      } catch (error) {
+        this.logger.error('Machine learning health check failed', error);
+        throw new BadRequestException('Machine learning is not responding');
+      }
     }
 
     return { res: 'pong' };
