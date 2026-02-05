@@ -10,7 +10,7 @@ import { ConfigRepository } from 'src/repositories/config.repository';
 import { LoggingRepository } from 'src/repositories/logging.repository';
 import { SystemMetadataRepository } from 'src/repositories/system-metadata.repository';
 import { DeepPartial } from 'src/types';
-import { getKeysDeep, unsetDeep } from 'src/utils/misc';
+import { getKeysDeep, unsetDeep, withTimeout } from 'src/utils/misc';
 
 export type SystemConfigValidator = (config: SystemConfig, newConfig: SystemConfig) => void | Promise<void>;
 
@@ -32,12 +32,23 @@ export const clearConfigCache = () => {
 export const getConfig = async (repos: RepoDeps, { withCache }: { withCache: boolean }): Promise<SystemConfig> => {
   if (!withCache || !config) {
     const timestamp = lastUpdated;
-    await asyncLock.acquire(DatabaseLock[DatabaseLock.GetSystemConfig], async () => {
-      if (timestamp === lastUpdated) {
-        config = await buildConfig(repos);
-        lastUpdated = Date.now();
+    try {
+      await asyncLock.acquire(DatabaseLock[DatabaseLock.GetSystemConfig], async () => {
+        if (timestamp === lastUpdated) {
+          // timeout after 3 seconds, there was an incident on 02/04/2026 where the
+          // database query inside of buildConfig never resolved causing a deadlock
+          config = await withTimeout(buildConfig(repos), 3000, 'buildConfig');
+          lastUpdated = Date.now();
+        }
+      });
+    } catch (error) {
+      if (config) {
+        repos.logger.error(`Failed to build config: ${error}. Returning cached config.`);
+        return config;
       }
-    });
+      repos.logger.error(`Failed to build config: ${error}. No cached config available.`);
+      throw new Error('Unable to load system configuration');
+    }
   }
 
   return config!;
@@ -80,10 +91,14 @@ const buildConfig = async (repos: RepoDeps) => {
   const { configRepo, metadataRepo, logger } = repos;
   const { configFile } = configRepo.getEnv();
 
+  logger.log('[buildConfig] Building system configuration');
+
   // load partial
   const partial = configFile
     ? await loadFromFile(repos, configFile)
     : await metadataRepo.get(SystemMetadataKey.SystemConfig);
+
+  logger.log('[buildConfig] Merging system configuration with defaults');
 
   // merge with defaults
   const rawConfig = _.cloneDeep(defaults);
@@ -100,6 +115,8 @@ const buildConfig = async (repos: RepoDeps) => {
   if (!_.isEmpty(unknownKeys)) {
     logger.warn(`Unknown keys found: ${JSON.stringify(unknownKeys, null, 2)}`);
   }
+
+  logger.log('[buildConfig] Validating system configuration');
 
   // validate full config
   const instance = plainToInstance(SystemConfigDto, rawConfig);

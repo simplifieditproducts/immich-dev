@@ -59,10 +59,11 @@ export type ValidateRequest = {
 @Injectable()
 export class AuthService extends BaseService {
   async login(dto: LoginCredentialDto, details: LoginDetails) {
-    const config = await this.getConfig({ withCache: false });
-    if (!config.passwordLogin.enabled) {
-      throw new UnauthorizedException('Password login has been disabled');
-    }
+    // This check is commented out because password login will always be enabled.
+    // const config = await this.getConfig({ withCache: false });
+    // if (!config.passwordLogin.enabled) {
+    //   throw new UnauthorizedException('Password login has been disabled');
+    // }
 
     let user = await this.userRepository.getByEmail(dto.email, { withPassword: true });
     if (user) {

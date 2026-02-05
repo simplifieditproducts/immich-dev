@@ -336,3 +336,11 @@ export async function withRetry<T>(operation: () => Promise<T>, retries: number 
   }
   throw lastError;
 }
+
+export const withTimeout = <T>(promise: Promise<T>, ms: number, name?: string): Promise<T> => {
+  const label = name ? `${name} timed out after ${ms}ms` : `Operation timed out after ${ms}ms`;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(ms).then(() => reject(new Error(label)))),
+  ]);
+};
