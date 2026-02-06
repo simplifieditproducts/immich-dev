@@ -14,6 +14,7 @@ import {
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { existsSync, writeFileSync } from 'node:fs';
+import net from 'node:net';
 import { parse } from 'pg-connection-string';
 import postgres, { Notice, PostgresError } from 'postgres';
 import { columns, Exif, lockableProperties, LockableProperty, Person } from 'src/database';
@@ -76,6 +77,23 @@ export const getKyselyConfig = (
         },
         max: maxPoolSize,
         idle_timeout: 30,
+        connect_timeout: 30,
+        socket: ({ host: [host], port: [port] }: { host: [string]; port: [number] }) => {
+          const socket = new net.Socket();
+          socket.connect(port, host);
+
+          // 60 second which aligns with server's tcp_keepalives_idle setting
+          socket.setKeepAlive(true, 60000); 
+
+          // the following code can be used if keep-alive doesn't work as expected, but it
+          // will cause connections to be dropped more aggressively. i am setting it to 10
+          // minutes so a long-running query won't be interrupted.
+          // socket.setTimeout(600000, () => {
+          //   socket.destroy(new Error('Socket timeout'));
+          // });
+
+          return socket;
+        },
         types: {
           date: {
             to: 1184,
@@ -100,7 +118,7 @@ export const getKyselyConfig = (
         database: config.database,
         ssl: config.ssl,
         ...options,
-      }),
+      } as postgres.Options<Record<string, postgres.PostgresType>>),
     }),
     log(event) {
       if (event.level === 'error') {
