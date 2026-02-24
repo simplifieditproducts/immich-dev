@@ -9,6 +9,7 @@ import { BaseService } from 'src/services/base.service';
 import { addAssets, removeAssets } from 'src/utils/asset.util';
 
 const DAYS = 3;
+const MEMORY_GENERATE_CONCURRENCY = 30;
 
 @Injectable()
 export class MemoryService extends BaseService {
@@ -29,7 +30,14 @@ export class MemoryService extends BaseService {
         }
 
         try {
-          await Promise.all(users.map((owner) => this.createOnThisDayMemories(owner.id, target)));
+          for (let j = 0; j < users.length; j += MEMORY_GENERATE_CONCURRENCY) {
+            const chunk: typeof users = users.slice(j, j + MEMORY_GENERATE_CONCURRENCY);
+            const chunkStart = Date.now();
+            await Promise.all(chunk.map(({ id }) => this.createOnThisDayMemories(id, target)));
+            this.logger.log(
+              `Create memories chunk ${Math.floor(j / MEMORY_GENERATE_CONCURRENCY) + 1}/${Math.ceil(users.length / MEMORY_GENERATE_CONCURRENCY)} done in ${Date.now() - chunkStart}ms (users ${j + 1}-${j + chunk.length})`,
+            );
+          }
         } catch (error) {
           this.logger.error(`Failed to create memories for ${target.toISO()}: ${error}`);
         }
