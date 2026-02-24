@@ -38,21 +38,23 @@
   }
 
   async function navigateNext() {
-    if (viewingAssetCursor < viewingAssets.length - 1) {
-      await setAssetId(viewingAssets[++viewingAssetCursor]);
-      await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
-      return true;
+    if (viewingAssetCursor >= viewingAssets.length - 1) {
+      viewingAssetCursor = -1;
     }
-    return false;
+    viewingAssetCursor = viewingAssetCursor + 1;
+    await setAssetId(viewingAssets[viewingAssetCursor]);
+    await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
+    return true;
   }
 
   async function navigatePrevious() {
-    if (viewingAssetCursor > 0) {
-      await setAssetId(viewingAssets[--viewingAssetCursor]);
-      await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
-      return true;
+    if (viewingAssetCursor <= 0) {
+      viewingAssetCursor = viewingAssets.length;
     }
-    return false;
+    viewingAssetCursor = viewingAssetCursor - 1;
+    await setAssetId(viewingAssets[viewingAssetCursor]);
+    await navigate({ targetRoute: 'current', assetId: $viewingAsset.id });
+    return true;
   }
 
   async function navigateRandom() {
