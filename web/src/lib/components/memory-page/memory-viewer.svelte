@@ -374,7 +374,7 @@
         {/if}
       {/snippet}
 
-      <div class="flex place-content-center place-items-center gap-2 overflow-hidden">
+      <div class="flex place-content-center place-items-center gap-2 overflow-hidden -mt-2 sm:mt-0">
         <div class="w-12.5 dark">
           <IconButton
             shape="round"
@@ -394,7 +394,7 @@
         {/each}
 
         <div>
-          <p class="text-small">
+          <p class="text-small" class:pr-3={currentTimelineAssets.every(({ isVideo }) => !isVideo)} class:sm:pr-0={currentTimelineAssets.every(({ isVideo }) => !isVideo)}>
             {(current.assetIndex + 1).toLocaleString($locale)}/{current.memory.assets.length.toLocaleString($locale)}
           </p>
         </div>
@@ -493,7 +493,7 @@
             {/key}
 
             <div
-              class="absolute bottom-0 end-0 p-2 transition-all flex h-full justify-between flex-col items-end gap-2 dark"
+              class="absolute bottom-0 end-0 p-2 transition-all flex h-full justify-between flex-col items-end gap-2 dark z-1"
               class:opacity-0={galleryInView}
               class:opacity-100={!galleryInView}
             >
@@ -546,7 +546,7 @@
             </div>
             <!-- CONTROL BUTTONS -->
             {#if current.previous}
-              <div class="absolute top-1/2 start-0 ms-4 dark">
+              <div class="absolute top-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
                   aria-label={$t('previous_memory')}
@@ -560,7 +560,7 @@
             {/if}
 
             {#if current.next}
-              <div class="absolute top-1/2 end-0 me-4 dark">
+              <div class="absolute top-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
                   aria-label={$t('next_memory')}
@@ -573,7 +573,7 @@
               </div>
             {/if}
 
-            <div class="absolute start-8 top-4 text-sm font-medium text-white">
+            <div class="absolute start-6 top-6 md:start-8 md:top-4 text-sm font-medium text-white">
               <p>
                 {fromISODateTimeUTC(current.memory.assets[0].localDateTime).toLocaleString(DateTime.DATE_FULL, {
                   locale: $locale,

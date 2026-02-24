@@ -36,10 +36,11 @@
 </script>
 
 {#if shouldRender}
+  <div class="sm:hidden w-full text-sm font-semibold mt-1" title="Memories">Memories</div>
   <section
     id="memory-lane"
     bind:this={memoryLaneElement}
-    class="relative mt-3 overflow-x-scroll overflow-y-hidden whitespace-nowrap transition-all"
+    class="relative mt-2 sm:mt-3 overflow-x-scroll overflow-y-hidden whitespace-nowrap transition-all"
     style="scrollbar-width:none"
     use:resizeObserver={({ width }) => (offsetWidth = width)}
     onscroll={onScroll}
@@ -50,7 +51,7 @@
           <div class="absolute start-4 max-md:top-19 top-27 -translate-y-1/2" transition:fade={{ duration: 200 }}>
             <button
               type="button"
-              class="rounded-full border border-gray-500 bg-gray-100 p-2 text-gray-500 opacity-50 hover:opacity-100"
+              class="rounded-full p-2 bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none"
               title={$t('previous')}
               aria-label={$t('previous')}
               onclick={scrollLeft}
@@ -63,7 +64,7 @@
           <div class="absolute end-4 max-md:top-19 top-27 -translate-y-1/2 z-1" transition:fade={{ duration: 200 }}>
             <button
               type="button"
-              class="rounded-full border border-gray-500 bg-gray-100 p-2 text-gray-500 opacity-50 hover:opacity-100"
+              class="rounded-full p-2 bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none"
               title={$t('next')}
               aria-label={$t('next')}
               onclick={scrollRight}
@@ -96,6 +97,7 @@
       {/each}
     </div>
   </section>
+  <div class="sm:hidden h-px bg-gray-300 mt-5 mb-2 mx-2"></div>
 {/if}
 
 <style>
