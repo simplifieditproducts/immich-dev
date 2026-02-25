@@ -445,7 +445,7 @@ export enum ToggleVisibility {
   SHOW_ALL = 'show-all',
 }
 
-export const assetViewerFadeDuration: number = 150;
+export const assetViewerFadeDuration: number = 300;
 
 export const appId = import.meta.env.VITE_APP_ID || 'picturekeeper';
 export const appName = import.meta.env.VITE_APP_ID === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper';

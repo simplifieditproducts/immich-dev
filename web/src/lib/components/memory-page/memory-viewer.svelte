@@ -67,6 +67,7 @@
   let currentMemoryAssetFull = $derived.by(async () =>
     current?.asset ? await getAssetInfo({ ...authManager.params, id: current.asset.id }) : undefined,
   );
+  let currentLocation = $state({ city: '', country: '' });
   let currentTimelineAssets = $derived(current?.memory.assets.map((asset) => toTimelineAsset(asset)) || []);
 
   let isSaved = $derived(current?.memory.isSaved);
@@ -90,7 +91,7 @@
       return;
     }
 
-    await goto(asHref(asset));
+    await goto(asHref(asset), { noScroll: true });
   };
 
   const setProgressDuration = (asset: TimelineAsset) => {
@@ -297,6 +298,14 @@
   });
 
   $effect(() => {
+    currentMemoryAssetFull.then((asset) => {
+      if (asset?.exifInfo) {
+        currentLocation = { city: asset.exifInfo.city || '', country: asset.exifInfo.country || '' };
+      }
+    });
+  });
+
+  $effect(() => {
     if (videoPlayer) {
       videoPlayer.muted = $videoViewerMuted;
       initPlayer();
@@ -394,7 +403,7 @@
         {/each}
 
         <div>
-          <p class="text-small" class:pr-3={currentTimelineAssets.every(({ isVideo }) => !isVideo)} class:sm:pr-0={currentTimelineAssets.every(({ isVideo }) => !isVideo)}>
+          <p class="text-small tabular-nums" class:pr-3={currentTimelineAssets.every(({ isVideo }) => !isVideo)} class:sm:pr-0={currentTimelineAssets.every(({ isVideo }) => !isVideo)}>
             {(current.assetIndex + 1).toLocaleString($locale)}/{current.memory.assets.length.toLocaleString($locale)}
           </p>
         </div>
@@ -486,9 +495,11 @@
                   bind:videoPlayer
                   videoViewerMuted={$videoViewerMuted}
                   videoViewerVolume={$videoViewerVolume}
+                  onPreviousAsset={handlePreviousAsset}
+                  onNextAsset={handleNextAsset}
                 />
               {:else}
-                <MemoryPhotoViewer asset={current.asset} onImageLoad={resetAndPlay} />
+                <MemoryPhotoViewer asset={current.asset} onImageLoad={resetAndPlay} onPreviousAsset={handlePreviousAsset} onNextAsset={handleNextAsset} />
               {/if}
             {/key}
 
@@ -499,64 +510,64 @@
                 })}
               </p>
               <p>
-                {#await currentMemoryAssetFull then asset}
-                  {asset?.exifInfo?.city || ''}
-                  {asset?.exifInfo?.country || ''}
-                {/await}
+                {currentLocation.city}
+                {currentLocation.country}
               </p>
             </div>
             
             <div
-              class="absolute bottom-0 end-0 p-2 transition-all flex h-full justify-between flex-col items-end gap-2 dark"
+              class="absolute top-0 end-0 p-2 transition-all flex items-center dark"
               class:opacity-0={galleryInView}
               class:opacity-100={!galleryInView}
             >
-              <div class="flex items-center">
-                <IconButton
-                  icon={isSaved ? mdiHeart : mdiHeartOutline}
-                  shape="round"
-                  variant="ghost"
-                  color="secondary"
-                  aria-label={isSaved ? $t('unfavorite') : $t('favorite')}
-                  onclick={() => handleSaveMemory()}
-                  class="w-12 h-12"
+              <IconButton
+                icon={isSaved ? mdiHeart : mdiHeartOutline}
+                shape="round"
+                variant="ghost"
+                color="secondary"
+                aria-label={isSaved ? $t('unfavorite') : $t('favorite')}
+                onclick={() => handleSaveMemory()}
+                class="w-12 h-12"
+              />
+              <!-- <IconButton
+                icon={mdiShareVariantOutline}
+                shape="round"
+                variant="ghost"
+                size="giant"
+                color="secondary"
+                aria-label={$t('share')}
+              /> -->
+              <ButtonContextMenu
+                icon={mdiDotsVertical}
+                title={$t('menu')}
+                onclick={() => handlePromiseError(handleAction('ContextMenuClick', 'pause'))}
+                direction="left"
+                size="medium"
+                align="bottom-right"
+              >
+                <MenuOption onClick={() => handleDeleteMemory()} text={$t('remove_memory')} icon={mdiCardsOutline} />
+                <MenuOption
+                  onClick={() => handleDeleteMemoryAsset()}
+                  text={$t('remove_photo_from_memory')}
+                  icon={mdiImageMinusOutline}
                 />
-                <!-- <IconButton
-                  icon={mdiShareVariantOutline}
-                  shape="round"
-                  variant="ghost"
-                  size="giant"
-                  color="secondary"
-                  aria-label={$t('share')}
-                /> -->
-                <ButtonContextMenu
-                  icon={mdiDotsVertical}
-                  title={$t('menu')}
-                  onclick={() => handlePromiseError(handleAction('ContextMenuClick', 'pause'))}
-                  direction="left"
-                  size="medium"
-                  align="bottom-right"
-                >
-                  <MenuOption onClick={() => handleDeleteMemory()} text={$t('remove_memory')} icon={mdiCardsOutline} />
-                  <MenuOption
-                    onClick={() => handleDeleteMemoryAsset()}
-                    text={$t('remove_photo_from_memory')}
-                    icon={mdiImageMinusOutline}
-                  />
-                  <!-- shortcut={{ key: 'l', shift: shared }} -->
-                </ButtonContextMenu>
-              </div>
+                <!-- shortcut={{ key: 'l', shift: shared }} -->
+              </ButtonContextMenu>
+            </div>
 
-              <div>
-                <IconButton
-                  href="{AppRoute.PHOTOS}?at={current.asset.id}"
-                  icon={mdiImageSearch}
-                  aria-label={$t('view_in_timeline')}
-                  color="secondary"
-                  variant="ghost"
-                  shape="round"
-                />
-              </div>
+            <div
+              class="absolute bottom-0 end-0 p-2 transition-all dark"
+              class:opacity-0={galleryInView}
+              class:opacity-100={!galleryInView}
+            >
+              <IconButton
+                href="{AppRoute.PHOTOS}?at={current.asset.id}"
+                icon={mdiImageSearch}
+                aria-label={$t('view_in_timeline')}
+                color="secondary"
+                variant="ghost"
+                shape="round"
+              />
             </div>
             <!-- CONTROL BUTTONS -->
             {#if paused && current.previous}

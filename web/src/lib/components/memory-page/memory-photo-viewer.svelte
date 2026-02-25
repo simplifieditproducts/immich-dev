@@ -6,14 +6,31 @@
   import { AssetMediaSize } from '@immich/sdk';
   import { LoadingSpinner } from '@immich/ui';
   import { onMount } from 'svelte';
+  import { useSwipe, type SwipeCustomEvent } from 'svelte-gestures';
   import { fade } from 'svelte/transition';
 
   interface Props {
     asset: TimelineAsset;
     onImageLoad: () => void;
+    onPreviousAsset?: () => void;
+    onNextAsset?: () => void;
   }
 
-  const { asset, onImageLoad }: Props = $props();
+  const { asset, onImageLoad, onPreviousAsset, onNextAsset }: Props = $props();
+
+  const onSwipe = (event: SwipeCustomEvent) => {
+    const { direction } = event.detail;
+    if (onNextAsset && direction === 'left') {
+      onNextAsset();
+    }
+    if (onPreviousAsset && direction === 'right') {
+      onPreviousAsset();
+    }
+    if (direction === 'top' || direction === 'bottom') {
+      const scrollAmount = direction === 'top' ? 300 : -300;
+      window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   let assetFileUrl: string = $state('');
   let imageLoaded: boolean = $state(false);
@@ -48,7 +65,7 @@
     <LoadingSpinner />
   </div>
 {:else if imageLoaded}
-  <div transition:fade={{ duration: assetViewerFadeDuration }} class="h-full w-full">
+  <div transition:fade={{ duration: assetViewerFadeDuration }} class="h-full w-full" {...useSwipe(onSwipe)}>
     <img
       class="h-full w-full rounded-2xl object-contain transition-all"
       src={assetFileUrl}
