@@ -127,6 +127,9 @@
     switch (action) {
       case 'play': {
         try {
+          if (galleryInView) {
+            return;
+          }
           paused = false;
           await videoPlayer?.play();
           await progressBarController.set(1);
@@ -148,7 +151,6 @@
       }
 
       case 'reset': {
-        paused = false;
         videoPlayer?.pause();
         await progressBarController.set(0);
         break;
@@ -161,8 +163,14 @@
       return;
     }
 
-    if (progress === 1 && !paused) {
+    if (progress === 1 && !paused && !galleryInView) {
       await (current?.next ? handleNextAsset() : handlePromiseError(handleAction('handleProgressLast', 'pause')));
+    }
+
+    // if progress completed but gallery is scrolled into view, pause
+    if (progress === 1 && !paused && galleryInView) {
+      paused = true;
+      videoPlayer?.pause();
     }
   };
 
@@ -214,19 +222,23 @@
     const newSavedState = !current.memory.isSaved;
     await memoryStore.updateMemorySaved(current.memory.id, newSavedState);
     toastManager.success(newSavedState ? $t('added_to_favorites') : $t('removed_from_favorites'));
-    init(page);
   };
 
   const handleGalleryScrollsIntoView = () => {
     galleryInView = true;
-    handlePromiseError(handleAction('galleryInView', 'pause'));
+    paused = true;
+    videoPlayer?.pause();
+    // stop the tween immediately at current position
+    if (progressBarController) {
+      handlePromiseError(progressBarController.set(progressBarController.current));
+    }
   };
 
   const handleGalleryScrollsOutOfView = () => {
     galleryInView = false;
     // only call play after the first page load. When page first loads the gallery will not be visible
     // and calling play here will result in duplicate invocation.
-    if (!galleryFirstLoad) {
+    if (!galleryFirstLoad && !paused) {
       handlePromiseError(handleAction('galleryOutOfView', 'play'));
     }
     galleryFirstLoad = false;
@@ -252,7 +264,9 @@
 
   const resetAndPlay = () => {
     handlePromiseError(handleAction('resetAndPlay', 'reset'));
-    handlePromiseError(handleAction('resetAndPlay', 'play'));
+    if (!paused) {
+      handlePromiseError(handleAction('resetAndPlay', 'play'));
+    }
   };
 
   const initPlayer = () => {
@@ -261,7 +275,7 @@
     if (playerInitialized || isVideoAssetButPlayerHasNotLoadedYet) {
       return;
     }
-    if ($isViewing) {
+    if ($isViewing || paused) {
       handlePromiseError(handleAction('initPlayer[AssetViewOpen]', 'pause'));
     } else if (isVideo) {
       // Image assets will start playing when the image is loaded. Only autostart video assets.
@@ -526,7 +540,7 @@
                 variant="ghost"
                 color="secondary"
                 aria-label={isSaved ? $t('unfavorite') : $t('favorite')}
-                onclick={() => handleSaveMemory()}
+                onclick={() => { handlePromiseError(handleAction('FavoriteButtonClick', 'pause')); handleSaveMemory(); }}
                 class="w-12 h-12"
               />
               <!-- <IconButton
@@ -571,7 +585,7 @@
             </div>
             <!-- CONTROL BUTTONS -->
             {#if paused && current.previous}
-              <div class="absolute top-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
+              <div class="absolute top-1/2 -translate-y-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
                   aria-label={$t('previous_memory')}
@@ -585,7 +599,7 @@
             {/if}
 
             {#if paused && current.next}
-              <div class="absolute top-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
+              <div class="absolute top-1/2 -translate-y-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
                   aria-label={$t('next_memory')}
@@ -640,7 +654,7 @@
 
 {#if current}
   <!-- GALLERY VIEWER -->
-  <section class="bg-immich-dark-gray p-4">
+  <section class="bg-immich-dark-gray p-4 pt-6">
     <div
       class="sticky mb-10 flex place-content-center place-items-center transition-all dark"
       class:opacity-0={galleryInView}
@@ -660,7 +674,6 @@
       use:intersectionObserver={{
         onIntersect: handleGalleryScrollsIntoView,
         onSeparate: handleGalleryScrollsOutOfView,
-        bottom: '-200px',
       }}
       bind:this={memoryGallery}
     >
