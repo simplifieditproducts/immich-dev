@@ -514,7 +514,7 @@
         <div
           class="main-view relative flex h-full w-[70vw] place-content-center place-items-center rounded-2xl bg-black"
         >
-          <div class="relative h-full w-full rounded-2xl bg-black">
+          <div class="relative h-full w-full rounded-2xl bg-black transform-gpu isolate [contain:layout_paint]">
             {#key current.asset.id}
               {#if current.asset.isVideo}
                 <MemoryVideoViewer
@@ -543,7 +543,7 @@
             </div>
             
             <div
-              class="absolute top-0 end-0 p-2 transition-all flex items-center dark"
+              class="absolute top-0 end-0 p-2 transition-all flex items-center dark transform-gpu"
               class:opacity-0={galleryInView}
               class:opacity-100={!galleryInView}
             >
@@ -583,7 +583,7 @@
             </div>
 
             <div
-              class="absolute bottom-0 end-0 p-2 transition-all dark"
+              class="absolute bottom-0 end-0 p-2 transition-all dark transform-gpu"
               class:opacity-0={galleryInView}
               class:opacity-100={!galleryInView}
             >
@@ -598,7 +598,7 @@
             </div>
             <!-- CONTROL BUTTONS -->
             {#if paused && current.previous}
-              <div class="absolute top-1/2 -translate-y-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
+              <div class="absolute top-1/2 -translate-y-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none touch-manipulation transform-gpu">
                 <IconButton
                   shape="round"
                   aria-label={$t('previous_memory')}
@@ -612,7 +612,7 @@
             {/if}
 
             {#if paused && current.next}
-              <div class="absolute top-1/2 -translate-y-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
+              <div class="absolute top-1/2 -translate-y-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none touch-manipulation transform-gpu">
                 <IconButton
                   shape="round"
                   aria-label={$t('next_memory')}
