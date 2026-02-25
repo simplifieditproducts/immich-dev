@@ -27,9 +27,9 @@
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { type MemoryAsset, memoryStore } from '$lib/stores/memory.store.svelte';
-  import { locale, videoViewerMuted, videoViewerVolume } from '$lib/stores/preferences.store';
+  import { embeddedInApp, locale, videoViewerMuted, videoViewerVolume } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
-  import { getAssetThumbnailUrl, handlePromiseError, memoryLaneTitle } from '$lib/utils';
+  import { getAssetThumbnailUrl, handlePromiseError, memoryLaneTitle, sendMessageToApp } from '$lib/utils';
   import { cancelMultiselect } from '$lib/utils/asset-utils';
   import { fromISODateTimeUTC, toTimelineAsset } from '$lib/utils/timeline-util';
   import { AssetMediaSize, getAssetInfo } from '@immich/sdk';
@@ -54,6 +54,7 @@
   } from '@mdi/js';
   import type { NavigationTarget, Page } from '@sveltejs/kit';
   import { DateTime } from 'luxon';
+  import { onDestroy, onMount } from 'svelte';
   import { t } from 'svelte-i18n';
   import { Tween } from 'svelte/motion';
 
@@ -81,6 +82,18 @@
   let progressBarController: Tween<number> | undefined = $state(undefined);
   let videoPlayer: HTMLVideoElement | undefined = $state();
   const asHref = (asset: { id: string }) => `?${QueryParameter.ID}=${asset.id}`;
+
+  onMount(() => {
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DARK');
+    }
+  });
+
+  onDestroy(() => {
+    if ($embeddedInApp) {
+      sendMessageToApp('CMD_SETBGMODE_DEFAULT');
+    }
+  });
 
   const handleNavigate = async (asset?: { id: string }) => {
     if ($isViewing) {
