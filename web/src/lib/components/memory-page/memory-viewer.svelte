@@ -368,7 +368,7 @@
     <ControlAppBar onClose={() => goto(AppRoute.PHOTOS)} forceDark multiRow>
       {#snippet leading()}
         {#if current}
-          <p class="text-lg">
+          <p class="text-lg pl-0.5">
             {$memoryLaneTitle(current.memory)}
           </p>
         {/if}
@@ -492,8 +492,22 @@
               {/if}
             {/key}
 
+            <div class="absolute start-6 top-6 space-y-1 md:start-8 md:top-4 text-sm font-medium text-white">
+              <p>
+                {fromISODateTimeUTC(current.memory.assets[0].localDateTime).toLocaleString(DateTime.DATE_FULL, {
+                  locale: $locale,
+                })}
+              </p>
+              <p>
+                {#await currentMemoryAssetFull then asset}
+                  {asset?.exifInfo?.city || ''}
+                  {asset?.exifInfo?.country || ''}
+                {/await}
+              </p>
+            </div>
+            
             <div
-              class="absolute bottom-0 end-0 p-2 transition-all flex h-full justify-between flex-col items-end gap-2 dark z-1"
+              class="absolute bottom-0 end-0 p-2 transition-all flex h-full justify-between flex-col items-end gap-2 dark"
               class:opacity-0={galleryInView}
               class:opacity-100={!galleryInView}
             >
@@ -545,7 +559,7 @@
               </div>
             </div>
             <!-- CONTROL BUTTONS -->
-            {#if current.previous}
+            {#if paused && current.previous}
               <div class="absolute top-1/2 start-0 ms-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
@@ -559,7 +573,7 @@
               </div>
             {/if}
 
-            {#if current.next}
+            {#if paused && current.next}
               <div class="absolute top-1/2 end-0 me-4 dark rounded-full bg-black/70 text-white shadow-lg border border-white/20 transition hover:bg-black/50 hover:scale-110 select-none">
                 <IconButton
                   shape="round"
@@ -572,20 +586,6 @@
                 />
               </div>
             {/if}
-
-            <div class="absolute start-6 top-6 md:start-8 md:top-4 text-sm font-medium text-white">
-              <p>
-                {fromISODateTimeUTC(current.memory.assets[0].localDateTime).toLocaleString(DateTime.DATE_FULL, {
-                  locale: $locale,
-                })}
-              </p>
-              <p>
-                {#await currentMemoryAssetFull then asset}
-                  {asset?.exifInfo?.city || ''}
-                  {asset?.exifInfo?.country || ''}
-                {/await}
-              </p>
-            </div>
           </div>
         </div>
 

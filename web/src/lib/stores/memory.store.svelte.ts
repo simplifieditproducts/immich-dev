@@ -51,6 +51,14 @@ class MemoryStoreSvelte {
       }
     }
 
+    // link first and last assets to form a circular list
+    const first = memoryAssets[0];
+    const last = memoryAssets.at(-1);
+    if (first && last && first !== last) {
+      first.previous = last;
+      last.next = first;
+    }
+
     return memoryAssets;
   });
 
