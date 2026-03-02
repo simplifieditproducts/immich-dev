@@ -1,10 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsEmail, IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import { User, UserAdmin } from 'src/database';
 import { UserAvatarColor, UserMetadataKey, UserStatus } from 'src/enum';
 import { UserMetadataItem } from 'src/types';
-import { Optional, PinCode, ValidateBoolean, ValidateEnum, ValidateUUID, toEmail, toSanitized } from 'src/validation';
+import {
+  Optional,
+  PinCode,
+  ValidateBoolean,
+  ValidateDate,
+  ValidateEnum,
+  ValidateUUID,
+  toEmail,
+  toSanitized,
+} from 'src/validation';
 
 export class UserUpdateMeDto {
   @Optional()
@@ -72,6 +81,14 @@ export class UserAdminSearchDto {
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   @ValidateUUID({ optional: true, each: true })
   ids?: string[];
+
+  @Optional()
+  @IsString()
+  @IsIn(['picturekeeper', 'ultimatebackup'])
+  sourceApp?: string;
+
+  @ValidateDate({ optional: true })
+  updatedAfter?: Date;
 }
 
 export class UserAdminCreateDto {

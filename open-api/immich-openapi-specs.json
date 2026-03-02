@@ -632,6 +632,27 @@
             }
           },
           {
+            "name": "sourceApp",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "picturekeeper",
+                "ultimatebackup"
+              ]
+            }
+          },
+          {
+            "name": "updatedAfter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "name": "withDeleted",
             "required": false,
             "in": "query",

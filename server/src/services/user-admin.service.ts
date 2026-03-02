@@ -24,6 +24,8 @@ export class UserAdminService extends BaseService {
       id: dto.id,
       ids: dto.ids,
       withDeleted: dto.withDeleted,
+      sourceApp: dto.sourceApp,
+      updatedAfter: dto.updatedAfter,
     });
     return users.map((user) => mapUserAdmin(user));
   }

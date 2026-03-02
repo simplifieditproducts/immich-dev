@@ -15,6 +15,8 @@ export interface UserListFilter {
   id?: string;
   ids?: string[];
   withDeleted?: boolean;
+  sourceApp?: string;
+  updatedAfter?: Date;
 }
 
 export interface UserStatsQueryResponse {
@@ -161,7 +163,7 @@ export class UserRepository {
     { name: 'with deleted', params: [{ withDeleted: true }] },
     { name: 'without deleted', params: [{ withDeleted: false }] },
   )
-  getList({ id, ids, withDeleted }: UserListFilter = {}) {
+  getList({ id, ids, withDeleted, sourceApp, updatedAfter }: UserListFilter = {}) {
     return this.db
       .selectFrom('user')
       .select(columns.userAdmin)
@@ -169,6 +171,8 @@ export class UserRepository {
       .$if(!withDeleted, (eb) => eb.where('user.deletedAt', 'is', null))
       .$if(!!id, (eb) => eb.where('user.id', '=', id!))
       .$if(!!ids, (eb) => eb.where('user.id', '=', anyUuid(ids!)))
+      .$if(!!sourceApp, (eb) => eb.where('user.sourceApp', '=', sourceApp!))
+      .$if(!!updatedAfter, (eb) => eb.where('user.updatedAt', '>=', updatedAfter!))
       .orderBy('createdAt', 'desc')
       .execute();
   }
