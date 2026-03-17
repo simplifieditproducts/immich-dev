@@ -188,11 +188,15 @@ export class ServerService extends BaseService {
 
   async getSimpleStatistics(sourceApp: string): Promise<SimpleServerStatsResponseDto> {
     const libraryBase = StorageCore.getBaseFolder(StorageFolder.Library);
-    const diskInfo = await this.storageRepository.checkDiskUsage(libraryBase);
+    const [diskInfo, userCount, assetCount] = await Promise.all([
+      this.storageRepository.checkDiskUsage(libraryBase),
+      this.userRepository.getUserCount(sourceApp),
+      this.assetRepository.getAssetCount(sourceApp),
+    ]);
 
     return {
-      ...await this.userRepository.getUserCount(sourceApp),
-      ...await this.assetRepository.getAssetCount(sourceApp),
+      ...userCount,
+      ...assetCount,
       diskUsed: diskInfo.total - diskInfo.free,
       diskTotal: diskInfo.total,
     };

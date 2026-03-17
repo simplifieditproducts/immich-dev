@@ -716,9 +716,11 @@ export class AssetRepository {
   @GenerateSql()
   getAssetCount(sourceApp: string) {
     return this.db
-      .selectFrom('user')
-      .leftJoin('asset', (join) => join.onRef('asset.ownerId', '=', 'user.id').on('asset.deletedAt', 'is', null))
-      .where('user.sourceApp', '=', sourceApp)
+      .selectFrom('asset')
+      .where('asset.ownerId', 'in',
+        this.db.selectFrom('user').where('user.sourceApp', '=', sourceApp).select('user.id'),
+      )
+      .where('asset.deletedAt', 'is', null)
       .select((eb) => [
         eb.fn
           .countAll<number>()
