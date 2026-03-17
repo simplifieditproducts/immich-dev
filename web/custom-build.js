@@ -37,8 +37,16 @@ if (!fs.existsSync(newLogoPath)) {
 fs.copyFileSync(newLogoPath, oldLogoPath);
 console.log("✅ immich-ui's logo has been updated!");
 
+/// 2. Update the app.html file with the new app ID.
 
-/// 2. Update the text copies in i18n and configure files.
+// Replace VITE_APP_ID in app.html so the data-app-id attribute is set at build time
+const appHtmlPath = path.resolve(__dirname, './src/app.html');
+let appHtml = fs.readFileSync(appHtmlPath, 'utf-8');
+appHtml = appHtml.replaceAll('VITE_APP_ID', appId);
+fs.writeFileSync(appHtmlPath, appHtml, 'utf-8');
+console.log("✅ app.html has been updated with app ID:", appId);
+
+/// 3. Update the text copies in i18n and configure files.
 
 const filesToUpdate = [
   '../i18n/en.json',

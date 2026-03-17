@@ -66,28 +66,46 @@
 @layer base {
   :root {
     /* light */
-    --immich-primary: 0, 165, 237;
+    --immich-primary: 93, 156, 248;
     --immich-bg: 255 255 255;
     --immich-fg: 0 0 0;
 
     /* dark */
-    --immich-dark-primary: 0, 165, 237;
+    --immich-dark-primary: 93, 156, 248;
     --immich-dark-bg: 10 10 10;
     --immich-dark-fg: 229 231 235;
     --immich-dark-gray: 33 33 33;
 
     /* overwrite */
-    --immich-ui-primary-50: rgb(240, 249, 254);
-    --immich-ui-primary-100: rgb(224, 242, 253);
-    --immich-ui-primary-200: rgb(186, 230, 253);
-    --immich-ui-primary-300: rgb(125, 211, 252);
-    --immich-ui-primary-400: rgb(56, 189, 248);
-    --immich-ui-primary-500: rgb(0, 165, 237); /* default primary color */
-    --immich-ui-primary-600: rgb(0, 145, 208);
-    --immich-ui-primary-700: rgb(0, 120, 172);
-    --immich-ui-primary-800: rgb(0, 99, 142);
-    --immich-ui-primary-900: rgb(0, 75, 108);
-    --immich-ui-primary-950: rgb(0, 40, 58);
+    --immich-ui-primary-50: rgb(240, 246, 254);
+    --immich-ui-primary-100: rgb(224, 236, 253);
+    --immich-ui-primary-200: rgb(185, 213, 251);
+    --immich-ui-primary-300: rgb(147, 190, 250);
+    --immich-ui-primary-400: rgb(120, 173, 249);
+    --immich-ui-primary-500: rgb(93, 156, 248); /* default primary color */
+    --immich-ui-primary-600: rgb(70, 130, 215);
+    --immich-ui-primary-700: rgb(52, 105, 178);
+    --immich-ui-primary-800: rgb(39, 83, 144);
+    --immich-ui-primary-900: rgb(30, 66, 115);
+    --immich-ui-primary-950: rgb(16, 36, 64);
+  }
+
+  /* ultimatebackup theme */
+  [data-app-id='ultimatebackup'] {
+    --immich-primary: 201, 86, 62;
+    --immich-dark-primary: 201, 86, 62;
+
+    --immich-ui-primary-50: rgb(253, 242, 239);
+    --immich-ui-primary-100: rgb(250, 226, 221);
+    --immich-ui-primary-200: rgb(243, 191, 181);
+    --immich-ui-primary-300: rgb(234, 155, 140);
+    --immich-ui-primary-400: rgb(218, 121, 101);
+    --immich-ui-primary-500: rgb(201, 86, 62); /* default primary color */
+    --immich-ui-primary-600: rgb(171, 69, 47);
+    --immich-ui-primary-700: rgb(141, 54, 35);
+    --immich-ui-primary-800: rgb(114, 42, 27);
+    --immich-ui-primary-900: rgb(92, 34, 22);
+    --immich-ui-primary-950: rgb(52, 17, 10);
   }
 
   button:not(:disabled),
