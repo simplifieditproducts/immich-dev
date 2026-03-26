@@ -56,15 +56,18 @@ export class JobService extends BaseService {
 
   @OnEvent({ name: 'JobRun' })
   async onJobRun(...[queueName, job]: ArgsOf<'JobRun'>) {
+    const startTime = Date.now();
     try {
       await this.eventRepository.emit('JobStart', queueName, job);
       const response = await this.jobRepository.run(job);
-      await this.eventRepository.emit('JobSuccess', { job, response });
+      const durationMs = Date.now() - startTime;
+      await this.eventRepository.emit('JobSuccess', { job, response, durationMs });
       if (response && typeof response === 'string' && [JobStatus.Success, JobStatus.Skipped].includes(response)) {
         await this.onDone(job);
       }
     } catch (error: Error | any) {
-      await this.eventRepository.emit('JobError', { job, error });
+      const durationMs = Date.now() - startTime;
+      await this.eventRepository.emit('JobError', { job, error, durationMs });
     } finally {
       await this.eventRepository.emit('JobComplete', queueName, job);
     }

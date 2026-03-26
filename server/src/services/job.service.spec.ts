@@ -26,7 +26,7 @@ describe(JobService.name, () => {
       await sut.onJobRun(QueueName.BackgroundTask, job);
 
       expect(mocks.event.emit).toHaveBeenCalledWith('JobStart', QueueName.BackgroundTask, job);
-      expect(mocks.event.emit).toHaveBeenCalledWith('JobSuccess', { job, response: JobStatus.Success });
+      expect(mocks.event.emit).toHaveBeenCalledWith('JobSuccess', { job, response: JobStatus.Success, durationMs: expect.any(Number) });
       expect(mocks.event.emit).toHaveBeenCalledWith('JobComplete', QueueName.BackgroundTask, job);
       expect(mocks.logger.error).not.toHaveBeenCalled();
     });

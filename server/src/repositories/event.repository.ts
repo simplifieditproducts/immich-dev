@@ -104,8 +104,8 @@ export type AppRestartEvent = {
   isMaintenanceMode: boolean;
 };
 
-type JobSuccessEvent = { job: JobItem; response?: JobStatus };
-type JobErrorEvent = { job: JobItem; error: Error | any };
+type JobSuccessEvent = { job: JobItem; response?: JobStatus; durationMs: number };
+type JobErrorEvent = { job: JobItem; error: Error | any; durationMs: number };
 
 type QueueStartEvent = {
   name: QueueName;
