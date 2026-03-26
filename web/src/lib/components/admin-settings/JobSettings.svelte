@@ -14,18 +14,18 @@
   let configToEdit = $state(systemConfigManager.cloneValue());
 
   const queueNames = [
-    QueueName.ThumbnailGeneration,
     QueueName.MetadataExtraction,
-    QueueName.Library,
-    QueueName.Sidecar,
+    QueueName.ThumbnailGeneration,
     QueueName.SmartSearch,
-    QueueName.FaceDetection,
     QueueName.DuplicateDetection,
+    QueueName.FaceDetection,
     QueueName.FacialRecognition,
+    QueueName.Ocr,
     QueueName.VideoConversion,
     QueueName.StorageTemplateMigration,
+    QueueName.Library,
+    QueueName.Sidecar,
     QueueName.Migration,
-    QueueName.Ocr,
   ];
 
   function isSystemConfigJobDto(jobName: string): jobName is keyof SystemConfigJobDto {

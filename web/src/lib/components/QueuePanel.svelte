@@ -33,21 +33,13 @@
   };
 
   const queueDetails: Partial<Record<QueueName, QueueDetails>> = {
-    [QueueName.ThumbnailGeneration]: {
-      allText: $t('all'),
-      missingText: $t('missing'),
-    },
     [QueueName.MetadataExtraction]: {
       allText: $t('all'),
       missingText: $t('missing'),
     },
-    [QueueName.Library]: {
-      missingText: $t('rescan'),
-    },
-    [QueueName.Sidecar]: {
-      allText: $t('sync'),
-      missingText: $t('discover'),
-      disabled: !featureFlags.sidecar,
+    [QueueName.ThumbnailGeneration]: {
+      allText: $t('all'),
+      missingText: $t('missing'),
     },
     [QueueName.SmartSearch]: {
       allText: $t('all'),
@@ -82,6 +74,14 @@
     [QueueName.StorageTemplateMigration]: {
       missingText: $t('start'),
       description: QueueStorageMigrationDescription,
+    },    
+    [QueueName.Library]: {
+      missingText: $t('rescan'),
+    },
+    [QueueName.Sidecar]: {
+      allText: $t('sync'),
+      missingText: $t('discover'),
+      disabled: !featureFlags.sidecar,
     },
     [QueueName.Migration]: {
       missingText: $t('start'),

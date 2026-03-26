@@ -301,6 +301,7 @@ export class AssetJobRepository {
     return this.db
       .selectFrom('asset')
       .select(['asset.id', 'asset.ownerId', 'asset.originalPath', 'asset.encodedVideoPath'])
+      .$call(withExifInner)
       .where('asset.id', '=', id)
       .where('asset.type', '=', AssetType.Video)
       .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
