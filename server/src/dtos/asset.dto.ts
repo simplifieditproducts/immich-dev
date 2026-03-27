@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
@@ -224,6 +224,17 @@ export class AssetCopyDto {
 
   @ValidateBoolean({ optional: true, default: true })
   favorite?: boolean;
+}
+
+export class AssetStatsBulkDto extends AssetStatsDto {
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @ValidateUUID({ each: true })
+  ids!: string[];
+}
+
+export class BulkAssetStatsResponseDto extends AssetStatsResponseDto {
+  @ValidateUUID()
+  userId!: string;
 }
 
 export const mapStats = (stats: AssetStats): AssetStatsResponseDto => {

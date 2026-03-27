@@ -769,6 +769,97 @@
         "x-immich-state": "Stable"
       }
     },
+    "/admin/users/statistics": {
+      "get": {
+        "description": "Retrieve asset statistics for multiple users.",
+        "operationId": "getBulkUserStatisticsAdmin",
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "isFavorite",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "isTrashed",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "visibility",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AssetVisibility"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BulkAssetStatsResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Retrieve bulk user statistics",
+        "tags": [
+          "Users (admin)"
+        ],
+        "x-immich-admin-only": true,
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "adminUser.read",
+        "x-immich-state": "Stable"
+      }
+    },
     "/admin/users/{id}": {
       "delete": {
         "description": "Delete a user.",
@@ -16587,6 +16678,30 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "BulkAssetStatsResponseDto": {
+        "properties": {
+          "images": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "videos": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "images",
+          "total",
+          "userId",
+          "videos"
+        ],
         "type": "object"
       },
       "BulkIdErrorReason": {

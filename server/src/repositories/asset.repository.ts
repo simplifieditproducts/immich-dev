@@ -713,6 +713,24 @@ export class AssetRepository {
       .executeTakeFirstOrThrow();
   }
 
+  getBulkStatistics(ownerIds: string[], { visibility, isFavorite, isTrashed }: AssetStatsOptions): Promise<(AssetStats & { ownerId: string })[]> {
+    return this.db
+      .selectFrom('asset')
+      .select('ownerId')
+      .select((eb) => eb.fn.countAll<number>().filterWhere('type', '=', AssetType.Audio).as(AssetType.Audio))
+      .select((eb) => eb.fn.countAll<number>().filterWhere('type', '=', AssetType.Image).as(AssetType.Image))
+      .select((eb) => eb.fn.countAll<number>().filterWhere('type', '=', AssetType.Video).as(AssetType.Video))
+      .select((eb) => eb.fn.countAll<number>().filterWhere('type', '=', AssetType.Other).as(AssetType.Other))
+      .where('ownerId', 'in', ownerIds)
+      .$if(visibility === undefined, withDefaultVisibility)
+      .$if(!!visibility, (qb) => qb.where('asset.visibility', '=', visibility!))
+      .$if(isFavorite !== undefined, (qb) => qb.where('isFavorite', '=', isFavorite!))
+      .$if(!!isTrashed, (qb) => qb.where('asset.status', '!=', AssetStatus.Deleted))
+      .where('deletedAt', isTrashed ? 'is not' : 'is', null)
+      .groupBy('ownerId')
+      .execute();
+  }
+
   @GenerateSql()
   getAssetCount(sourceApp: string) {
     return this.db

@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Endpoint, HistoryBuilder } from 'src/decorators';
-import { AssetStatsDto, AssetStatsResponseDto } from 'src/dtos/asset.dto';
+import { AssetStatsBulkDto, AssetStatsDto, AssetStatsResponseDto, BulkAssetStatsResponseDto } from 'src/dtos/asset.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { SessionResponseDto } from 'src/dtos/session.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto } from 'src/dtos/user-preferences.dto';
@@ -42,6 +42,20 @@ export class UserAdminController {
   })
   createUserAdmin(@Body() createUserDto: UserAdminCreateDto): Promise<UserAdminResponseDto> {
     return this.service.create(createUserDto);
+  }
+
+  @Get('statistics')
+  @Authenticated({ permission: Permission.AdminUserRead, admin: true })
+  @Endpoint({
+    summary: 'Retrieve bulk user statistics',
+    description: 'Retrieve asset statistics for multiple users.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })
+  getBulkUserStatisticsAdmin(
+    @Auth() auth: AuthDto,
+    @Query() dto: AssetStatsBulkDto,
+  ): Promise<BulkAssetStatsResponseDto[]> {
+    return this.service.getBulkStatistics(auth, dto.ids, dto);
   }
 
   @Get(':id')

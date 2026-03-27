@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { SALT_ROUNDS } from 'src/constants';
-import { AssetStatsDto, AssetStatsResponseDto, mapStats } from 'src/dtos/asset.dto';
+import { AssetStatsDto, AssetStatsResponseDto, BulkAssetStatsResponseDto, mapStats } from 'src/dtos/asset.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { SessionResponseDto, mapSession } from 'src/dtos/session.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto, mapPreferences } from 'src/dtos/user-preferences.dto';
@@ -132,6 +132,14 @@ export class UserAdminService extends BaseService {
   async getStatistics(auth: AuthDto, id: string, dto: AssetStatsDto): Promise<AssetStatsResponseDto> {
     const stats = await this.assetRepository.getStatistics(id, dto);
     return mapStats(stats);
+  }
+
+  async getBulkStatistics(auth: AuthDto, ids: string[], dto: AssetStatsDto): Promise<BulkAssetStatsResponseDto[]> {
+    const rows = await this.assetRepository.getBulkStatistics(ids, dto);
+    return rows.map(({ ownerId, ...stats }) => ({
+      userId: ownerId,
+      ...mapStats(stats),
+    }));
   }
 
   async getPreferences(auth: AuthDto, id: string): Promise<UserPreferencesResponseDto> {
