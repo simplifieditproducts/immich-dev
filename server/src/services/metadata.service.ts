@@ -215,7 +215,7 @@ export class MetadataService extends BaseService {
   }
 
   @OnJob({ name: JobName.AssetExtractMetadata, queue: QueueName.MetadataExtraction })
-  async handleMetadataExtraction(data: JobOf<JobName.AssetExtractMetadata>) {
+  async handleMetadataExtraction(data: JobOf<JobName.AssetExtractMetadata>): Promise<JobStatus | undefined> {
     const startTime = Date.now();
     const [{ metadata, reverseGeocoding }, asset] = await Promise.all([
       this.getConfig({ withCache: true }),
@@ -325,6 +325,8 @@ export class MetadataService extends BaseService {
 
     const elapsed = Date.now() - startTime;
     this.logger.log(`Job=${JobName.AssetExtractMetadata} assetId=${asset.id} assetType=${asset.type} sizeBytes=${stats.size} duration=${elapsed}ms`);
+
+    return JobStatus.Success;
   }
 
   @OnJob({ name: JobName.SidecarQueueAll, queue: QueueName.Sidecar })
