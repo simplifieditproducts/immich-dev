@@ -450,8 +450,10 @@ export class MediaService extends BaseService {
       format,
     );
 
-    await this.mediaRepository.transcode(asset.originalPath, previewPath, previewOptions);
-    await this.mediaRepository.transcode(asset.originalPath, thumbnailPath, thumbnailOptions);
+    await Promise.all([
+      this.mediaRepository.transcode(asset.originalPath, previewPath, previewOptions),
+      this.mediaRepository.transcode(asset.originalPath, thumbnailPath, thumbnailOptions),
+    ]);
 
     const thumbhash = await this.mediaRepository.generateThumbhash(previewPath, {
       colorspace: image.colorspace,
