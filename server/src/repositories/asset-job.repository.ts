@@ -11,7 +11,6 @@ import {
   asUuid,
   toJson,
   withDefaultVisibility,
-  withExif,
   withExifInner,
   withFaces,
   withFacesAndPeople,
@@ -257,7 +256,6 @@ export class AssetJobRepository {
         'asset.originalPath',
         'asset.isOffline',
       ])
-      .$call(withExif)
       .select(withFacesAndPeople)
       .select(withFiles)
       .leftJoin('stack', 'stack.id', 'asset.stackId')

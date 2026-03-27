@@ -375,7 +375,7 @@ export class AssetRepository {
       .with('asset', (qb) => qb.deleteFrom('asset').where('id', '=', id).returning('ownerId'))
       .updateTable('user')
       .from(['asset_exif', 'asset'])
-      .set({ quotaUsageInBytes: sql`"quotaUsageInBytes" - "fileSizeInByte"` })
+      .set({ quotaUsageInBytes: sql`GREATEST("quotaUsageInBytes" - "fileSizeInByte", 0)` })
       .whereRef('user.id', '=', 'asset.ownerId')
       .execute();
   }

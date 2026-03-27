@@ -415,10 +415,7 @@ export class AssetService extends BaseService {
       }
     }
 
-    await this.assetRepository.remove(asset);
-    if (!asset.libraryId) {
-      await this.userRepository.updateUsage(asset.ownerId, -(asset.exifInfo?.fileSizeInByte || 0));
-    }
+    await (asset.libraryId ? this.assetRepository.remove(asset) : this.assetRepository.removeAndDecrementQuota(id));
 
     await this.eventRepository.emit('AssetDelete', { assetId: id, userId: asset.ownerId });
 
