@@ -4,6 +4,7 @@ import { asLocalTimeISO } from '$lib/utils/date-time';
 import { toTimelineAsset } from '$lib/utils/timeline-util';
 import { deleteMemory, type MemoryResponseDto, removeMemoryAssets, searchMemories, updateMemory } from '@immich/sdk';
 import { DateTime } from 'luxon';
+import { SvelteSet } from 'svelte/reactivity';
 
 type MemoryIndex = {
   memoryIndex: number;
@@ -125,7 +126,18 @@ class MemoryStoreSvelte {
 
   private async loadAllMemories() {
     const memories = await searchMemories({ $for: asLocalTimeISO(DateTime.now()) });
-    this.memories = memories.filter((memory) => memory.assets.length > 0);
+    const seen = new SvelteSet();
+    this.memories = memories.filter((memory) => {
+      if (memory.assets.length === 0) {
+        return false;
+      }
+      const key = `${memory.type}_${memory.memoryAt}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 }
 
