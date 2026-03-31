@@ -21,4 +21,5 @@
   icon={mdiArrowLeft}
   aria-label={$t('go_back')}
   onclick={onClose}
+  class="focus-visible:ring-0 focus-visible:ring-offset-0"
 />
