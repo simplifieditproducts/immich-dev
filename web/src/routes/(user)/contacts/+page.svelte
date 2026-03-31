@@ -1,13 +1,14 @@
 <script lang="ts">
   import UserPageLayout from '$lib/components/layouts/user-page-layout.svelte';
-  import EmptyPlaceholder from '$lib/components/shared-components/empty-placeholder.svelte';
+  import { appId } from '$lib/constants';
   import ContactDetailModal from '$lib/modals/ContactDetailModal.svelte';
   import type { Contact, ContactsData } from '$lib/types';
   import { getInitials } from '$lib/utils/contact-utils';
   import { Icon } from '@immich/ui';
-  import { mdiClose, mdiEmail, mdiMagnify, mdiPhone } from '@mdi/js';
-  import { tick } from 'svelte';
+  import { mdiAccountOffOutline, mdiClose, mdiMagnify } from '@mdi/js';
+  import { onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
+  import { SvelteMap } from 'svelte/reactivity';
   import type { PageData } from './$types';
 
   interface Props {
@@ -25,6 +26,10 @@
   let selectedContact: Contact | null = $state(null);
 
   const alphabet = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'];
+
+  const CONTACT_HEIGHT = 56;
+  const HEADER_HEIGHT = 36;
+  const BUFFER = 10;
 
   let filteredContacts = $derived.by(() => {
     if (!searchQuery) {
@@ -68,13 +73,100 @@
 
   let activeLetters = $derived(new Set(groupedContacts.map((g) => g.letter)));
 
+  // Virtual list: flatten groups into rows
+  type VirtualRow =
+    | { type: 'header'; letter: string; key: string }
+    | { type: 'contact'; contact: Contact; key: string };
+
+  let virtualRows = $derived.by(() => {
+    const rows: VirtualRow[] = [];
+    for (const group of groupedContacts) {
+      rows.push({ type: 'header', letter: group.letter, key: `h-${group.letter}` });
+      for (const contact of group.contacts) {
+        rows.push({
+          type: 'contact',
+          contact,
+          key: `c-${contact.displayName}-${contact.phones[0]?.value}`,
+        });
+      }
+    }
+    return rows;
+  });
+
+  let rowOffsets = $derived.by(() => {
+    const offsets: number[] = [];
+    let y = 0;
+    for (const row of virtualRows) {
+      offsets.push(y);
+      y += row.type === 'header' ? HEADER_HEIGHT : CONTACT_HEIGHT;
+    }
+    return offsets;
+  });
+
+  let totalHeight = $derived(
+    rowOffsets.length > 0
+      ? rowOffsets.at(-1)! + (virtualRows.at(-1)!.type === 'header' ? HEADER_HEIGHT : CONTACT_HEIGHT)
+      : 0,
+  );
+
+  let letterOffsets = $derived.by(() => {
+    const map = new SvelteMap<string, number>();
+    for (let i = 0; i < virtualRows.length; i++) {
+      const row = virtualRows[i];
+      if (row.type === 'header') {
+        map.set(row.letter, rowOffsets[i]);
+      }
+    }
+    return map;
+  });
+
+  let scrollContainer: HTMLElement | null = $state(null);
+  let scrollTop = $state(0);
+  let viewportHeight = $state(0);
+
+  let visibleRange = $derived.by(() => {
+    if (rowOffsets.length === 0) {
+      return { start: 0, end: 0 };
+    }
+
+    // Binary search for first visible row
+    let lo = 0;
+    let hi = rowOffsets.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      const height = virtualRows[mid].type === 'header' ? HEADER_HEIGHT : CONTACT_HEIGHT;
+      if (rowOffsets[mid] + height <= scrollTop) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    const start = Math.max(0, lo - BUFFER);
+
+    const bottom = scrollTop + viewportHeight;
+    let last = lo;
+    while (last < rowOffsets.length && rowOffsets[last] < bottom) {
+      last++;
+    }
+    const end = Math.min(rowOffsets.length - 1, last + BUFFER);
+
+    return { start, end };
+  });
+
+  let visibleRows = $derived(
+    virtualRows.slice(visibleRange.start, visibleRange.end + 1).map((row, i) => ({
+      ...row,
+      offset: rowOffsets[visibleRange.start + i],
+    })),
+  );
+
   let isScrubbing = $state(false);
   let activeHoverLetter = $state('');
 
   function scrollToLetter(letter: string) {
-    const element = document.querySelector(`[data-letter-section="${letter}"]`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'auto', block: 'start' });
+    const offset = letterOffsets.get(letter);
+    if (offset !== undefined && scrollContainer) {
+      scrollContainer.scrollTop = offset;
     }
   }
 
@@ -110,12 +202,42 @@
     isScrubbing = false;
     activeHoverLetter = '';
   }
+
+  onMount(() => {
+    scrollContainer = document.querySelector('#main-content');
+    if (!scrollContainer) {
+      return;
+    }
+
+    viewportHeight = scrollContainer.clientHeight;
+    scrollTop = scrollContainer.scrollTop;
+
+    const handleScroll = () => {
+      scrollTop = scrollContainer!.scrollTop;
+      if (searchOpen && !searchQuery) {
+        searchInput?.blur();
+      }
+    };
+
+    const observer = new ResizeObserver((entries) => {
+      viewportHeight = entries[0].contentRect.height;
+    });
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    observer.observe(scrollContainer);
+
+    return () => {
+      scrollContainer?.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
+  });
 </script>
 
 {#snippet contactCard(contact: Contact)}
   <button
     type="button"
-    class="flex w-full items-center gap-4 overflow-hidden p-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-immich-dark-gray/80 dark:active:bg-immich-dark-gray"
+    class="flex w-full select-none items-center gap-4 overflow-hidden rounded-lg px-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-immich-dark-gray/80 dark:active:bg-immich-dark-gray"
+    style="height: {CONTACT_HEIGHT}px;"
     onclick={() => (selectedContact = contact)}
   >
     {#if contact.avatar}
@@ -133,7 +255,7 @@
     {/if}
 
     <div class="min-w-0 flex-1">
-      <p class="font-medium text-immich-dark-bg dark:text-white">
+      <p class="truncate font-medium text-immich-dark-bg dark:text-white">
         {contact.displayName}
       </p>
 
@@ -143,20 +265,6 @@
         </p>
       {/if}
 
-      <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-        {#if contact.phones.length > 0}
-          <span class="flex items-center gap-1">
-            <Icon icon={mdiPhone} size="14" />
-            {contact.phones[0].value}
-          </span>
-        {/if}
-        {#if contact.emails.length > 0}
-          <span class="flex min-w-0 items-center gap-1">
-            <Icon icon={mdiEmail} size="14" class="shrink-0" />
-            <span class="truncate">{contact.emails[0].value}</span>
-          </span>
-        {/if}
-      </div>
     </div>
   </button>
 {/snippet}
@@ -184,10 +292,10 @@
           placeholder="Search..."
           bind:value={searchQuery}
           onblur={() => { if (!searchQuery) { searchOpen = false; } }}
-          class="rounded-lg border py-2 pl-8 pr-8 text-sm transition-all duration-300 ease-in-out
+          class="rounded-lg border py-2 pl-8 pr-8 text-sm transition-[width,opacity] duration-300 ease-in-out
             {searchOpen
               ? 'w-56 border-gray-300 bg-white opacity-100 dark:border-gray-600 dark:bg-immich-dark-gray dark:text-white'
-              : 'w-0 cursor-pointer border-transparent bg-transparent opacity-0'}"
+              : 'pointer-events-none w-0 cursor-pointer border-transparent bg-transparent opacity-0'}"
           tabindex={searchOpen ? 0 : -1}
         />
         {#if searchQuery}
@@ -208,30 +316,49 @@
   {/snippet}
 
   {#if !contactsData || contacts.length === 0}
-    <EmptyPlaceholder text={$t('contacts_no_backup')} class="mt-10 mx-auto" />
+    <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
+      <div class="flex flex-col content-center items-center text-center">
+        <Icon icon={mdiAccountOffOutline} size="3.5em" />
+        <p class="mt-5 text-3xl font-medium">No contacts available</p>
+        <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your contacts here.</p>
+      </div>
+    </div>
   {:else if searchQuery && filteredContacts.length === 0}
-    <EmptyPlaceholder text={$t('contacts_no_results')} class="mt-10 mx-auto" />
+    <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
+      <div class="flex flex-col content-center items-center text-center">
+        <Icon icon={mdiAccountOffOutline} size="3.5em" />
+        <p class="mt-5 text-3xl font-medium">No results found</p>
+        <p class="text-base font-normal p-2">{$t('contacts_no_results')}</p>
+      </div>
+    </div>
   {:else}
     <div class="relative flex">
-      <div class="min-w-0 flex-1 px-4">
-        {#each groupedContacts as group (group.letter)}
-          <div data-letter-section={group.letter} class="mb-2">
-            <div class="sticky -top-2 z-1 flex items-center gap-3 bg-white/60 py-1 backdrop-blur dark:bg-immich-dark-bg/90">
-              <span class="text-sm font-semibold text-immich-primary dark:text-immich-dark-primary">{group.letter}</span>
-              <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-            </div>
-            <div class="divide-y divide-gray-200 dark:divide-gray-700">
-              {#each group.contacts as contact (contact.displayName + contact.phones[0]?.value)}
-                {@render contactCard(contact)}
-              {/each}
-            </div>
-          </div>
-        {/each}
+      <!-- Virtual list -->
+      <div class="min-w-0 flex-1 px-3">
+        <div style="height: {totalHeight}px; position: relative;">
+          {#each visibleRows as row (row.key)}
+            {#if row.type === 'header'}
+              <div
+                class="flex items-center gap-3 px-1"
+                style="position: absolute; top: {row.offset}px; height: {HEADER_HEIGHT}px; left: 0; right: 0;"
+              >
+                <span class="text-sm font-semibold text-immich-primary dark:text-immich-dark-primary">{row.letter}</span>
+                <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+              </div>
+            {:else}
+              <div
+                style="position: absolute; top: {row.offset}px; height: {CONTACT_HEIGHT}px; left: 0; right: 0;"
+              >
+                {@render contactCard(row.contact)}
+              </div>
+            {/if}
+          {/each}
+        </div>
       </div>
 
       <!-- Alphabet scrubber -->
       <div
-        class="fixed sm:hidden right-0 top-1/2 z-20 flex -translate-y-1/2 touch-none flex-col items-center"
+        class="fixed sm:hidden right-0 top-[calc(50%+4rem)] z-20 flex -translate-y-1/2 touch-none flex-col items-center"
         role="navigation"
         aria-label="Alphabet scrubber"
         onpointerdown={handleScrubberPointerDown}
@@ -243,9 +370,9 @@
           <button
             type="button"
             data-letter={letter}
-            class="flex h-4.5 w-6 select-none items-center justify-center text-[11px] font-semibold leading-none transition-colors
+            class="flex h-4.5 w-10 select-none items-center justify-center pl-5 text-[11px] font-semibold leading-none transition-colors
               {activeHoverLetter === letter
-                ? 'scale-125 text-immich-primary dark:text-immich-dark-primary'
+                ? 'origin-right scale-125 text-immich-primary dark:text-immich-dark-primary'
                 : activeLetters.has(letter)
                   ? 'text-gray-600 dark:text-gray-300'
                   : 'text-gray-300 dark:text-gray-600'}"

@@ -1,11 +1,9 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation';
   import { page } from '$app/state';
-  import { Icon } from '@immich/ui';
   import UserPageLayout from '$lib/components/layouts/user-page-layout.svelte';
   import MemoryLane from '$lib/components/photos-page/memory-lane.svelte';
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
-  import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
   import AddToAlbum from '$lib/components/timeline/actions/AddToAlbumAction.svelte';
   import ArchiveAction from '$lib/components/timeline/actions/ArchiveAction.svelte';
   import AssetJobActions from '$lib/components/timeline/actions/AssetJobActions.svelte';
@@ -23,6 +21,7 @@
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
+  import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
@@ -37,6 +36,7 @@
     type OnUnlink,
   } from '$lib/utils/actions';
   import { AssetVisibility } from '@immich/sdk';
+  import { Icon } from '@immich/ui';
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
 
   import { t } from 'svelte-i18n';
@@ -126,7 +126,7 @@
         <div class="flex flex-col content-center items-center text-center">
           <Icon icon={mdiImageOffOutline} size="3.5em" />
           <p class="mt-5 text-3xl font-medium">No photos available</p>
-          <p class="text-base font-normal px-2">Run a backup using the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} app and try again.</p>
+          <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your photos here.</p>
         </div>
       </div>
     {/snippet}

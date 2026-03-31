@@ -20,7 +20,20 @@
   let copiedTimeout: ReturnType<typeof setTimeout>;
 
   async function copyToClipboard(text: string) {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for iOS browsers where Clipboard API may not work
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.append(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
     showCopied = true;
     clearTimeout(copiedTimeout);
     copiedTimeout = setTimeout(() => (showCopied = false), 2000);
@@ -42,17 +55,17 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <Portal target="body">
-  <div class="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onclick={handleBackdropClick} role="presentation">
+  <div class="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4" onclick={handleBackdropClick} role="presentation">
     <div
-      class="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-immich-dark-gray"
+      class="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-immich-dark-gray"
       role="dialog"
       aria-label={contact.displayName}
     >
       <!-- Header -->
-      <div class="relative flex flex-col items-center px-6 pt-6 pb-4">
+      <div class="relative flex shrink-0 flex-col items-center px-6 pt-6 pb-4">
         <button
           type="button"
-          class="absolute right-3 top-3 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+          class="absolute right-3 top-3 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 active:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:active:bg-gray-600"
           onclick={onClose}
         >
           <Icon icon={mdiClose} size="24" />
@@ -84,7 +97,7 @@
       </div>
 
       <!-- Details -->
-      <div class="space-y-1 px-6 pb-6">
+      <div class="min-h-0 space-y-1 overflow-y-auto px-6 pb-6">
         <!-- Phones -->
         {#if contact.phones.length > 0}
           <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
