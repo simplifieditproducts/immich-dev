@@ -41,6 +41,11 @@ API changes we made in our fork compared to the [official API documentation](htt
 - The `uploadAsset` and `replaceAsset` API functions now accept two additional parameters: `deviceFilePath` (optional) and `isOriginalQuality` (defaults to `false`). The `deviceFilePath` parameter tracks the asset's file path on the user's device, while `isOriginalQuality` indicates whether the asset is in original quality. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 - The `getAssetsInfo` API function has been added to accept a list of asset IDs and return the asset info for each of them. This API supports the 'Download' feature, which requires fetching asset info in bulk. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 
+APIs added for 'Contacts':
+- **Upload contacts**: `PUT /api/contacts` — Uploads a VCF file as the contacts backup, replacing any existing backup. The request body should contain the raw bytes of the VCF file.
+- **Download contacts**: `GET /api/contacts?raw=true` — Downloads contacts as a single VCF file. When the `raw` query parameter is omitted, the API returns the contacts list in JSON format instead.
+- **Delete contacts**: `DELETE /api/contacts` — Deletes the stored contacts backup.
+
 Communication between the Immich app and the native app is handled via `postMessage`:
 - The `CMD_PAGE_READY` message informs the native app that either the `/photos` or `/search` page has finished loading.
 - The `CMD_CLOSE_WINDOW` message instructs the native app to close the web view.
