@@ -140,6 +140,8 @@ export const endpointTags: Record<ApiTag, string> = {
   [ApiTag.Albums]: 'An album is a collection of assets that can be shared with other users or via shared links.',
   [ApiTag.ApiKeys]: 'An api key can be used to programmatically access the Immich API.',
   [ApiTag.Assets]: 'An asset is an image or video that has been uploaded to Immich.',
+  [ApiTag.Contacts]:
+    'Endpoints for managing contacts backup. Users can upload a VCF file containing their contacts and retrieve or delete it.',
   [ApiTag.Authentication]: 'Endpoints related to user authentication, including OAuth.',
   [ApiTag.AuthenticationAdmin]: 'Administrative endpoints related to authentication.',
   [ApiTag.Deprecated]: 'Deprecated endpoints that are planned for removal in the next major release.',

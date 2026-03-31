@@ -85,13 +85,13 @@
     </div>
     <div class="flex justify-between gap-4 lg:gap-8 pe-6">
       <div class="hidden w-full max-w-5xl flex-1 tall:ps-0 sm:block">
-        {#if featureFlagsManager.value.search}
+        {#if featureFlagsManager.value.search && !page.url.pathname.startsWith(AppRoute.CONTACTS)}
           <SearchBar grayTheme={true} />
         {/if}
       </div>
 
       <section class="flex place-items-center justify-end gap-1 md:gap-2 w-full sm:w-auto">
-        {#if featureFlagsManager.value.search}
+        {#if featureFlagsManager.value.search && !page.url.pathname.startsWith(AppRoute.CONTACTS)}
           <IconButton
             color="secondary"
             shape="round"

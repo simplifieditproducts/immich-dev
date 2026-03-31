@@ -3,6 +3,7 @@ import { AlbumController } from 'src/controllers/album.controller';
 import { ApiKeyController } from 'src/controllers/api-key.controller';
 import { AppController } from 'src/controllers/app.controller';
 import { AssetMediaController } from 'src/controllers/asset-media.controller';
+import { ContactsController } from 'src/controllers/contacts.controller';
 import { AssetUploadController } from 'src/controllers/asset-upload.controller';
 import { AssetController } from 'src/controllers/asset.controller';
 import { AuthAdminController } from 'src/controllers/auth-admin.controller';
@@ -46,6 +47,7 @@ export const controllers = [
   AssetController,
   AssetMediaController,
   AssetUploadController,
+  ContactsController,
   AuthController,
   AuthAdminController,
   DownloadController,

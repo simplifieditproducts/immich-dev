@@ -1,16 +1,21 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { shouldIgnoreEvent } from '$lib/actions/shortcut';
   import Logo from '$lib/components/shared-components/logo.svelte';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { dragAndDropFilesStore } from '$lib/stores/drag-and-drop-files.store';
   import { fileUploadHandler } from '$lib/utils/file-uploader';
-  import { isAlbumsRoute, isLockedFolderRoute } from '$lib/utils/navigation';
+  import { handleError } from '$lib/utils/handle-error';
+  import { isAlbumsRoute, isContactsRoute, isLockedFolderRoute } from '$lib/utils/navigation';
+  import { getBaseUrl } from '@immich/sdk';
+  import { toastManager } from '@immich/ui';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
 
   let albumId = $derived(isAlbumsRoute(page.route?.id) ? page.params.albumId : undefined);
   let isInLockedFolder = $derived(isLockedFolderRoute(page.route.id));
+  let isOnContactsPage = $derived(isContactsRoute(page.route?.id));
 
   let dragStartTarget: EventTarget | null = $state(null);
 
@@ -126,10 +131,33 @@
     }
 
     const filesArray: File[] = Array.from<File>(files);
+
+    if (isOnContactsPage) {
+      const vcfFile = filesArray.find((f) => f.name.toLowerCase().endsWith('.vcf'));
+      if (vcfFile) {
+        await handleVcfUpload(vcfFile);
+      }
+      return;
+    }
+
     if (authManager.isSharedLink) {
       dragAndDropFilesStore.set({ isDragging: true, files: filesArray });
     } else {
       await fileUploadHandler({ files: filesArray, albumId, isLockedAssets: isInLockedFolder });
+    }
+  };
+
+  const handleVcfUpload = async (file: File) => {
+    try {
+      const body = await file.text();
+      const response = await fetch(`${getBaseUrl()}/contacts`, { method: 'PUT', body });
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      toastManager.success($t('contacts_uploaded'));
+      await invalidateAll();
+    } catch (error) {
+      handleError(error, $t('contacts_upload_failed'));
     }
   };
 

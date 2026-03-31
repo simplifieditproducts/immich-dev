@@ -129,6 +129,10 @@ export enum Permission {
 
   ArchiveRead = 'archive.read',
 
+  ContactUpload = 'contact.upload',
+  ContactRead = 'contact.read',
+  ContactDelete = 'contact.delete',
+
   DuplicateRead = 'duplicate.read',
   DuplicateDelete = 'duplicate.delete',
 
@@ -840,6 +844,7 @@ export enum ApiTag {
   Authentication = 'Authentication',
   AuthenticationAdmin = 'Authentication (admin)',
   Assets = 'Assets',
+  Contacts = 'Contacts',
   Deprecated = 'Deprecated',
   Download = 'Download',
   Duplicates = 'Duplicates',

@@ -398,7 +398,7 @@ export class AssetMediaService extends BaseService {
     if (sidecarPath) {
       filePaths.push(sidecarPath);
     }
-    StorageCore.appendToRcloneSyncList(filePaths);
+    void StorageCore.appendToRcloneSyncList(filePaths);
 
     await this.storageRepository.utimes(file.originalPath, new Date(), new Date(dto.fileModifiedAt));
     
@@ -533,7 +533,7 @@ export class AssetMediaService extends BaseService {
     await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: { id: asset.id, source: 'upload' } });
     
     // Track new files for rclone sync
-    StorageCore.appendToRcloneSyncList(filePaths);
+    void StorageCore.appendToRcloneSyncList(filePaths);
     
     return asset;
   }

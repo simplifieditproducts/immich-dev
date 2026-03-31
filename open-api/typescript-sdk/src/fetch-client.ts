@@ -8,7 +8,7 @@ import * as Oazapfts from "@oazapfts/runtime";
 import * as QS from "@oazapfts/runtime/query";
 export const defaults: Oazapfts.Defaults<Oazapfts.CustomHeaders> = {
     headers: {},
-    baseUrl: "/api",
+    baseUrl: "/api"
 };
 const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {
@@ -126,6 +126,12 @@ export type UserAdminCreateDto = {
     quotaSizeInBytes?: number | null;
     shouldChangePassword?: boolean;
     storageLabel?: string | null;
+};
+export type BulkAssetStatsResponseDto = {
+    images: number;
+    total: number;
+    userId: string;
+    videos: number;
 };
 export type UserAdminDeleteDto = {
     force?: boolean;
@@ -340,6 +346,7 @@ export type AssetResponseDto = {
     /** The UTC timestamp when the asset was originally uploaded to Immich. */
     createdAt: string;
     deviceAssetId: string;
+    deviceFilePath?: string | null;
     deviceId: string;
     duplicateId?: string | null;
     duration: string;
@@ -353,6 +360,7 @@ export type AssetResponseDto = {
     isArchived: boolean;
     isFavorite: boolean;
     isOffline: boolean;
+    isOriginalQuality: boolean;
     isTrashed: boolean;
     libraryId?: string | null;
     livePhotoVideoId?: string | null;
@@ -377,9 +385,6 @@ export type AssetResponseDto = {
 export type ContributorCountResponseDto = {
     assetCount: number;
     userId: string;
-};
-export type GetAssetsInfoResponseDto = {
-    items: AssetResponseDto[];
 };
 export type AlbumResponseDto = {
     albumName: string;
@@ -473,6 +478,18 @@ export type AssetBulkDeleteDto = {
     force?: boolean;
     ids: string[];
 };
+export type GetAssetsResponseDto = {
+    hasNextPage: boolean;
+    items: {
+        checksum: string;
+        deviceAssetId: string;
+        deviceFilePath: string | null;
+        deviceId: string;
+        id: string;
+        isOriginalQuality: boolean;
+    }[];
+    total: number;
+};
 export type AssetMetadataUpsertItemDto = {
     key: AssetMetadataKey;
     value: object;
@@ -480,18 +497,21 @@ export type AssetMetadataUpsertItemDto = {
 export type AssetMediaCreateDto = {
     assetData: Blob;
     deviceAssetId: string;
+    deviceFilePath?: string;
     deviceId: string;
     duration?: string;
     fileCreatedAt: string;
     fileModifiedAt: string;
     filename?: string;
     isFavorite?: boolean;
+    isOriginalQuality?: boolean;
     livePhotoVideoId?: string;
     metadata: AssetMetadataUpsertItemDto[];
     sidecarData?: Blob;
     visibility?: AssetVisibility;
 };
 export type AssetMediaResponseDto = {
+    checksum?: string;
     id: string;
     status: AssetMediaStatus;
 };
@@ -537,10 +557,13 @@ export type AssetCopyDto = {
 };
 export type CheckExistingAssetsDto = {
     deviceAssetIds: string[];
-    deviceId: string;
+    deviceId?: string;
 };
 export type CheckExistingAssetsResponseDto = {
     existingIds: string[];
+};
+export type GetAssetsInfoResponseDto = {
+    items: AssetResponseDto[];
 };
 export type AssetJobsDto = {
     assetIds: string[];
@@ -593,11 +616,14 @@ export type AssetOcrResponseDto = {
 export type AssetMediaReplaceDto = {
     assetData: Blob;
     deviceAssetId: string;
+    deviceFilePath?: string;
     deviceId: string;
     duration?: string;
     fileCreatedAt: string;
     fileModifiedAt: string;
     filename?: string;
+    isOriginalQuality?: boolean;
+    skipReprocess?: boolean;
 };
 export type SignUpDto = {
     email: string;
@@ -619,6 +645,8 @@ export type LoginResponseDto = {
     isOnboarded: boolean;
     name: string;
     profileImagePath: string;
+    quotaSizeInBytes: number;
+    quotaUsageInBytes: number;
     shouldChangePassword: boolean;
     userEmail: string;
     userId: string;
@@ -652,6 +680,40 @@ export type AuthStatusResponseDto = {
 };
 export type ValidateAccessTokenResponseDto = {
     authStatus: boolean;
+};
+export type ContactAddressDto = {
+    city: string;
+    country: string;
+    state: string;
+    street: string;
+    "type": string;
+    zip: string;
+};
+export type ContactEmailDto = {
+    "type": string;
+    value: string;
+};
+export type ContactPhoneDto = {
+    "type": string;
+    value: string;
+};
+export type ContactDto = {
+    addresses: ContactAddressDto[];
+    avatar?: string | null;
+    birthday?: string | null;
+    displayName: string;
+    emails: ContactEmailDto[];
+    firstName: string;
+    lastName: string;
+    notes?: string | null;
+    organization?: string | null;
+    phones: ContactPhoneDto[];
+    title?: string | null;
+};
+export type ContactsResponseDto = {
+    contacts: ContactDto[];
+    lastModified: string;
+    total: number;
 };
 export type AssetIdsDto = {
     assetIds: string[];
@@ -748,6 +810,7 @@ export type QueuesResponseLegacyDto = {
 };
 export type JobCreateDto = {
     name: ManualJobName;
+    ownerId?: string;
 };
 export type QueueCommandDto = {
     command: QueueCommand;
@@ -884,11 +947,6 @@ export type PeopleResponseDto = {
     people: PersonResponseDto[];
     total: number;
 };
-export type NumberOfPeopleResponseDto = {
-    total: number;
-    hidden: number;
-    unnamed: number;
-};
 export type PersonCreateDto = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
@@ -917,6 +975,11 @@ export type PeopleUpdateItem = {
 };
 export type PeopleUpdateDto = {
     people: PeopleUpdateItem[];
+};
+export type NumberOfPeopleResponseDto = {
+    hidden: number;
+    total: number;
+    unnamed: number;
 };
 export type PersonUpdateDto = {
     /** Person date of birth.
@@ -1067,9 +1130,49 @@ export type SearchAssetResponseDto = {
     nextPage: string | null;
     total: number;
 };
+export type SmartSearchDto = {
+    albumIds?: string[];
+    city?: string | null;
+    country?: string | null;
+    createdAfter?: string;
+    createdBefore?: string;
+    deviceId?: string;
+    excludeAssetIds?: string[];
+    isEncoded?: boolean;
+    isFavorite?: boolean;
+    isMotion?: boolean;
+    isNotInAlbum?: boolean;
+    isOffline?: boolean;
+    language?: string;
+    lensModel?: string | null;
+    libraryId?: string | null;
+    make?: string;
+    model?: string | null;
+    ocr?: string;
+    page?: number;
+    personIds?: string[];
+    query?: string;
+    queryAssetId?: string;
+    rating?: number;
+    size?: number;
+    state?: string | null;
+    tagIds?: string[] | null;
+    takenAfter?: string;
+    takenBefore?: string;
+    trashedAfter?: string;
+    trashedBefore?: string;
+    "type"?: AssetTypeEnum;
+    updatedAfter?: string;
+    updatedBefore?: string;
+    visibility?: AssetVisibility;
+    withDeleted?: boolean;
+    withExif?: boolean;
+    withFilterExtraction?: boolean;
+};
 export type SearchResponseDto = {
     albums: SearchAlbumResponseDto;
     assets: SearchAssetResponseDto;
+    terms?: SmartSearchDto;
 };
 export type PlacesResponseDto = {
     admin1name?: string;
@@ -1112,45 +1215,6 @@ export type RandomSearchDto = {
     withExif?: boolean;
     withPeople?: boolean;
     withStacked?: boolean;
-};
-export type SmartSearchDto = {
-    albumIds?: string[];
-    city?: string | null;
-    country?: string | null;
-    createdAfter?: string;
-    createdBefore?: string;
-    deviceId?: string;
-    isEncoded?: boolean;
-    isFavorite?: boolean;
-    isMotion?: boolean;
-    isNotInAlbum?: boolean;
-    isOffline?: boolean;
-    language?: string;
-    lensModel?: string | null;
-    libraryId?: string | null;
-    make?: string;
-    model?: string | null;
-    ocr?: string;
-    page?: number;
-    personIds?: string[];
-    query?: string;
-    queryAssetId?: string;
-    rating?: number;
-    size?: number;
-    state?: string | null;
-    tagIds?: string[] | null;
-    takenAfter?: string;
-    takenBefore?: string;
-    trashedAfter?: string;
-    trashedBefore?: string;
-    "type"?: AssetTypeEnum;
-    updatedAfter?: string;
-    updatedBefore?: string;
-    visibility?: AssetVisibility;
-    withDeleted?: boolean;
-    withExif?: boolean;
-    withFilterExtraction?: boolean;
-    excludeAssetIds?: string[];
 };
 export type StatisticsSearchDto = {
     albumIds?: string[];
@@ -1230,10 +1294,10 @@ export type ServerConfigDto = {
 };
 export type ServerFeaturesDto = {
     configFile: boolean;
-    filterExtraction: boolean;
     duplicateDetection: boolean;
     email: boolean;
     facialRecognition: boolean;
+    filterExtraction: boolean;
     importFaces: boolean;
     map: boolean;
     oauth: boolean;
@@ -1263,6 +1327,13 @@ export type ServerMediaTypesResponseDto = {
 export type ServerPingResponse = {};
 export type ServerPingResponseRead = {
     res: string;
+};
+export type SimpleServerStatsResponseDto = {
+    diskTotal: number;
+    diskUsed: number;
+    photos: number;
+    users: number;
+    videos: number;
 };
 export type UsageByUserDto = {
     photos: number;
@@ -1422,8 +1493,12 @@ export type DatabaseBackupConfig = {
     enabled: boolean;
     keepLastAmount: number;
 };
+export type UploadBackupConfig = {
+    maxAgeHours: number;
+};
 export type SystemConfigBackupsDto = {
     database: DatabaseBackupConfig;
+    upload: UploadBackupConfig;
 };
 export type SystemConfigFFmpegDto = {
     accel: TranscodeHWAccel;
@@ -1470,7 +1545,9 @@ export type JobSettingsDto = {
 };
 export type SystemConfigJobDto = {
     backgroundTask: JobSettingsDto;
+    duplicateDetection: JobSettingsDto;
     faceDetection: JobSettingsDto;
+    facialRecognition: JobSettingsDto;
     library: JobSettingsDto;
     metadataExtraction: JobSettingsDto;
     migration: JobSettingsDto;
@@ -1503,13 +1580,6 @@ export type MachineLearningAvailabilityChecksDto = {
     interval: number;
     timeout: number;
 };
-export type FilterExtractionConfig = {
-    enabled: boolean;
-    modelName: string;
-    prompt: string;
-    cacheEnabled: boolean;
-    showExtractedFilters: boolean;
-};
 export type ClipConfig = {
     enabled: boolean;
     modelName: string;
@@ -1525,6 +1595,13 @@ export type FacialRecognitionConfig = {
     minScore: number;
     modelName: string;
 };
+export type FilterExtractionConfig = {
+    cacheEnabled: boolean;
+    enabled: boolean;
+    modelName: string;
+    prompt: string;
+    showExtractedFilters: boolean;
+};
 export type OcrConfig = {
     enabled: boolean;
     maxResolution: number;
@@ -1533,12 +1610,12 @@ export type OcrConfig = {
     modelName: string;
 };
 export type SystemConfigMachineLearningDto = {
-    filterExtraction: FilterExtractionConfig;
     availabilityChecks: MachineLearningAvailabilityChecksDto;
     clip: ClipConfig;
     duplicateDetection: DuplicateDetectionConfig;
     enabled: boolean;
     facialRecognition: FacialRecognitionConfig;
+    filterExtraction: FilterExtractionConfig;
     ocr: OcrConfig;
     urls: string[];
 };
@@ -1561,6 +1638,7 @@ export type SystemConfigNightlyTasksDto = {
     databaseCleanup: boolean;
     generateMemories: boolean;
     missingThumbnails: boolean;
+    removeStaleUploads: boolean;
     startTime: string;
     syncQuotaUsage: boolean;
 };
@@ -1725,6 +1803,9 @@ export type TimeBucketsResponseDto = {
 };
 export type TrashResponseDto = {
     count: number;
+};
+export type UploadOkDto = {
+    id: string;
 };
 export type UserUpdateMeDto = {
     avatarColor?: (UserAvatarColor) | null;
@@ -1945,8 +2026,11 @@ export function sendTestEmailAdmin({ systemConfigSmtpDto }: {
 /**
  * Search users
  */
-export function searchUsersAdmin({ id, withDeleted }: {
+export function searchUsersAdmin({ id, ids, sourceApp, updatedAfter, withDeleted }: {
     id?: string;
+    ids?: string[];
+    sourceApp?: "picturekeeper" | "ultimatebackup";
+    updatedAfter?: string;
     withDeleted?: boolean;
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -1954,6 +2038,9 @@ export function searchUsersAdmin({ id, withDeleted }: {
         data: UserAdminResponseDto[];
     }>(`/admin/users${QS.query(QS.explode({
         id,
+        ids,
+        sourceApp,
+        updatedAfter,
         withDeleted
     }))}`, {
         ...opts
@@ -1973,6 +2060,27 @@ export function createUserAdmin({ userAdminCreateDto }: {
         method: "POST",
         body: userAdminCreateDto
     })));
+}
+/**
+ * Retrieve bulk user statistics
+ */
+export function getBulkUserStatisticsAdmin({ ids, isFavorite, isTrashed, visibility }: {
+    ids: string[];
+    isFavorite?: boolean;
+    isTrashed?: boolean;
+    visibility?: AssetVisibility;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: BulkAssetStatsResponseDto[];
+    }>(`/admin/users/statistics${QS.query(QS.explode({
+        ids,
+        isFavorite,
+        isTrashed,
+        visibility
+    }))}`, {
+        ...opts
+    }));
 }
 /**
  * Delete a user
@@ -2374,6 +2482,23 @@ export function deleteAssets({ assetBulkDeleteDto }: {
     })));
 }
 /**
+ * Get all assets of current user that are in the database.
+ */
+export function getAllUserAssets({ page, size }: {
+    page?: number;
+    size?: number;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: GetAssetsResponseDto;
+    }>(`/assets${QS.query(QS.explode({
+        page,
+        size
+    }))}`, {
+        ...opts
+    }));
+}
+/**
  * Upload asset
  */
 export function uploadAsset({ key, slug, xImmichChecksum, assetMediaCreateDto }: {
@@ -2465,6 +2590,21 @@ export function checkExistingAssets({ checkExistingAssetsDto }: {
     })));
 }
 /**
+ * Retrieve a list of assets
+ */
+export function getAssetsInfo({ bulkIdsDto }: {
+    bulkIdsDto: BulkIdsDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: GetAssetsInfoResponseDto;
+    }>("/assets/info", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: bulkIdsDto
+    })));
+}
+/**
  * Run an asset job
  */
 export function runAssetJobs({ assetJobsDto }: {
@@ -2527,23 +2667,6 @@ export function getAssetInfo({ id, key, slug }: {
     }))}`, {
         ...opts
     }));
-}
-/**
- * Get assets info
- */
-export function getAssetsInfo({ ids }: {
-    ids: string[];
-}, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: GetAssetsInfoResponseDto;
-    }>("/assets/info", oazapfts.json({
-        ...opts,
-        method: "POST",
-        body: {
-            ids
-        }
-    })));
 }
 /**
  * Update an asset
@@ -2841,6 +2964,39 @@ export function validateAccessToken(opts?: Oazapfts.RequestOpts) {
     }>("/auth/validateToken", {
         ...opts,
         method: "POST"
+    }));
+}
+/**
+ * Delete contacts backup
+ */
+export function deleteContacts(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/contacts", {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Retrieve contacts
+ */
+export function getContacts({ raw }: {
+    raw: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: ContactsResponseDto;
+    }>(`/contacts${QS.query(QS.explode({
+        raw
+    }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Upload contacts backup
+ */
+export function uploadContacts(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/contacts", {
+        ...opts,
+        method: "PUT"
     }));
 }
 /**
@@ -3554,17 +3710,6 @@ export function getAllPeople({ closestAssetId, closestPersonId, page, size, with
     }));
 }
 /**
- * Get number of people
- */
-export function getNumberOfPeople(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: NumberOfPeopleResponseDto;
-    }>('/people/count', {
-        ...opts
-    }));
-}
-/**
  * Create a person
  */
 export function createPerson({ personCreateDto }: {
@@ -3593,6 +3738,17 @@ export function updatePeople({ peopleUpdateDto }: {
         method: "PUT",
         body: peopleUpdateDto
     })));
+}
+/**
+ * Get number of people
+ */
+export function getNumberOfPeople(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: NumberOfPeopleResponseDto;
+    }>("/people/count", {
+        ...opts
+    }));
 }
 /**
  * Delete person
@@ -4104,6 +4260,21 @@ export function pingServer(opts?: Oazapfts.RequestOpts) {
         status: 200;
         data: ServerPingResponseRead;
     }>("/server/ping", {
+        ...opts
+    }));
+}
+/**
+ * Get simple statistics
+ */
+export function getSimpleServerStatistics({ sourceApp }: {
+    sourceApp: "picturekeeper" | "ultimatebackup";
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: SimpleServerStatsResponseDto;
+    }>(`/server/simple-statistics${QS.query(QS.explode({
+        sourceApp
+    }))}`, {
         ...opts
     }));
 }
@@ -4890,6 +5061,97 @@ export function restoreAssets({ bulkIdsDto }: {
         body: bulkIdsDto
     })));
 }
+export function getUploadOptions(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/upload", {
+        ...opts,
+        method: "OPTIONS"
+    }));
+}
+export function startUpload({ contentLength, key, reprDigest, slug, uploadComplete, uploadDraftInteropVersion, xImmichAssetData }: {
+    contentLength: string;
+    key?: string;
+    reprDigest: string;
+    slug?: string;
+    uploadComplete?: string;
+    uploadDraftInteropVersion?: string;
+    xImmichAssetData: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: UploadOkDto;
+    } | {
+        status: 201;
+    }>(`/upload${QS.query(QS.explode({
+        key,
+        slug
+    }))}`, {
+        ...opts,
+        method: "POST",
+        headers: oazapfts.mergeHeaders(opts?.headers, {
+            "content-length": contentLength,
+            "repr-digest": reprDigest,
+            "upload-complete": uploadComplete,
+            "upload-draft-interop-version": uploadDraftInteropVersion,
+            "x-immich-asset-data": xImmichAssetData
+        })
+    }));
+}
+export function cancelUpload({ id, key, slug }: {
+    id: string;
+    key?: string;
+    slug?: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/upload/${encodeURIComponent(id)}${QS.query(QS.explode({
+        key,
+        slug
+    }))}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+export function getUploadStatus({ id, key, slug, uploadDraftInteropVersion }: {
+    id: string;
+    key?: string;
+    slug?: string;
+    uploadDraftInteropVersion: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/upload/${encodeURIComponent(id)}${QS.query(QS.explode({
+        key,
+        slug
+    }))}`, {
+        ...opts,
+        method: "HEAD",
+        headers: oazapfts.mergeHeaders(opts?.headers, {
+            "upload-draft-interop-version": uploadDraftInteropVersion
+        })
+    }));
+}
+export function resumeUpload({ contentLength, id, key, slug, uploadComplete, uploadDraftInteropVersion, uploadOffset }: {
+    contentLength: string;
+    id: string;
+    key?: string;
+    slug?: string;
+    uploadComplete: string;
+    uploadDraftInteropVersion: string;
+    uploadOffset: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: UploadOkDto;
+    }>(`/upload/${encodeURIComponent(id)}${QS.query(QS.explode({
+        key,
+        slug
+    }))}`, {
+        ...opts,
+        method: "PATCH",
+        headers: oazapfts.mergeHeaders(opts?.headers, {
+            "content-length": contentLength,
+            "upload-complete": uploadComplete,
+            "upload-draft-interop-version": uploadDraftInteropVersion,
+            "upload-offset": uploadOffset
+        })
+    }));
+}
 /**
  * Get all users
  */
@@ -5208,15 +5470,15 @@ export enum UserStatus {
     Removing = "removing",
     Deleted = "deleted"
 }
-export enum AssetOrder {
-    Asc = "asc",
-    Desc = "desc"
-}
 export enum AssetVisibility {
     Archive = "archive",
     Timeline = "timeline",
     Hidden = "hidden",
     Locked = "locked"
+}
+export enum AssetOrder {
+    Asc = "asc",
+    Desc = "desc"
 }
 export enum AlbumUserRole {
     Editor = "editor",
@@ -5281,6 +5543,9 @@ export enum Permission {
     AuthChangePassword = "auth.changePassword",
     AuthDeviceDelete = "authDevice.delete",
     ArchiveRead = "archive.read",
+    ContactUpload = "contact.upload",
+    ContactRead = "contact.read",
+    ContactDelete = "contact.delete",
     DuplicateRead = "duplicate.read",
     DuplicateDelete = "duplicate.delete",
     FaceCreate = "face.create",
@@ -5426,7 +5691,8 @@ export enum ManualJobName {
     MemoryCleanup = "memory-cleanup",
     MemoryCreate = "memory-create",
     BackupDatabase = "backup-database",
-    AssetMissingCheck = "asset-missing-check",
+    FacialRecognition = "facial-recognition",
+    AssetMissingCheck = "asset-missing-check"
 }
 export enum QueueName {
     ThumbnailGeneration = "thumbnailGeneration",
@@ -5494,6 +5760,10 @@ export enum JobName {
     AssetFileMigration = "AssetFileMigration",
     AssetGenerateThumbnailsQueueAll = "AssetGenerateThumbnailsQueueAll",
     AssetGenerateThumbnails = "AssetGenerateThumbnails",
+    AssetMissingCheckQueueAll = "AssetMissingCheckQueueAll",
+    AssetMissingCheck = "AssetMissingCheck",
+    PartialAssetCleanup = "PartialAssetCleanup",
+    PartialAssetCleanupQueueAll = "PartialAssetCleanupQueueAll",
     AuditLogCleanup = "AuditLogCleanup",
     AuditTableCleanup = "AuditTableCleanup",
     DatabaseBackup = "DatabaseBackup",

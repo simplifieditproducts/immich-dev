@@ -4640,6 +4640,120 @@
         "x-immich-state": "Stable"
       }
     },
+    "/contacts": {
+      "delete": {
+        "description": "Delete the contacts backup file from the server.",
+        "operationId": "deleteContacts",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete contacts backup",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.delete"
+      },
+      "get": {
+        "description": "Retrieve the contacts backup. Returns parsed JSON by default, or the raw VCF file when raw=true.",
+        "operationId": "getContacts",
+        "parameters": [
+          {
+            "name": "raw",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Retrieve contacts",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
+      },
+      "put": {
+        "description": "Upload a VCF file containing contacts data. Replaces any existing contacts backup.",
+        "operationId": "uploadContacts",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Upload contacts backup",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.upload"
+      }
+    },
     "/download/archive": {
       "post": {
         "description": "Download a ZIP archive containing the specified assets. The assets must have been previously requested via the \"getDownloadInfo\" endpoint.",
@@ -14988,6 +15102,10 @@
       "description": "An asset is an image or video that has been uploaded to Immich."
     },
     {
+      "name": "Contacts",
+      "description": "Endpoints for managing contacts backup. Users can upload a VCF file containing their contacts and retrieve or delete it."
+    },
+    {
       "name": "Authentication",
       "description": "Endpoints related to user authentication, including OAuth."
     },
@@ -16855,6 +16973,149 @@
           "p3"
         ],
         "type": "string"
+      },
+      "ContactAddressDto": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "city",
+          "country",
+          "state",
+          "street",
+          "type",
+          "zip"
+        ],
+        "type": "object"
+      },
+      "ContactDto": {
+        "properties": {
+          "addresses": {
+            "items": {
+              "$ref": "#/components/schemas/ContactAddressDto"
+            },
+            "type": "array"
+          },
+          "avatar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "birthday": {
+            "nullable": true,
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/ContactEmailDto"
+            },
+            "type": "array"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "organization": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phones": {
+            "items": {
+              "$ref": "#/components/schemas/ContactPhoneDto"
+            },
+            "type": "array"
+          },
+          "title": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "addresses",
+          "displayName",
+          "emails",
+          "firstName",
+          "lastName",
+          "phones"
+        ],
+        "type": "object"
+      },
+      "ContactEmailDto": {
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ContactPhoneDto": {
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ContactsResponseDto": {
+        "properties": {
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/ContactDto"
+            },
+            "type": "array"
+          },
+          "lastModified": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "contacts",
+          "lastModified",
+          "total"
+        ],
+        "type": "object"
       },
       "ContributorCountResponseDto": {
         "properties": {
@@ -18739,6 +19000,9 @@
           "auth.changePassword",
           "authDevice.delete",
           "archive.read",
+          "contact.upload",
+          "contact.read",
+          "contact.delete",
           "duplicate.read",
           "duplicate.delete",
           "face.create",

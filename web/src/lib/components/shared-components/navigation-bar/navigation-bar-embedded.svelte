@@ -61,7 +61,7 @@
 
     <div class="flex justify-between gap-4 lg:gap-8">
       <section class="flex place-items-center justify-end gap-1 md:gap-2 w-full">
-        {#if featureFlagsManager.value.search}
+        {#if featureFlagsManager.value.search && !page.url.pathname.startsWith(AppRoute.CONTACTS)}
           <IconButton
             color="secondary"
             shape="round"

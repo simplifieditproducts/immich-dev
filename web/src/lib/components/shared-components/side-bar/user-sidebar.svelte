@@ -9,6 +9,8 @@
   import {
     mdiAccount,
     mdiAccountMultiple,
+    mdiContacts,
+    mdiContactsOutline,
     mdiAccountMultipleOutline,
     mdiAccountOutline,
     mdiArchiveArrowDown,
@@ -36,6 +38,7 @@
   import SideBarLink from './side-bar-link.svelte';
 
   let isArchiveSelected: boolean = $state(false);
+  let isContactsSelected: boolean = $state(false);
   let isFavoritesSelected: boolean = $state(false);
   let isMapSelected: boolean = $state(false);
   let isPeopleSelected: boolean = $state(false);
@@ -75,6 +78,13 @@
       icon={isPeopleSelected ? mdiAccount : mdiAccountOutline}
     />
   {/if}
+
+  <SideBarLink
+    title={$t('contacts')}
+    href={resolve('/(user)/contacts')}
+    bind:isSelected={isContactsSelected}
+    icon={isContactsSelected ? mdiContacts : mdiContactsOutline}
+  />
 
   {#if $preferences.sharedLinks.enabled && $preferences.sharedLinks.sidebarWeb}
     <SideBarLink title={$t('shared_links')} href={resolve('/(user)/shared-links')} icon={mdiLink} />
