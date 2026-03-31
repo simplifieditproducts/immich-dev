@@ -75,9 +75,11 @@
         </button>
 
         {#if contact.organization || contact.title}
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            {[contact.title, contact.organization].filter(Boolean).join(' · ')}
-          </p>
+          <button type="button" class="cursor-pointer rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard([contact.title, contact.organization].filter(Boolean).join(' · '))}>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {[contact.title, contact.organization].filter(Boolean).join(' · ')}
+            </p>
+          </button>
         {/if}
       </div>
 

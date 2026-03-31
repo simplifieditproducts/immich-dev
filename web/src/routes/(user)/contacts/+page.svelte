@@ -216,7 +216,7 @@
       <div class="min-w-0 flex-1 px-4">
         {#each groupedContacts as group (group.letter)}
           <div data-letter-section={group.letter} class="mb-2">
-            <div class="sticky -top-2 z-10 flex items-center gap-3 bg-white/60 py-1 backdrop-blur dark:bg-immich-dark-bg/90">
+            <div class="sticky -top-2 z-1 flex items-center gap-3 bg-white/60 py-1 backdrop-blur dark:bg-immich-dark-bg/90">
               <span class="text-sm font-semibold text-immich-primary dark:text-immich-dark-primary">{group.letter}</span>
               <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
             </div>
