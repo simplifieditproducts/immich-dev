@@ -1,5 +1,6 @@
 <script lang="ts">
   import FaceEditor from '$lib/components/asset-viewer/face-editor/face-editor.svelte';
+  import VideoControls from '$lib/components/asset-viewer/video-controls.svelte';
   import VideoRemoteViewer from '$lib/components/asset-viewer/video-remote-viewer.svelte';
   import { assetViewerFadeDuration } from '$lib/constants';
   import { castManager } from '$lib/managers/cast-manager.svelte';
@@ -22,10 +23,11 @@
     loopVideo: boolean;
     cacheKey: string | null;
     playOriginalVideo: boolean;
+    controlsVisible?: boolean;
     onPreviousAsset?: () => void;
     onNextAsset?: () => void;
     onVideoEnded?: () => void;
-    onVideoStarted?: () => void;
+    onVideoStarted?: (element?: HTMLVideoElement) => void;
     onClose?: () => void;
   }
 
@@ -34,6 +36,7 @@
     loopVideo,
     cacheKey,
     playOriginalVideo,
+    controlsVisible = true,
     onPreviousAsset = () => {},
     onNextAsset = () => {},
     onVideoEnded = () => {},
@@ -48,6 +51,7 @@
   );
   let isScrubbing = $state(false);
   let showVideo = $state(false);
+  let previousAssetFileUrl = $state('');
 
   onMount(() => {
     // Show video after mount to ensure fading in.
@@ -55,48 +59,43 @@
   });
 
   $effect(() => {
-    // reactive on `assetFileUrl` changes
-    if (assetFileUrl) {
-      videoPlayer?.load();
+    // Only call load() when the URL changes after initial render (e.g., toggling
+    // "play original video"). On initial mount, the src attribute already triggers
+    // loading — calling load() again would interrupt autoplay and cause race conditions.
+    if (assetFileUrl && videoPlayer && previousAssetFileUrl && previousAssetFileUrl !== assetFileUrl) {
+      videoPlayer.load();
     }
+    previousAssetFileUrl = assetFileUrl;
   });
 
   onDestroy(() => {
     if (videoPlayer) {
-      videoPlayer.src = '';
+      videoPlayer.pause();
+      videoPlayer.removeAttribute('src');
+      videoPlayer.load(); // standard way to release the media resource
     }
   });
 
   const handleCanPlay = async (video: HTMLVideoElement) => {
     try {
-      if (!video.paused && !isScrubbing) {
-        await video.play();
-        onVideoStarted();
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'NotAllowedError') {
-        await tryForceMutedPlay(video);
+      if (isScrubbing) {
         return;
       }
-
-      // auto-play failed
+      if (!video.paused) {
+        // autoplay already started playback — just notify
+        onVideoStarted(video);
+      } else if ($autoPlayVideo) {
+        await video.play();
+        onVideoStarted(video);
+      }
+    } catch (error) {
+      // auto-play blocked by browser — user can tap the play button
+      console.error('Auto-play blocked by browser:', error);
     } finally {
       isLoading = false;
     }
   };
 
-  const tryForceMutedPlay = async (video: HTMLVideoElement) => {
-    if (video.muted) {
-      return;
-    }
-
-    try {
-      video.muted = true;
-      await handleCanPlay(video);
-    } catch {
-      // muted auto-play failed
-    }
-  };
 
   const onSwipe = (event: SwipeCustomEvent) => {
     if (event.detail.direction === 'left') {
@@ -139,7 +138,6 @@
         loop={$loopVideoPreference && loopVideo}
         autoplay={$autoPlayVideo}
         playsinline
-        controls
         disablePictureInPicture
         class="h-full object-contain"
         {...useSwipe(onSwipe)}
@@ -159,9 +157,11 @@
       >
       </video>
 
+      <VideoControls videoElement={videoPlayer} {controlsVisible} />
+
       {#if isLoading}
         <div class="absolute flex place-content-center place-items-center">
-          <LoadingSpinner />
+          <LoadingSpinner class="fill-gray-300!" />
         </div>
       {/if}
 

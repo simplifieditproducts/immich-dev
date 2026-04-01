@@ -13,6 +13,8 @@
 
   interface Props {
     isFullScreen: boolean;
+    isVideo?: boolean;
+    videoElement?: HTMLVideoElement | undefined;
     onNext?: () => void;
     onPrevious?: () => void;
     onClose?: () => void;
@@ -21,11 +23,52 @@
 
   let {
     isFullScreen,
+    isVideo = false,
+    videoElement = undefined,
     onNext = () => {},
     onPrevious = () => {},
     onClose = () => {},
     onSetToFullScreen = () => {},
   }: Props = $props();
+
+  let isVideoPaused = $state(true);
+  let videoProgress = $state(0);
+
+  $effect(() => {
+    const el = videoElement;
+    if (!el) {
+      return;
+    }
+
+    const onPlay = () => (isVideoPaused = false);
+    const onPause = () => (isVideoPaused = true);
+    const onTimeUpdate = () => {
+      videoProgress = el.duration && Number.isFinite(el.duration) ? el.currentTime / el.duration : 0;
+    };
+
+    isVideoPaused = el.paused;
+    onTimeUpdate();
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('timeupdate', onTimeUpdate);
+
+    return () => {
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('timeupdate', onTimeUpdate);
+    };
+  });
+
+  const toggleVideoPlayback = () => {
+    if (!videoElement) {
+      return;
+    }
+    if (videoElement.paused) {
+      void videoElement.play();
+    } else {
+      videoElement.pause();
+    }
+  };
 
   const { restartProgress, stopProgress, slideshowDelay, showProgressBar, slideshowNavigation, slideshowAutoplay } =
     slideshowStore;
@@ -73,7 +116,7 @@
 
     unsubscribeStop = stopProgress.subscribe((value) => {
       if (value) {
-        progressBar?.restart();
+        progressBar?.pause();
         stopControlsHideTimer();
       }
     });
@@ -90,6 +133,13 @@
   });
 
   const handleDone = async () => {
+    if (isVideo) {
+      // Don't advance for videos — onVideoEnded handles navigation.
+      // Reset the progress bar so it loops until the video finishes.
+      await progressBar?.restart();
+      return;
+    }
+
     await progressBar?.resetProgress();
 
     if ($slideshowNavigation === SlideshowNavigation.AscendingOrder) {
@@ -143,7 +193,9 @@
     {
       shortcut: { key: ' ' },
       onShortcut: () => {
-        if (progressBarStatus === ProgressBarStatus.Paused) {
+        if (isVideo) {
+          toggleVideoPlayback();
+        } else if (progressBarStatus === ProgressBarStatus.Paused) {
           progressBar?.play();
         } else {
           progressBar?.pause();
@@ -178,9 +230,21 @@
       variant="ghost"
       shape="round"
       color="secondary"
-      icon={progressBarStatus === ProgressBarStatus.Paused ? mdiPlay : mdiPause}
-      onclick={() => (progressBarStatus === ProgressBarStatus.Paused ? progressBar?.play() : progressBar?.pause())}
-      aria-label={progressBarStatus === ProgressBarStatus.Paused ? $t('play') : $t('pause')}
+      icon={isVideo
+        ? (isVideoPaused ? mdiPlay : mdiPause)
+        : (progressBarStatus === ProgressBarStatus.Paused ? mdiPlay : mdiPause)}
+      onclick={() => {
+        if (isVideo) {
+          toggleVideoPlayback();
+        } else if (progressBarStatus === ProgressBarStatus.Paused) {
+          progressBar?.play();
+        } else {
+          progressBar?.pause();
+        }
+      }}
+      aria-label={isVideo
+        ? (isVideoPaused ? $t('play') : $t('pause'))
+        : (progressBarStatus === ProgressBarStatus.Paused ? $t('play') : $t('pause'))}
     />
     <IconButton
       variant="ghost"
@@ -219,9 +283,13 @@
   </div>
 {/if}
 
+{#if isVideo && $showProgressBar}
+  <span class="absolute start-0 h-0.75 bg-immich-primary shadow-2xl" style:width={`${videoProgress * 100}%`}></span>
+{/if}
+
 <ProgressBar
   autoplay={$slideshowAutoplay}
-  hidden={!$showProgressBar}
+  hidden={!$showProgressBar || isVideo}
   duration={$slideshowDelay}
   bind:this={progressBar}
   bind:status={progressBarStatus}

@@ -9,11 +9,12 @@
     cacheKey: string | null;
     loopVideo: boolean;
     playOriginalVideo: boolean;
+    controlsVisible?: boolean;
     onClose?: () => void;
     onPreviousAsset?: () => void;
     onNextAsset?: () => void;
     onVideoEnded?: () => void;
-    onVideoStarted?: () => void;
+    onVideoStarted?: (element?: HTMLVideoElement) => void;
   }
 
   let {
@@ -22,6 +23,7 @@
     cacheKey,
     loopVideo,
     playOriginalVideo,
+    controlsVisible = true,
     onPreviousAsset,
     onClose,
     onNextAsset,
@@ -38,6 +40,7 @@
     {cacheKey}
     {assetId}
     {playOriginalVideo}
+    {controlsVisible}
     {onPreviousAsset}
     {onNextAsset}
     {onVideoEnded}

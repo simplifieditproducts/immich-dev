@@ -16,7 +16,7 @@
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
   import { mobileDevice } from '$lib/stores/mobile-device.svelte';
   import { ocrManager } from '$lib/stores/ocr.svelte';
-  import { embeddedInApp, alwaysLoadOriginalVideo, isShowDetail } from '$lib/stores/preferences.store';
+  import { alwaysLoadOriginalVideo, embeddedInApp, isShowDetail } from '$lib/stores/preferences.store';
   import { SlideshowNavigation, SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
   import { user } from '$lib/stores/user.store';
   import { websocketEvents } from '$lib/stores/websocket';
@@ -103,6 +103,7 @@
 
   // Swipe to dismiss variables
   let isDragging = $state(false);
+  let activePointerId: number | undefined;
   let isDismissing = $state(undefined as boolean | undefined);
   let dragStartY = $state(0);
   let dragCurrentY = $state(0);
@@ -137,6 +138,7 @@
   let selectedEditType: string = $state('');
   let stack: StackResponseDto | null = $state(null);
 
+  let slideshowVideoElement: HTMLVideoElement | undefined = $state();
   let zoomToggle = $state(() => void 0);
   let playOriginalVideo = $state($alwaysLoadOriginalVideo);
 
@@ -268,28 +270,17 @@
     });
   };
 
-  // Swipe to dismiss gesture handlers
-  const handleTouchStart = (e: TouchEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay || isFaceEditMode.value) {
+  // Swipe to dismiss gesture handlers (unified pointer events)
+  const handlePointerDown = (e: PointerEvent) => {
+    if (activePointerId !== undefined) {
+      return; // ignore additional fingers
+    }
+    if ($photoZoomState?.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay || isFaceEditMode.value) {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const touches = (e as any).touches;
-    if (touches && touches.length === 1) {
-      isDragging = true;
-      dragStartX = touches[0].clientX;
-      dragStartY = touches[0].clientY;
-      dragCurrentX = dragStartX;
-      dragCurrentY = dragStartY;
-    }
-  };
-
-  const handleMouseDown = (e: MouseEvent) => {
-    if ($photoZoomState.currentZoom > 1 || $isShowDetail || ocrManager.showOverlay || isFaceEditMode.value) {
-      return;
-    }
-
+    activePointerId = e.pointerId;
+    (e.target as Element).setPointerCapture(e.pointerId);
     isDragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -297,22 +288,12 @@
     dragCurrentY = dragStartY;
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const touches = (e as any).touches;
-    if (!isDragging || !touches || touches.length !== 1) {
+  const handlePointerMove = (e: PointerEvent) => {
+    if (!isDragging || e.pointerId !== activePointerId) {
       return;
     }
-    dragCurrentX = touches[0].clientX;
-    dragCurrentY = touches[0].clientY;
-    updateViewerPosition();
-  };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) {
-      return;
-    }
-    
+    dragCurrentX = e.clientX;
     dragCurrentY = e.clientY;
     updateViewerPosition();
   };
@@ -352,36 +333,25 @@
     }
   };
 
-  const handleTouchEnd = () => {
-    if (!isDragging) {
+  const handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== activePointerId) {
       return;
     }
-    
-    const deltaY = dragCurrentY - dragStartY;
-    
-    if (isDismissing && deltaY > DISMISS_THRESHOLD) {
-      dismissViewer();
-    } else {
-      resetViewer();
-    }
-    
-    isDragging = false;
-    isDismissing = undefined;
-  };
 
-  const handleMouseUp = () => {
+    activePointerId = undefined;
+
     if (!isDragging) {
       return;
     }
-    
+
     const deltaY = dragCurrentY - dragStartY;
-    
+
     if (isDismissing && deltaY > DISMISS_THRESHOLD) {
       dismissViewer();
     } else {
       resetViewer();
     }
-    
+
     isDragging = false;
     isDismissing = undefined;
   };
@@ -419,6 +389,7 @@
     }
 
     e?.stopPropagation();
+    slideshowVideoElement = undefined;
 
     let hasNext = false;
 
@@ -470,9 +441,9 @@
     handlePromiseError(setAssetId(asset.id).then(() => ($restartSlideshowProgress = true)));
   });
 
-  const handleVideoStarted = () => {
-    if ($slideshowState === SlideshowState.PlaySlideshow) {
-      $stopSlideshowProgress = true;
+  const handleVideoStarted = (element?: HTMLVideoElement) => {
+    if (element) {
+      slideshowVideoElement = element;
     }
   };
 
@@ -609,18 +580,16 @@
 
 <section
   id="immich-asset-viewer"
-  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden transition-color duration-300"
+  class="fixed start-0 top-0 grid size-full grid-cols-4 grid-rows-[64px_1fr] overflow-hidden transition-color duration-300 touch-none"
   style="background-color: rgba(0, 0, 0, {animateOpacity ? viewerOpacity : 1});"
   use:focusTrap
   bind:this={assetViewerHtmlElement}
   onclick={() => controlsVisible = !controlsVisible}
   onkeydown={() => controlsVisible = true}
-  ontouchstart={handleTouchStart}
-  ontouchmove={handleTouchMove}
-  ontouchend={handleTouchEnd}
-  onmousedown={handleMouseDown}
-  onmousemove={handleMouseMove}
-  onmouseup={handleMouseUp}
+  onpointerdown={handlePointerDown}
+  onpointermove={handlePointerMove}
+  onpointerup={handlePointerUp}
+  onpointercancel={handlePointerUp}
   role="button"
   tabindex="0"
 >
@@ -662,9 +631,11 @@
   {/if}
 
   {#if $slideshowState != SlideshowState.None}
-    <div class="absolute w-full flex">
+    <div class="z-2 absolute w-full flex">
       <SlideshowBar
         {isFullScreen}
+        isVideo={asset.type === AssetTypeEnum.Video}
+        videoElement={slideshowVideoElement}
         onSetToFullScreen={() => assetViewerHtmlElement?.requestFullscreen?.()}
         onPrevious={() => navigateAsset('previous')}
         onNext={() => navigateAsset('next')}
@@ -705,6 +676,7 @@
             cacheKey={previewStackedAsset.thumbhash}
             projectionType={previewStackedAsset.exifInfo?.projectionType}
             loopVideo={true}
+            {controlsVisible}
             onPreviousAsset={() => navigateAsset('previous')}
             onNextAsset={() => navigateAsset('next')}
             onClose={closeViewer}
@@ -723,6 +695,7 @@
               cacheKey={asset.thumbhash}
               projectionType={asset.exifInfo?.projectionType}
               loopVideo={$slideshowState !== SlideshowState.PlaySlideshow}
+              {controlsVisible}
               onPreviousAsset={() => navigateAsset('previous')}
               onNextAsset={() => navigateAsset('next')}
               onVideoEnded={() => (shouldPlayMotionPhoto = false)}
@@ -752,6 +725,7 @@
             cacheKey={asset.thumbhash}
             projectionType={asset.exifInfo?.projectionType}
             loopVideo={$slideshowState !== SlideshowState.PlaySlideshow}
+            controlsVisible={$slideshowState === SlideshowState.PlaySlideshow ? false : controlsVisible}
             onPreviousAsset={() => navigateAsset('previous')}
             onNextAsset={() => navigateAsset('next')}
             onClose={closeViewer}
@@ -775,6 +749,7 @@
         {/if}
 
         {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData && !isFaceEditMode.value}
+          <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
           <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300 rounded-full bg-black/50"
             class:opacity-0={!controlsVisible}
             class:pointer-events-none={!controlsVisible}
@@ -803,7 +778,7 @@
     <div
       transition:fly={{ duration: 150 }}
       id="detail-panel"
-      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-[360px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
+      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-90 overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
       translate="yes"
     >
       <DetailPanel {asset} currentAlbum={album} albums={appearsInAlbums} onClose={() => ($isShowDetail = false)} />
@@ -814,7 +789,7 @@
     <div
       transition:fly={{ duration: 150 }}
       id="editor-panel"
-      class="row-start-1 row-span-4 w-[400px] overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray"
+      class="row-start-1 row-span-4 w-100 overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray"
       translate="yes"
     >
       <EditorPanel {asset} onUpdateSelectedType={handleUpdateSelectedEditType} onClose={closeEditor} />
