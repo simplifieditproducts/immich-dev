@@ -22,28 +22,23 @@
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
   import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
-  import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
+  import { AggregatedTimelineManager, type MediaFilter } from '$lib/managers/timeline-manager/aggregated-timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
   import { isFaceEditMode } from '$lib/stores/face-edit.svelte';
   import { embeddedInApp, initialUrl } from '$lib/stores/preferences.store';
   import { preferences, user } from '$lib/stores/user.store';
   import { sendMessageToApp, sendPageReadyToApp } from '$lib/utils';
-  import {
-    updateStackedAssetInTimeline,
-    updateUnstackedAssetInTimeline,
-    type OnLink,
-    type OnUnlink,
-  } from '$lib/utils/actions';
-  import { AssetVisibility } from '@immich/sdk';
+  import { type OnLink, type OnUnlink } from '$lib/utils/actions';
   import { Icon } from '@immich/ui';
   import { mdiDotsVertical, mdiImageOffOutline, mdiPlus } from '@mdi/js';
-
   import { t } from 'svelte-i18n';
 
   let { isViewing: showAssetViewer } = assetViewingStore;
-  let timelineManager = $state<TimelineManager>() as TimelineManager;
-  const options = { visibility: AssetVisibility.Timeline, withStacked: true, withPartners: true };
+  let mediaFilter = $state<MediaFilter>('all');
+
+  const aggregatedManager = new AggregatedTimelineManager();
+  let timelineManager = $derived(aggregatedManager.getOrCreateManager(mediaFilter));
 
   const assetInteraction = new AssetInteraction();
 
@@ -74,17 +69,17 @@
   };
 
   const handleLink: OnLink = ({ still, motion }) => {
-    timelineManager.removeAssets([motion.id]);
-    timelineManager.upsertAssets([still]);
+    aggregatedManager.removeAssets([motion.id]);
+    aggregatedManager.upsertAssets([still]);
   };
 
   const handleUnlink: OnUnlink = ({ still, motion }) => {
-    timelineManager.upsertAssets([motion]);
-    timelineManager.upsertAssets([still]);
+    aggregatedManager.upsertAssets([motion]);
+    aggregatedManager.upsertAssets([still]);
   };
 
   const handleSetVisibility = (assetIds: string[]) => {
-    timelineManager.removeAssets(assetIds);
+    aggregatedManager.removeAssets(assetIds);
     assetInteraction.clearMultiselect();
   };
 
@@ -108,29 +103,47 @@
 
 <!-- Gavin has made the 'Upload' Button visible only for admins -->
 <UserPageLayout hideNavbar={assetInteraction.selectionActive} showUploadButton={$user.isAdmin} scrollbar={false} onBack={onBack}>
-  <Timeline
-    enableRouting={true}
-    bind:timelineManager
-    {options}
-    {assetInteraction}
-    removeAction={AssetAction.ARCHIVE}
-    onEscape={handleEscape}
-    withStacked
-  >
-    {#if $preferences.memories.enabled}
-      <MemoryLane />
-    {/if}
-    {#snippet empty()}
-      <!-- Kevin has updated the default no photos message. -->
-      <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
-        <div class="flex flex-col content-center items-center text-center">
-          <Icon icon={mdiImageOffOutline} size="3.5em" />
-          <p class="mt-5 text-3xl font-medium">No photos available</p>
-          <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your photos here.</p>
+  {#key mediaFilter}
+    <Timeline
+      enableRouting={true}
+      timelineManager={timelineManager}
+      {assetInteraction}
+      removeAction={AssetAction.ARCHIVE}
+      onEscape={handleEscape}
+      withStacked
+    >
+      <div class="flex justify-center px-2 pt-3 pb-1">
+        <div class="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-800" class:opacity-40={assetInteraction.selectionActive}>
+          {#each [{ key: 'all' as MediaFilter, label: 'All' }, { key: 'photo' as MediaFilter, label: 'Photos' }, { key: 'video' as MediaFilter, label: 'Videos' }] as { key, label } (key)}
+            <button
+              type="button"
+              disabled={assetInteraction.selectionActive}
+              class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors
+                {mediaFilter === key
+                  ? 'bg-white text-immich-primary shadow-sm dark:bg-gray-600 dark:text-immich-dark-primary'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
+              onclick={() => (mediaFilter = key)}
+            >
+              {label}
+            </button>
+          {/each}
         </div>
       </div>
-    {/snippet}
-  </Timeline>
+      {#if $preferences.memories.enabled && mediaFilter === 'all'}
+        <MemoryLane />
+      {/if}
+      {#snippet empty()}
+        <!-- Kevin has updated the default no photos message. -->
+        <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
+          <div class="flex flex-col content-center items-center text-center">
+            <Icon icon={mdiImageOffOutline} size="3.5em" />
+            <p class="mt-5 text-3xl font-medium">No photos available</p>
+            <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your photos here.</p>
+          </div>
+        </div>
+      {/snippet}
+    </Timeline>
+  {/key}
 </UserPageLayout>
 
 {#if assetInteraction.selectionActive}
@@ -147,15 +160,15 @@
     </ButtonContextMenu>
     <FavoriteAction
       removeFavorite={assetInteraction.isAllFavorite}
-      onFavorite={(ids, isFavorite) => timelineManager.update(ids, (asset) => (asset.isFavorite = isFavorite))}
+      onFavorite={(ids, isFavorite) => aggregatedManager.update(ids, (asset) => (asset.isFavorite = isFavorite))}
     ></FavoriteAction>
     <ButtonContextMenu direction="left" align="top-right" color="secondary" title={$t('more')} icon={mdiDotsVertical} offset={{ x: 8, y: 40 }}>
       <DownloadAction menuItem />
       {#if assetInteraction.selectedAssets.length > 1 || isAssetStackSelected}
         <StackAction
           unstack={isAssetStackSelected}
-          onStack={(result) => updateStackedAssetInTimeline(timelineManager, result)}
-          onUnstack={(assets) => updateUnstackedAssetInTimeline(timelineManager, assets)}
+          onStack={(result) => aggregatedManager.updateStacked(result)}
+          onUnstack={(assets) => aggregatedManager.updateUnstacked(assets)}
         />
       {/if}
       {#if isLinkActionAvailable}
@@ -173,7 +186,7 @@
       {#if $user.isAdmin}      
         <ArchiveAction
           menuItem
-          onArchive={(ids, visibility) => timelineManager.update(ids, (asset) => (asset.visibility = visibility))}
+          onArchive={(ids, visibility) => aggregatedManager.update(ids, (asset) => (asset.visibility = visibility))}
         />
       {/if}
       {#if $preferences.tags.enabled}
@@ -181,8 +194,8 @@
       {/if}
       <DeleteAssets
         menuItem
-        onAssetDelete={(assetIds) => timelineManager.removeAssets(assetIds)}
-        onUndoDelete={(assets) => timelineManager.upsertAssets(assets)}
+        onAssetDelete={(assetIds) => aggregatedManager.removeAssets(assetIds)}
+        onUndoDelete={(assets) => aggregatedManager.upsertAssets(assets)}
       />
       <!-- Gavin has made 'Move to locked folder', 'Refresh thumbnails', and 'Refresh metadata' buttons visible only for admins -->
       {#if $user.isAdmin}

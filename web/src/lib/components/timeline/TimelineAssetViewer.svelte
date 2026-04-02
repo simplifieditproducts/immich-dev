@@ -49,7 +49,7 @@
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: laterAsset.id });
     } else {
-      toastManager.warning('This is already the first photo.');
+      toastManager.warning('This is already the first file.');
     }
 
     release();
@@ -66,7 +66,7 @@
       assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
       await navigate({ targetRoute: 'current', assetId: earlierAsset.id });
     } else {
-      toastManager.warning('This is already the last photo.');
+      toastManager.warning('This is already the last file.');
     }
 
     release();

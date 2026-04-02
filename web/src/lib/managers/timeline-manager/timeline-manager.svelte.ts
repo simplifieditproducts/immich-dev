@@ -94,6 +94,10 @@ export class TimelineManager extends VirtualScrollManager {
   #scrollableElement: HTMLElement | undefined = $state();
   #showAssetOwners = new PersistedLocalStorage<boolean>('album-show-asset-owners', false);
 
+  get assetType() {
+    return this.#options === TimelineManager.#INIT_OPTIONS ? undefined : this.#options.assetType;
+  }
+
   get showAssetOwners() {
     return this.#showAssetOwners.current;
   }

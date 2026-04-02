@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { IsString } from 'class-validator';
-import { AssetOrder, AssetVisibility } from 'src/enum';
+import { AssetOrder, AssetType, AssetVisibility } from 'src/enum';
 import { ValidateBoolean, ValidateEnum, ValidateUUID } from 'src/validation';
 
 export class TimeBucketDto {
@@ -59,6 +59,14 @@ export class TimeBucketDto {
     description: 'Include location data in the response',
   })
   withCoordinates?: boolean;
+
+  @ValidateEnum({
+    enum: AssetType,
+    name: 'AssetType',
+    optional: true,
+    description: 'Filter by asset type (IMAGE, VIDEO, AUDIO, OTHER)',
+  })
+  assetType?: AssetType;
 }
 
 export class TimeBucketAssetDto extends TimeBucketDto {

@@ -93,9 +93,20 @@
     onThumbnailClick,
   }: Props = $props();
 
-  timelineManager = new TimelineManager();
-  onDestroy(() => timelineManager.destroy());
-  $effect(() => options && void timelineManager.updateOptions(options));
+  const ownsManager = !timelineManager;
+  if (ownsManager) {
+    timelineManager = new TimelineManager();
+  }
+  // After the above, timelineManager is always defined
+  timelineManager = timelineManager!;
+  onDestroy(() => {
+    if (ownsManager) {
+      timelineManager.destroy();
+    }
+  });
+  if (ownsManager) {
+    $effect(() => options && void timelineManager.updateOptions(options));
+  }
 
   let { isViewing: showAssetViewer, asset: viewingAsset, gridScrollTarget } = assetViewingStore;
 
@@ -268,7 +279,10 @@
   const topSectionResizeObserver: OnResizeCallback = ({ height }) => (timelineManager.topSectionHeight = height);
 
   onMount(() => {
-    if (!enableRouting) {
+    // When Timeline owns its manager, `invisible` is cleared by `afterNavigate` → `scrollAfterNavigate()`.
+    // When the parent owns the manager (e.g., recreated via {#key}), `afterNavigate` won't fire,
+    // so we clear it immediately on mount to avoid the timeline staying hidden.
+    if (!enableRouting || !ownsManager) {
       invisible = false;
     }
   });
@@ -592,7 +606,7 @@
   }}
   onBeforeUpdate={(payload: UpdatePayload) => {
     const timelineUpdate = payload.updates.some((update) => update.path.endsWith('Timeline.svelte'));
-    if (timelineUpdate) {
+    if (timelineUpdate && ownsManager) {
       timelineManager.destroy();
     }
   }}

@@ -13101,6 +13101,15 @@
             }
           },
           {
+            "name": "assetType",
+            "required": false,
+            "in": "query",
+            "description": "Filter by asset type (IMAGE, VIDEO, AUDIO, OTHER)",
+            "schema": {
+              "$ref": "#/components/schemas/AssetType"
+            }
+          },
+          {
             "name": "isFavorite",
             "required": false,
             "in": "query",
@@ -13274,6 +13283,15 @@
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "name": "assetType",
+            "required": false,
+            "in": "query",
+            "description": "Filter by asset type (IMAGE, VIDEO, AUDIO, OTHER)",
+            "schema": {
+              "$ref": "#/components/schemas/AssetType"
             }
           },
           {
@@ -16733,6 +16751,15 @@
           "videos"
         ],
         "type": "object"
+      },
+      "AssetType": {
+        "enum": [
+          "IMAGE",
+          "VIDEO",
+          "AUDIO",
+          "OTHER"
+        ],
+        "type": "string"
       },
       "AssetTypeEnum": {
         "enum": [

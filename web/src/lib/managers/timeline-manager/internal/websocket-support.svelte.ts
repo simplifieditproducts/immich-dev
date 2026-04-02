@@ -2,6 +2,7 @@ import type { TimelineManager } from '$lib/managers/timeline-manager/timeline-ma
 import type { PendingChange, TimelineAsset } from '$lib/managers/timeline-manager/types';
 import { websocketEvents } from '$lib/stores/websocket';
 import { toTimelineAsset } from '$lib/utils/timeline-util';
+import { AssetTypeEnum } from '@immich/sdk';
 import { throttle } from 'lodash-es';
 import type { Unsubscriber } from 'svelte/store';
 
@@ -30,15 +31,29 @@ export class WebsocketSupport {
 
   connectWebsocketEvents() {
     this.#unsubscribers.push(
-      websocketEvents.on('on_upload_success', (asset) =>
-        this.#addPendingChanges({ type: 'add', values: [toTimelineAsset(asset)] }),
-      ),
+      websocketEvents.on('on_upload_success', (asset) => {
+        if (this.#matchesAssetType(asset.type)) {
+          this.#addPendingChanges({ type: 'add', values: [toTimelineAsset(asset)] });
+        }
+      }),
       websocketEvents.on('on_asset_trash', (ids) => this.#addPendingChanges({ type: 'trash', values: ids })),
-      websocketEvents.on('on_asset_update', (asset) =>
-        this.#addPendingChanges({ type: 'update', values: [toTimelineAsset(asset)] }),
-      ),
+      websocketEvents.on('on_asset_update', (asset) => {
+        if (this.#matchesAssetType(asset.type)) {
+          this.#addPendingChanges({ type: 'update', values: [toTimelineAsset(asset)] });
+        }
+      }),
       websocketEvents.on('on_asset_delete', (id: string) => this.#addPendingChanges({ type: 'delete', values: [id] })),
     );
+  }
+
+  /** Check if an asset's type matches this manager's assetType filter. */
+  #matchesAssetType(type: AssetTypeEnum): boolean {
+    const filter = this.#timelineManager.assetType;
+    // No filter (e.g. "All" tab) — accept everything
+    if (!filter) {
+      return true;
+    }
+    return type === filter;
   }
 
   disconnectWebsocketEvents() {

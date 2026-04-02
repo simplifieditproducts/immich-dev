@@ -9,12 +9,12 @@
   import {
     mdiAccount,
     mdiAccountMultiple,
-    mdiContacts,
-    mdiContactsOutline,
     mdiAccountMultipleOutline,
     mdiAccountOutline,
     mdiArchiveArrowDown,
     mdiArchiveArrowDownOutline,
+    mdiContacts,
+    mdiContactsOutline,
     mdiFolderOutline,
     mdiHeart,
     mdiHeartOutline,
@@ -51,7 +51,7 @@
 
 <Sidebar ariaLabel={$t('primary')}>
   <SideBarLink
-    title={$t('photos')}
+    title="Timeline"
     href={resolve('/(user)/photos')}
     bind:isSelected={isPhotosSelected}
     icon={isPhotosSelected ? mdiImageMultiple : mdiImageMultipleOutline}
