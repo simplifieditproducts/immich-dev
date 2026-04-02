@@ -51,7 +51,7 @@
 
 <Sidebar ariaLabel={$t('primary')}>
   <SideBarLink
-    title="Timeline"
+    title="Gallery"
     href={resolve('/(user)/photos')}
     bind:isSelected={isPhotosSelected}
     icon={isPhotosSelected ? mdiImageMultiple : mdiImageMultipleOutline}
