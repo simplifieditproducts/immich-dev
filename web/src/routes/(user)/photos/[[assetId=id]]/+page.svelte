@@ -113,7 +113,7 @@
       withStacked
     >
       <div class="flex justify-center px-2 pt-3 pb-1">
-        <div class="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-800" class:opacity-40={assetInteraction.selectionActive}>
+        <div class="inline-flex select-none rounded-lg bg-gray-100 p-1 dark:bg-gray-800" class:opacity-40={assetInteraction.selectionActive}>
           {#each [{ key: 'all' as MediaFilter, label: 'All' }, { key: 'photo' as MediaFilter, label: 'Photos' }, { key: 'video' as MediaFilter, label: 'Videos' }] as { key, label } (key)}
             <button
               type="button"
@@ -137,8 +137,8 @@
         <div class="flex min-h-[calc(66vh-11rem)] w-full place-content-center items-center dark:text-white">
           <div class="flex flex-col content-center items-center text-center">
             <Icon icon={mdiImageOffOutline} size="3.5em" />
-            <p class="mt-5 text-3xl font-medium">No photos available</p>
-            <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your photos here.</p>
+            <p class="mt-5 text-3xl font-medium">No {mediaFilter === 'video' ? 'videos' : 'photos'} available</p>
+            <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your {mediaFilter === 'video' ? 'videos' : 'photos'} here.</p>
           </div>
         </div>
       {/snippet}

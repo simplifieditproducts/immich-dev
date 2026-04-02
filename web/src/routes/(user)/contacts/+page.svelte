@@ -275,7 +275,7 @@
       <div class="relative flex items-center justify-end">
         <button
           type="button"
-          class="absolute z-10 text-gray-400 dark:text-gray-500
+          class="absolute z-1 text-gray-400 dark:text-gray-500
             {searchOpen ? 'left-2' : 'right-0'}"
           onclick={() => {
             if (!searchOpen) {
@@ -339,7 +339,7 @@
           {#each visibleRows as row (row.key)}
             {#if row.type === 'header'}
               <div
-                class="flex items-center gap-3 px-1"
+                class="flex items-center gap-3 px-1 select-none"
                 style="position: absolute; top: {row.offset}px; height: {HEADER_HEIGHT}px; left: 0; right: 0;"
               >
                 <span class="text-sm font-semibold text-immich-primary dark:text-immich-dark-primary">{row.letter}</span>
@@ -358,7 +358,7 @@
 
       <!-- Alphabet scrubber -->
       <div
-        class="fixed sm:hidden right-0 top-[calc(50%+4rem)] z-20 flex -translate-y-1/2 touch-none flex-col items-center"
+        class="fixed sm:hidden right-0 top-[calc(50%+4rem)] z-2 flex -translate-y-1/2 touch-none flex-col items-center"
         role="navigation"
         aria-label="Alphabet scrubber"
         onpointerdown={handleScrubberPointerDown}

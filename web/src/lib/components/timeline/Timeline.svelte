@@ -121,7 +121,7 @@
   let viewportTopMonth: ViewportTopMonth = $state(undefined);
   // Overall scroll percentage through the entire timeline (0-1)
   let timelineScrollPercent: number = $state(0);
-  let scrubberWidth = $state(0);
+  let scrubberWidth = $state(60);
 
   const isEmpty = $derived(timelineManager.isInitialized && timelineManager.months.length === 0);
   const maxMd = $derived(mobileDevice.maxMd);

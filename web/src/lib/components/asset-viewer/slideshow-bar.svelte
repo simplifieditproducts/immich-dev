@@ -211,7 +211,7 @@
 
 {#if showControls}
   <div
-    class="my-1 flex gap-2 dark"
+    class="flex h-12 w-full place-items-center gap-2 bg-black/50 dark"
     onmouseenter={() => (isOverControls = true)}
     onmouseleave={() => (isOverControls = false)}
     transition:fly={{ duration: 150 }}

@@ -174,7 +174,8 @@
 >
   <button
     type="button"
-    class="pointer-events-auto flex items-center justify-center w-20 h-20 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors border-2 border-white/25"
+    class="flex items-center justify-center w-20 h-20 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors border-2 border-white/25"
+    class:pointer-events-auto={controlsVisible}
     onclick={(e) => { e.stopPropagation(); void togglePlayPause(); }}
     onpointerdown={(e) => e.stopPropagation()}
     aria-label={paused ? 'Play' : 'Pause'}
