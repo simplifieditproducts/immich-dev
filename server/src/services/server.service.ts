@@ -84,28 +84,37 @@ export class ServerService extends BaseService {
   }
 
   async ping(): Promise<ServerPingResponse> {
+    const startTotal = Date.now();
+
     // Check if database is responding
     let machineLearning;
     try {
+      this.logger.log('[Ping] Starting database health check...');
+      const startDb = Date.now();
       ({ machineLearning } = await this.getConfig({ withCache: false }));
+      this.logger.log(`[Ping] Database health check passed in ${Date.now() - startDb}ms`);
     } catch (error) {
-      this.logger.error('Database health check failed', error);
+      this.logger.error(`[Ping] Database health check failed after ${Date.now() - startTotal}ms`, error);
       throw new BadRequestException('Database is not responding');
     }
 
     // Check if machine learning (i.e. GPU) is responding
     if (isSmartSearchEnabled(machineLearning)) {
       try {
+        this.logger.log('[Ping] Starting machine learning health check...');
+        const startMl = Date.now();
         await this.machineLearningRepository.encodeText('health check', {
           modelName: machineLearning.clip.modelName,
           language: 'en',
         });
+        this.logger.log(`[Ping] Machine learning health check passed in ${Date.now() - startMl}ms`);
       } catch (error) {
-        this.logger.error('Machine learning health check failed', error);
+        this.logger.error(`[Ping] Machine learning health check failed after ${Date.now() - startTotal}ms`, error);
         throw new BadRequestException('Machine learning is not responding');
       }
     }
 
+    this.logger.log(`[Ping] All checks passed in ${Date.now() - startTotal}ms`);
     return { res: 'pong' };
   }
 
