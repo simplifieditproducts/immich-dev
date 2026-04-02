@@ -121,9 +121,15 @@ export const handleResumeQueue = async (queue: QueueResponseDto) => {
   eventManager.emit('QueueUpdate', response);
 };
 
+const emptyingQueues = new Set<QueueName>();
 export const handleEmptyQueue = async (queue: QueueResponseDto) => {
+  if (emptyingQueues.has(queue.name)) {
+    return;
+  }
+
   const $t = await getFormatter();
   const item = asQueueItem($t, queue);
+  emptyingQueues.add(queue.name);
 
   try {
     await emptyQueue({ name: queue.name, queueDeleteDto: { failed: false } });
@@ -132,6 +138,8 @@ export const handleEmptyQueue = async (queue: QueueResponseDto) => {
     toastManager.success($t('admin.cleared_jobs', { values: { job: item.title } }));
   } catch (error) {
     handleError(error, $t('errors.something_went_wrong'));
+  } finally {
+    emptyingQueues.delete(queue.name);
   }
 };
 

@@ -134,8 +134,11 @@ export class JobRepository {
     return this.getQueue(name).resume();
   }
 
-  empty(name: QueueName) {
-    return this.getQueue(name).drain();
+  async empty(name: QueueName) {
+    const queue = this.getQueue(name);
+    await queue.clean(0, 0, 'wait');
+    await queue.clean(0, 0, 'paused');
+    await queue.clean(0, 0, 'delayed');
   }
 
   clear(name: QueueName, type: QueueCleanType) {
