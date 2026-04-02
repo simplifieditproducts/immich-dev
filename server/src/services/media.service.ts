@@ -156,7 +156,6 @@ export class MediaService extends BaseService {
 
   @OnJob({ name: JobName.AssetGenerateThumbnails, queue: QueueName.ThumbnailGeneration })
   async handleGenerateThumbnails({ id }: JobOf<JobName.AssetGenerateThumbnails>): Promise<JobStatus> {
-    const startTime = Date.now();
     const asset = await this.assetJobRepository.getForGenerateThumbnailJob(id);
     if (!asset) {
       this.logger.warn(`Thumbnail generation failed for asset ${id}: not found`);
@@ -232,9 +231,6 @@ export class MediaService extends BaseService {
     }
 
     await this.assetRepository.upsertJobStatus({ assetId: asset.id, previewAt: new Date(), thumbnailAt: new Date() });
-
-    const elapsed = Date.now() - startTime;
-    this.logger.log(`Job=${JobName.AssetGenerateThumbnails} assetId=${asset.id} assetType=${asset.type} sizeBytes=${asset.exifInfo?.fileSizeInByte ?? 0} duration=${elapsed}ms`);
 
     return JobStatus.Success;
   }
@@ -484,7 +480,6 @@ export class MediaService extends BaseService {
 
   @OnJob({ name: JobName.AssetEncodeVideo, queue: QueueName.VideoConversion })
   async handleVideoConversion({ id }: JobOf<JobName.AssetEncodeVideo>): Promise<JobStatus> {
-    const startTime = Date.now();
     const asset = await this.assetJobRepository.getForVideoConversion(id);
     if (!asset) {
       return JobStatus.Failed;
@@ -563,9 +558,6 @@ export class MediaService extends BaseService {
     this.logger.log(`Successfully encoded ${asset.id}`);
 
     await this.assetRepository.update({ id: asset.id, encodedVideoPath: output });
-
-    const elapsed = Date.now() - startTime;
-    this.logger.log(`Job=${JobName.AssetEncodeVideo} assetId=${asset.id} assetType=VIDEO sizeBytes=${asset.exifInfo?.fileSizeInByte ?? 0} duration=${elapsed}ms`);
 
     return JobStatus.Success;
   }
