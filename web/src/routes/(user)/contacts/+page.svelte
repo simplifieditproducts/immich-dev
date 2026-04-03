@@ -6,7 +6,7 @@
   import { getInitials } from '$lib/utils/contact-utils';
   import { Icon } from '@immich/ui';
   import { mdiAccountOffOutline, mdiClose, mdiMagnify } from '@mdi/js';
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import { SvelteMap } from 'svelte/reactivity';
   import type { PageData } from './$types';
@@ -123,10 +123,50 @@
   let scrollContainer: HTMLElement | null = $state(null);
   let scrollTop = $state(0);
   let viewportHeight = $state(0);
+  let scrollCleanup: (() => void) | null = null;
+
+  function initScrollContainer(container: HTMLElement) {
+    if (scrollCleanup) {
+      return;
+    }
+
+    scrollContainer = container;
+    viewportHeight = container.clientHeight;
+    scrollTop = container.scrollTop;
+
+    const handleScroll = () => {
+      scrollTop = container.scrollTop;
+      if (searchOpen && !searchQuery) {
+        searchInput?.blur();
+      }
+    };
+
+    const observer = new ResizeObserver((entries) => {
+      viewportHeight = entries[0].contentRect.height;
+    });
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    observer.observe(container);
+
+    scrollCleanup = () => {
+      container.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
+  }
+
+  function findScrollContainer(from: HTMLElement): HTMLElement | null {
+    return from.closest('#main-content') as HTMLElement | null
+      ?? document.querySelector('#main-content') as HTMLElement | null;
+  }
 
   let visibleRange = $derived.by(() => {
     if (rowOffsets.length === 0) {
       return { start: 0, end: 0 };
+    }
+
+    // Before the container is measured, render all rows
+    if (viewportHeight === 0) {
+      return { start: 0, end: rowOffsets.length - 1 };
     }
 
     // Binary search for first visible row
@@ -162,11 +202,21 @@
 
   let isScrubbing = $state(false);
   let activeHoverLetter = $state('');
+  let listNode: HTMLElement | undefined;
 
   function scrollToLetter(letter: string) {
+    if (!scrollContainer && listNode) {
+      const container = findScrollContainer(listNode);
+      if (container) {
+        initScrollContainer(container);
+      }
+    }
     const offset = letterOffsets.get(letter);
-    if (offset !== undefined && scrollContainer) {
-      scrollContainer.scrollTop = offset;
+    if (offset !== undefined) {
+      scrollTop = offset;
+      if (scrollContainer) {
+        scrollContainer.scrollTop = offset;
+      }
     }
   }
 
@@ -203,34 +253,20 @@
     activeHoverLetter = '';
   }
 
-  onMount(() => {
-    scrollContainer = document.querySelector('#main-content');
-    if (!scrollContainer) {
-      return;
+  function setupScrollContainer(node: HTMLElement) {
+    listNode = node;
+    const container = findScrollContainer(node);
+    if (container) {
+      initScrollContainer(container);
     }
-
-    viewportHeight = scrollContainer.clientHeight;
-    scrollTop = scrollContainer.scrollTop;
-
-    const handleScroll = () => {
-      scrollTop = scrollContainer!.scrollTop;
-      if (searchOpen && !searchQuery) {
-        searchInput?.blur();
-      }
+    return {
+      destroy() {
+        scrollCleanup?.();
+        scrollCleanup = null;
+        listNode = undefined;
+      },
     };
-
-    const observer = new ResizeObserver((entries) => {
-      viewportHeight = entries[0].contentRect.height;
-    });
-
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    observer.observe(scrollContainer);
-
-    return () => {
-      scrollContainer?.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
-    };
-  });
+  }
 </script>
 
 {#snippet contactCard(contact: Contact)}
@@ -332,7 +368,7 @@
       </div>
     </div>
   {:else}
-    <div class="relative flex">
+    <div use:setupScrollContainer class="relative flex">
       <!-- Virtual list -->
       <div class="min-w-0 flex-1 px-3">
         <div style="height: {totalHeight}px; position: relative;">
