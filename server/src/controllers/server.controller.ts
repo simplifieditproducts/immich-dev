@@ -73,8 +73,18 @@ export class ServerController {
     description: 'Pong',
     history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
   })
-  pingServer(): Promise<ServerPingResponse> {
+  pingServer(): ServerPingResponse {
     return this.service.ping();
+  }
+
+  @Get('health')
+  @Endpoint({
+    summary: 'Health',
+    description: 'Full health check verifying database and machine learning connectivity.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })
+  getHealth(): Promise<ServerPingResponse> {
+    return this.service.getHealth();
   }
 
   @Get('version')

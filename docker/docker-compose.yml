@@ -73,6 +73,8 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
+    labels:
+      - "autoheal=true"
     # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
     # Example tag: ${IMMICH_VERSION:-release}-cuda
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-cuda
@@ -126,6 +128,17 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
       
+  autoheal:
+    container_name: immich_autoheal
+    image: willfarrell/autoheal
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: 30
+      AUTOHEAL_START_PERIOD: 300
+
   immich-grafana:
     container_name: immich_grafana
     command: ['./run.sh', '-disable-reporting']

@@ -9928,6 +9928,44 @@
         "x-immich-state": "Stable"
       }
     },
+    "/server/health": {
+      "get": {
+        "description": "Full health check verifying database and machine learning connectivity.",
+        "operationId": "getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPingResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "Server"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-state": "Stable"
+      }
+    },
     "/server/license": {
       "delete": {
         "description": "Delete the currently set server product key.",

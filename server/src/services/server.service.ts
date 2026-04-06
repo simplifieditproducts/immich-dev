@@ -83,38 +83,39 @@ export class ServerService extends BaseService {
     return serverInfo;
   }
 
-  async ping(): Promise<ServerPingResponse> {
-    const startTotal = Date.now();
+  ping(): ServerPingResponse {
+    return { res: 'pong' };
+  }
 
+  async getHealth(): Promise<ServerPingResponse> {
     // Check if database is responding
     let machineLearning;
     try {
-      this.logger.log('[Ping] Starting database health check...');
-      const startDb = Date.now();
       ({ machineLearning } = await this.getConfig({ withCache: false }));
-      this.logger.log(`[Ping] Database health check passed in ${Date.now() - startDb}ms`);
     } catch (error) {
-      this.logger.error(`[Ping] Database health check failed after ${Date.now() - startTotal}ms`, error);
       throw new BadRequestException('Database is not responding');
     }
 
-    // Check if machine learning (i.e. GPU) is responding
+    // Check if machine learning (i.e. GPU) is responding, timeout after 15s.
     if (isSmartSearchEnabled(machineLearning)) {
+      const timeout = 15_000;
       try {
-        this.logger.log('[Ping] Starting machine learning health check...');
-        const startMl = Date.now();
-        await this.machineLearningRepository.encodeText('health check', {
-          modelName: machineLearning.clip.modelName,
-          language: 'en',
-        });
-        this.logger.log(`[Ping] Machine learning health check passed in ${Date.now() - startMl}ms`);
+        await Promise.race([
+          this.machineLearningRepository.encodeText('health check', {
+            modelName: machineLearning.clip.modelName,
+            language: 'en',
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), timeout)),
+        ]);
       } catch (error) {
-        this.logger.error(`[Ping] Machine learning health check failed after ${Date.now() - startTotal}ms`, error);
-        throw new BadRequestException('Machine learning is not responding');
+        const message =
+          error instanceof Error && error.message === 'timed out'
+            ? `Machine learning timed out after ${timeout / 1000}s`
+            : `Machine learning error: ${error}`;
+        throw new BadRequestException(message);
       }
     }
 
-    this.logger.log(`[Ping] All checks passed in ${Date.now() - startTotal}ms`);
     return { res: 'pong' };
   }
 
