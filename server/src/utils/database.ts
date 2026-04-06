@@ -132,7 +132,7 @@ export const getKyselyConfig = (
         }
 
         // If we encounter a CONNECTION_DESTROYED error, write a temp file to /tmp so that
-        // our deployment scripts can detect it and restart the appropriate container.
+        // our deployment scripts can detect it and react appropriately.
         if (error?.message?.includes?.('CONNECTION_DESTROYED')) {
           const containerType = isApiServer ? 'server' : 'microservices';
           const tempFile = `/tmp/immich/connection_destroyed_${containerType}`;
