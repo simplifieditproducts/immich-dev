@@ -89,6 +89,20 @@ services:
     labels:
       - "autoheal=true"
 
+  immich-machine-learning-cpu:
+    container_name: immich_machine_learning_cpu
+    # CPU-only fallback ML container — no hardware acceleration
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+    healthcheck:
+      disable: false
+    labels:
+      - "autoheal=true"
+
   redis:
     container_name: immich_redis
     image: docker.io/valkey/valkey:9@sha256:fb8d272e529ea567b9bf1302245796f21a2672b8368ca3fcb938ac334e613c8f
