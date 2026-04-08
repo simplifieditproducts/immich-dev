@@ -523,23 +523,23 @@ export class PersonRepository {
   }
 
   @GenerateSql()
-  async getUsersWithNewPersonsInLast24Hours(): Promise<string[]> {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+  async getUsersWithNewPersonsInLastWeek(): Promise<string[]> {
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
 
-    // Find users who have new persons created AND new assets uploaded in the last 24 hours
+    // Find users who have new persons created AND new assets uploaded in the last 7 days
     const usersWithNewPersons = this.db
       .selectFrom('person')
       .select('person.ownerId')
       .distinct()
-      .where('person.createdAt', '>=', yesterday)
+      .where('person.createdAt', '>=', lastWeek)
       .where('person.isHidden', '=', false);
 
     const results = await this.db
       .selectFrom('asset')
       .select('asset.ownerId')
       .distinct()
-      .where('asset.createdAt', '>=', yesterday)
+      .where('asset.createdAt', '>=', lastWeek)
       .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
       .where('asset.deletedAt', 'is', null)
       .where('asset.ownerId', 'in', usersWithNewPersons)

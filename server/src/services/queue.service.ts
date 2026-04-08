@@ -287,7 +287,10 @@ export class QueueService extends BaseService {
     }
 
     if (config.nightlyTasks.clusterNewFaces) {
-      jobs.push({ name: JobName.FacialRecognitionQueueAll, data: { force: false, nightly: true } });
+      const now = new Date();
+      if (now.getDay() === 2) { // Tuesday
+        jobs.push({ name: JobName.FacialRecognitionQueueAll, data: { force: false, nightly: true } });
+      }
     }
 
     if (config.nightlyTasks.removeStaleUploads) {

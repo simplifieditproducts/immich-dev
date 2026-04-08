@@ -424,13 +424,13 @@ export class PersonService extends BaseService {
 
     let ownerIds: string[] = [];
     if (nightly) {
-      // For nightly runs, check if there are users with new persons created in the last 24 hours
-      ownerIds = await this.personRepository.getUsersWithNewPersonsInLast24Hours();
+      // For weekly runs, check if there are users with new persons created in the last 7 days
+      ownerIds = await this.personRepository.getUsersWithNewPersonsInLastWeek();
       if (ownerIds.length === 0) {
-        this.logger.debug('No users with new persons and new uploads in the last 24 hours');
+        this.logger.debug('No users with new persons and new uploads in the last 7 days');
         return JobStatus.Skipped;
       }
-      this.logger.log(`Found ${ownerIds.length} users with new persons and new uploads in the last 24 hours`);
+      this.logger.log(`Found ${ownerIds.length} users with new persons and new uploads in the last 7 days`);
     } else if (ownerId) {
       // For manual runs with a specific user
       ownerIds = [ownerId];
