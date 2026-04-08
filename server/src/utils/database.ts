@@ -65,7 +65,6 @@ export const getKyselyConfig = (
 ): KyselyConfig => {
   const config = asPostgresConnectionConfig(params);
   const isApiServer = process.env.IMMICH_WORKERS_INCLUDE === ImmichWorker.Api;
-  const maxPoolSize = isApiServer ? 50 : 10;
 
   return {
     dialect: new PostgresJSDialect({
@@ -75,7 +74,7 @@ export const getKyselyConfig = (
             console.warn('Postgres notice:', notice);
           }
         },
-        max: maxPoolSize,
+        max: 50,
         idle_timeout: 30,
         connect_timeout: 30,
         socket: ({ host: [host], port: [port] }: { host: [string]; port: [number] }) => {
