@@ -43,6 +43,7 @@ thread_pool: ThreadPoolExecutor | None = None
 lock = threading.Lock()
 active_requests = 0
 last_called: float | None = None
+oom_error_count = 0
 
 
 @asynccontextmanager
@@ -173,6 +174,8 @@ async def root() -> ORJSONResponse:
 
 @app.get("/ping")
 def ping() -> PlainTextResponse:
+    if oom_error_count >= 10:
+        return PlainTextResponse("unhealthy: OOM errors", status_code=503)
     return PlainTextResponse("pong")
 
 
@@ -208,7 +211,14 @@ async def run_inference(payload: Image | str, entries: InferenceEntries) -> Infe
                 message = f"Task {entry['task']} of type {entry['type']} depends on output of {dep}"
                 raise HTTPException(400, message)
         model = await load(model)
-        output = await run(model.predict, *inputs, **entry["options"])
+        try:
+            output = await run(model.predict, *inputs, **entry["options"])
+        except Exception as e:
+            if "Failed to allocate" in str(e):
+                global oom_error_count
+                oom_error_count += 1
+                log.warning(f"Out-of-memory error detected (count: {oom_error_count})")
+            raise
         outputs[model.identity] = output
         response[entry["task"]] = output
 
