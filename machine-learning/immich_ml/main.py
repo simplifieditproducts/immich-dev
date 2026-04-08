@@ -214,7 +214,8 @@ async def run_inference(payload: Image | str, entries: InferenceEntries) -> Infe
         try:
             output = await run(model.predict, *inputs, **entry["options"])
         except Exception as e:
-            if "Failed to allocate" in str(e):
+            oom_keywords = ["failed to allocate", "out of memory"]
+            if any(keyword in str(e).lower() for keyword in oom_keywords):
                 global oom_error_count
                 oom_error_count += 1
                 log.warning(f"Out-of-memory error detected (count: {oom_error_count})")
