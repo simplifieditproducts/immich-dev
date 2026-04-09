@@ -88,6 +88,10 @@ services:
       disable: false
     labels:
       - "autoheal=true"
+    deploy:
+      resources:
+        limits:
+          cpus: "32"
 
   immich-machine-learning-cpu:
     container_name: immich_machine_learning_cpu
@@ -102,6 +106,10 @@ services:
       disable: false
     labels:
       - "autoheal=true"
+    deploy:
+      resources:
+        limits:
+          cpus: "32"
 
   redis:
     container_name: immich_redis
