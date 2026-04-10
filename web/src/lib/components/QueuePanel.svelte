@@ -74,7 +74,7 @@
     [QueueName.StorageTemplateMigration]: {
       missingText: $t('start'),
       description: QueueStorageMigrationDescription,
-    },    
+    },
     [QueueName.Library]: {
       missingText: $t('rescan'),
     },
@@ -93,16 +93,12 @@
   const handleCommand = async (name: QueueName, dto: QueueCommandDto) => {
     const item = asQueueItem($t, { name });
 
-    switch (name) {
-      case QueueName.FaceDetection:
-      case QueueName.FacialRecognition: {
-        if (dto.force) {
-          const confirmed = await modalManager.showDialog({ prompt: $t('admin.confirm_reprocess_all_faces') });
-          if (!confirmed) {
-            return;
-          }
-          break;
-        }
+    if (dto.force) {
+      const confirmed = await modalManager.showDialog({
+        prompt: $t('admin.confirm_reprocess_all_force', { values: { job: item.title } }),
+      });
+      if (!confirmed) {
+        return;
       }
     }
 
