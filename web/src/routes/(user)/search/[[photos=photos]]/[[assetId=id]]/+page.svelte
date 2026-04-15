@@ -8,7 +8,6 @@
   import GalleryViewer from '$lib/components/shared-components/gallery-viewer/gallery-viewer.svelte';
   import SearchBar from '$lib/components/shared-components/search-bar/search-bar.svelte';
   import AddToAlbum from '$lib/components/timeline/actions/AddToAlbumAction.svelte';
-  import { AppRoute, AssetAction, mdiArrowBackIos, QueryParameter } from '$lib/constants';
   import ArchiveAction from '$lib/components/timeline/actions/ArchiveAction.svelte';
   import AssetJobActions from '$lib/components/timeline/actions/AssetJobActions.svelte';
   import ChangeDate from '$lib/components/timeline/actions/ChangeDateAction.svelte';
@@ -21,6 +20,7 @@
   import SetVisibilityAction from '$lib/components/timeline/actions/SetVisibilityAction.svelte';
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
+  import { AppRoute, AssetAction, mdiArrowBackIos, QueryParameter } from '$lib/constants';
   import { featureFlagsManager } from '$lib/managers/feature-flags-manager.svelte';
   import type { TimelineAsset, Viewport } from '$lib/managers/timeline-manager/types';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
@@ -410,9 +410,10 @@
 -->
 <div
   id="asset-grid"
-  class="mt-[3.5rem] sm:mt-20 overflow-y-auto w-full"
+  class="mt-14 sm:mt-20 overflow-y-auto w-full"
   style="height: {height};"
   bind:this={scrollingElement}
+  bind:clientHeight={viewport.height}
 >
 {#if terms && Object.keys(terms).length > 0 && !(Object.keys(terms).length == 1 && terms.query?.length > 0)}
   <section
@@ -454,7 +455,6 @@
 
 <section
   class="bg-immich-bg dark:bg-immich-dark-bg mx-2"
-  bind:clientHeight={viewport.height}
   bind:clientWidth={viewport.width}
   bind:this={searchResultsElement}
 >
