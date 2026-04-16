@@ -21,7 +21,7 @@
   import TagAction from '$lib/components/timeline/actions/TagAction.svelte';
   import AssetSelectControlBar from '$lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '$lib/components/timeline/Timeline.svelte';
-  import { appId, AppRoute, AssetAction, QueryParameter } from '$lib/constants';
+  import { AppRoute, AssetAction, QueryParameter } from '$lib/constants';
   import { AggregatedTimelineManager, type MediaFilter } from '$lib/managers/timeline-manager/aggregated-timeline-manager.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
@@ -138,7 +138,7 @@
           <div class="flex flex-col content-center items-center text-center">
             <Icon icon={mdiImageOffOutline} size="3.5em" />
             <p class="mt-5 text-3xl font-medium">No {mediaFilter === 'video' ? 'videos' : 'photos'} available</p>
-            <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your {mediaFilter === 'video' ? 'videos' : 'photos'} here.</p>
+            <p class="text-base font-normal p-2">Once KeepSafe backs up your {mediaFilter === 'video' ? 'videos' : 'photos'}, they will be shown here.</p>
           </div>
         </div>
       {/snippet}

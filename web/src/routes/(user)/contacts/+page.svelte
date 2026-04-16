@@ -1,6 +1,5 @@
 <script lang="ts">
   import UserPageLayout from '$lib/components/layouts/user-page-layout.svelte';
-  import { appId } from '$lib/constants';
   import ContactDetailModal from '$lib/modals/ContactDetailModal.svelte';
   import type { Contact, ContactsData } from '$lib/types';
   import { getInitials } from '$lib/utils/contact-utils';
@@ -356,7 +355,7 @@
       <div class="flex flex-col content-center items-center text-center">
         <Icon icon={mdiAccountOffOutline} size="3.5em" />
         <p class="mt-5 text-3xl font-medium">No contacts available</p>
-        <p class="text-base font-normal p-2">Subscribe to the KeepSafe service in the {appId === 'ultimatebackup' ? 'Ultimate Backup' : 'Picture Keeper Connect'} mobile app to view your contacts here.</p>
+        <p class="text-base font-normal p-2">Once KeepSafe backs up your contacts, they will be shown here.</p>
       </div>
     </div>
   {:else if searchQuery && filteredContacts.length === 0}
