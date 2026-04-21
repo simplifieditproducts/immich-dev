@@ -101,7 +101,7 @@
         <!-- Phones -->
         {#if contact.phones.length > 0}
           <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-            {#each contact.phones as phone, i (phone.value)}
+            {#each contact.phones as phone, i (i)}
               <div
                 class="flex items-center gap-3 {i > 0 ? 'mt-2 border-t border-gray-200 pt-2 dark:border-gray-700' : ''}"
               >
@@ -120,7 +120,7 @@
         <!-- Emails -->
         {#if contact.emails.length > 0}
           <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-            {#each contact.emails as email, i (email.value)}
+            {#each contact.emails as email, i (i)}
               <div
                 class="flex items-center gap-3 {i > 0 ? 'mt-2 border-t border-gray-200 pt-2 dark:border-gray-700' : ''}"
               >
@@ -160,7 +160,7 @@
         <!-- Addresses -->
         {#if contact.addresses.length > 0}
           <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-            {#each contact.addresses as address, i (formatAddress(address))}
+            {#each contact.addresses as address, i (i)}
               {@const formatted = formatAddress(address)}
               {#if formatted}
                 <div

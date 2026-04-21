@@ -33,6 +33,7 @@ export interface ContactAddress {
 }
 
 export interface Contact {
+  id: string;
   displayName: string;
   firstName: string;
   lastName: string;

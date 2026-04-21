@@ -17098,6 +17098,9 @@
           "firstName": {
             "type": "string"
           },
+          "id": {
+            "type": "string"
+          },
           "lastName": {
             "type": "string"
           },
@@ -17125,6 +17128,7 @@
           "displayName",
           "emails",
           "firstName",
+          "id",
           "lastName",
           "phones"
         ],

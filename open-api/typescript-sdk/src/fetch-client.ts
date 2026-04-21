@@ -704,6 +704,7 @@ export type ContactDto = {
     displayName: string;
     emails: ContactEmailDto[];
     firstName: string;
+    id: string;
     lastName: string;
     notes?: string | null;
     organization?: string | null;
@@ -1310,6 +1311,10 @@ export type ServerFeaturesDto = {
     smartSearch: boolean;
     trash: boolean;
 };
+export type ServerPingResponse = {};
+export type ServerPingResponseRead = {
+    res: string;
+};
 export type LicenseResponseDto = {
     activatedAt: string;
     activationKey: string;
@@ -1323,10 +1328,6 @@ export type ServerMediaTypesResponseDto = {
     image: string[];
     sidecar: string[];
     video: string[];
-};
-export type ServerPingResponse = {};
-export type ServerPingResponseRead = {
-    res: string;
 };
 export type SimpleServerStatsResponseDto = {
     diskTotal: number;
@@ -4205,6 +4206,17 @@ export function getServerFeatures(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
+ * Health
+ */
+export function getHealth(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: ServerPingResponseRead;
+    }>("/server/health", {
+        ...opts
+    }));
+}
+/**
  * Delete server product key
  */
 export function deleteServerLicense(opts?: Oazapfts.RequestOpts) {
@@ -4947,7 +4959,7 @@ export function tagAssets({ id, bulkIdsDto }: {
  */
 export function getTimeBucket({ albumId, assetType, isFavorite, isTrashed, key, order, personId, slug, tagId, timeBucket, userId, visibility, withCoordinates, withPartners, withStacked }: {
     albumId?: string;
-    assetType?: AssetTypeEnum;
+    assetType?: AssetType;
     isFavorite?: boolean;
     isTrashed?: boolean;
     key?: string;
@@ -4990,7 +5002,7 @@ export function getTimeBucket({ albumId, assetType, isFavorite, isTrashed, key, 
  */
 export function getTimeBuckets({ albumId, assetType, isFavorite, isTrashed, key, order, personId, slug, tagId, userId, visibility, withCoordinates, withPartners, withStacked }: {
     albumId?: string;
-    assetType?: AssetTypeEnum;
+    assetType?: AssetType;
     isFavorite?: boolean;
     isTrashed?: boolean;
     key?: string;
@@ -5960,6 +5972,12 @@ export enum LogLevel {
 export enum OAuthTokenEndpointAuthMethod {
     ClientSecretPost = "client_secret_post",
     ClientSecretBasic = "client_secret_basic"
+}
+export enum AssetType {
+    Image = "IMAGE",
+    Video = "VIDEO",
+    Audio = "AUDIO",
+    Other = "OTHER"
 }
 export enum TriggerType {
     AssetCreate = "AssetCreate",

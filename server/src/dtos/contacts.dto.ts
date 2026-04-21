@@ -38,6 +38,9 @@ export class ContactAddressDto {
 
 export class ContactDto {
   @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
   displayName!: string;
 
   @ApiProperty()

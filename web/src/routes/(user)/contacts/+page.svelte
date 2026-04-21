@@ -85,7 +85,7 @@
         rows.push({
           type: 'contact',
           contact,
-          key: `c-${contact.displayName}-${contact.phones[0]?.value}`,
+          key: `c-${contact.id}`,
         });
       }
     }
