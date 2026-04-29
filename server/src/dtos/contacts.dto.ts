@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ValidateUUID } from 'src/validation';
 
 export class ContactPhoneDto {
   @ApiProperty()
@@ -74,13 +75,45 @@ export class ContactDto {
   avatar!: string | null;
 }
 
+export class ContactListItemDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  displayName!: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  organization!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  title!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  avatar!: string | null;
+}
+
 export class ContactsResponseDto {
-  @ApiProperty({ type: [ContactDto] })
-  contacts!: ContactDto[];
+  @ApiProperty({ type: [ContactListItemDto] })
+  contacts!: ContactListItemDto[];
+}
+
+export class ContactDeviceDto {
+  @ApiProperty()
+  deviceId!: string;
 
   @ApiProperty()
-  total!: number;
+  lastUpload!: string;
 
   @ApiProperty()
-  lastModified!: string;
+  contactCount!: number;
+}
+
+export class ContactDevicesResponseDto {
+  @ApiProperty({ type: [ContactDeviceDto] })
+  devices!: ContactDeviceDto[];
+}
+
+export class ContactBulkRequestDto {
+  @ValidateUUID({ each: true })
+  ids!: string[];
 }

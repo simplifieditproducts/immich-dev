@@ -4642,8 +4642,7 @@
     },
     "/contacts": {
       "delete": {
-        "description": "Delete the contacts backup file from the server.",
-        "operationId": "deleteContacts",
+        "operationId": "deleteAllContacts",
         "parameters": [],
         "responses": {
           "204": {
@@ -4661,7 +4660,7 @@
             "api_key": []
           }
         ],
-        "summary": "Delete contacts backup",
+        "summary": "Delete all contacts for the user",
         "tags": [
           "Contacts"
         ],
@@ -4674,18 +4673,9 @@
         "x-immich-permission": "contact.delete"
       },
       "get": {
-        "description": "Retrieve the contacts backup. Returns parsed JSON by default, or the raw VCF file when raw=true.",
+        "description": "Returns the full deduplicated list of the user's contacts with only the fields needed to render the list view (id, displayName, organization, title, avatar). Heavy fields are loaded on demand by the single-contact endpoint.",
         "operationId": "getContacts",
-        "parameters": [
-          {
-            "name": "raw",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -4709,7 +4699,7 @@
             "api_key": []
           }
         ],
-        "summary": "Retrieve contacts",
+        "summary": "List contacts",
         "tags": [
           "Contacts"
         ],
@@ -4720,11 +4710,22 @@
           }
         ],
         "x-immich-permission": "contact.read"
-      },
-      "put": {
-        "description": "Upload a VCF file containing contacts data. Replaces any existing contacts backup.",
-        "operationId": "uploadContacts",
+      }
+    },
+    "/contacts/delete": {
+      "post": {
+        "operationId": "deleteContacts",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactBulkRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "204": {
             "description": ""
@@ -4741,7 +4742,130 @@
             "api_key": []
           }
         ],
-        "summary": "Upload contacts backup",
+        "summary": "Delete the given contacts",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.delete"
+      }
+    },
+    "/contacts/devices": {
+      "get": {
+        "operationId": "getDevices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDevicesResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List devices that have uploaded contacts",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
+      }
+    },
+    "/contacts/devices/{deviceId}": {
+      "delete": {
+        "operationId": "deleteDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Remove all contacts contributed by one device",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.delete"
+      },
+      "put": {
+        "description": "Upload a VCF file for the given device. Replaces only that device's contributions; other devices are unaffected.",
+        "operationId": "uploadContacts",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Upload contacts from a device",
         "tags": [
           "Contacts"
         ],
@@ -4752,6 +4876,217 @@
           }
         ],
         "x-immich-permission": "contact.upload"
+      }
+    },
+    "/contacts/devices/{deviceId}/vcf": {
+      "get": {
+        "description": "Returns the original raw VCARD blocks contributed by this device, concatenated.",
+        "operationId": "getDeviceVcf",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download a device's contacts as a VCF file",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
+      }
+    },
+    "/contacts/export": {
+      "post": {
+        "operationId": "exportContacts",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactBulkRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Export selected contacts as a VCF file",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
+      }
+    },
+    "/contacts/vcf": {
+      "get": {
+        "description": "Streams every stored vCard block for the user — across all devices, including unparsed entries — concatenated into a single VCF.",
+        "operationId": "getAllVcf",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download all contacts as a VCF file",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
+      }
+    },
+    "/contacts/{id}": {
+      "delete": {
+        "operationId": "deleteContact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a single contact",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.delete"
+      },
+      "get": {
+        "operationId": "getContact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Retrieve a single contact",
+        "tags": [
+          "Contacts"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "contact.read"
       }
     },
     "/download/archive": {
@@ -17070,6 +17405,54 @@
         ],
         "type": "object"
       },
+      "ContactBulkRequestDto": {
+        "properties": {
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "type": "object"
+      },
+      "ContactDeviceDto": {
+        "properties": {
+          "contactCount": {
+            "type": "number"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "lastUpload": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactCount",
+          "deviceId",
+          "lastUpload"
+        ],
+        "type": "object"
+      },
+      "ContactDevicesResponseDto": {
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/ContactDeviceDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "devices"
+        ],
+        "type": "object"
+      },
       "ContactDto": {
         "properties": {
           "addresses": {
@@ -17149,6 +17532,33 @@
         ],
         "type": "object"
       },
+      "ContactListItemDto": {
+        "properties": {
+          "avatar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "organization": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName",
+          "id"
+        ],
+        "type": "object"
+      },
       "ContactPhoneDto": {
         "properties": {
           "type": {
@@ -17168,21 +17578,13 @@
         "properties": {
           "contacts": {
             "items": {
-              "$ref": "#/components/schemas/ContactDto"
+              "$ref": "#/components/schemas/ContactListItemDto"
             },
             "type": "array"
-          },
-          "lastModified": {
-            "type": "string"
-          },
-          "total": {
-            "type": "number"
           }
         },
         "required": [
-          "contacts",
-          "lastModified",
-          "total"
+          "contacts"
         ],
         "type": "object"
       },

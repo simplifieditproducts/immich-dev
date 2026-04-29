@@ -8,6 +8,7 @@ import { AssetJobRepository } from 'src/repositories/asset-job.repository';
 import { AssetRepository } from 'src/repositories/asset.repository';
 import { AuditRepository } from 'src/repositories/audit.repository';
 import { ConfigRepository } from 'src/repositories/config.repository';
+import { ContactRepository } from 'src/repositories/contact.repository';
 import { CronRepository } from 'src/repositories/cron.repository';
 import { CryptoRepository } from 'src/repositories/crypto.repository';
 import { DatabaseRepository } from 'src/repositories/database.repository';
@@ -62,6 +63,7 @@ export const repositories = [
   AssetRepository,
   AssetJobRepository,
   ConfigRepository,
+  ContactRepository,
   CronRepository,
   CryptoRepository,
   RedisRepository,

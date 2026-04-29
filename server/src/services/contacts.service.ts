@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { join } from 'node:path';
-import { StorageFolder } from 'src/enum';
-import { StorageCore } from 'src/cores/storage.core';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import { AuthDto } from 'src/dtos/auth.dto';
-import { ContactDto, ContactsResponseDto } from 'src/dtos/contacts.dto';
+import {
+  ContactBulkRequestDto,
+  ContactDeviceDto,
+  ContactDevicesResponseDto,
+  ContactDto,
+  ContactListItemDto,
+  ContactsResponseDto,
+} from 'src/dtos/contacts.dto';
+import { ContactStatus } from 'src/enum';
 import { ImmichReadStream } from 'src/repositories/storage.repository';
 import { BaseService } from 'src/services/base.service';
 
-const CONTACTS_FILENAME = 'contacts.dat';
-const isLetter = (s: string) => /^[a-z]/i.test(s);
+type ParsedContact = Omit<ContactDto, 'id'>;
 
 // Well-known vCard TYPE tokens that are metadata rather than user-facing labels.
 // VOICE/INTERNET/etc. are redundant (every phone takes voice calls; every email
@@ -65,123 +70,259 @@ function normalizeAddress(address: {
 
 @Injectable()
 export class ContactsService extends BaseService {
-  private getContactsPath(userId: string): string {
-    return join(StorageCore.getFolderLocation(StorageFolder.Upload, userId), CONTACTS_FILENAME);
+  async upload(auth: AuthDto, deviceId: string, data: Buffer): Promise<void> {
+    const ownerId = auth.user.id;
+    const text = data.toString('utf8');
+    const blocks = text.split(/(?=BEGIN:VCARD)/i).filter((s) => s.trim());
+
+    await this.contactRepository.transaction(async (repo) => {
+      await repo.deleteSourcesByDevice(ownerId, deviceId);
+
+      for (const block of blocks) {
+        const vcardHash = this.cryptoRepository.hashXxHash64(block).toString('hex');
+
+        const existing = await repo.findByVcardHash(ownerId, vcardHash);
+        let contactId: string;
+
+        if (existing) {
+          contactId = existing.id;
+        } else {
+          const parsed = await this.tryParse(block);
+          if (parsed) {
+            const contentHash = this.hashContent(parsed);
+            const inserted = await repo.insertIfNew({
+              ownerId,
+              vcardHash,
+              contentHash,
+              status: ContactStatus.Active,
+              displayName: parsed.displayName,
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+              organization: parsed.organization,
+              title: parsed.title,
+              birthday: parsed.birthday,
+              notes: parsed.notes,
+              avatar: parsed.avatar,
+              phones: parsed.phones,
+              emails: parsed.emails,
+              addresses: parsed.addresses,
+              vcardBlock: block,
+            });
+            contactId = inserted?.id ?? (await repo.findByVcardHash(ownerId, vcardHash))!.id;
+          } else {
+            const inserted = await repo.insertIfNew({
+              ownerId,
+              vcardHash,
+              status: ContactStatus.Unparsed,
+              vcardBlock: block,
+            });
+            contactId = inserted?.id ?? (await repo.findByVcardHash(ownerId, vcardHash))!.id;
+          }
+        }
+
+        await repo.upsertSource(contactId, deviceId);
+      }
+
+      await repo.deleteOrphanContacts(ownerId);
+    });
   }
 
-  async upload(auth: AuthDto, data: Buffer): Promise<void> {
-    const filePath = this.getContactsPath(auth.user.id);
-    const dirPath = StorageCore.getFolderLocation(StorageFolder.Upload, auth.user.id);
-    this.storageRepository.mkdirSync(dirPath);
-    await this.storageRepository.createOrOverwriteFile(filePath, data);
-    void StorageCore.appendToRcloneSyncList([filePath]);
+  async list(auth: AuthDto): Promise<ContactsResponseDto> {
+    const contacts = await this.contactRepository.listAll(auth.user.id);
+    return { contacts: contacts.map((c) => this.mapListItem(c)) };
   }
 
-  async get(auth: AuthDto, raw: boolean): Promise<ContactsResponseDto | ImmichReadStream> {
-    const filePath = this.getContactsPath(auth.user.id);
-
-    const exists = await this.storageRepository.checkFileExists(filePath);
-    if (!exists) {
-      throw new NotFoundException('No contacts backup found');
+  async getOne(auth: AuthDto, id: string): Promise<ContactDto> {
+    const contact = await this.contactRepository.getById(auth.user.id, id);
+    if (!contact) {
+      throw new NotFoundException('Contact not found');
     }
+    return this.mapContact(contact);
+  }
 
-    if (raw) {
-      return this.storageRepository.createReadStream(filePath, 'text/vcard');
-    }
-
-    const vcfData = await this.storageRepository.readTextFile(filePath);
-    const contacts = await this.parseVcf(vcfData);
-    const stats = await this.storageRepository.stat(filePath);
-
+  async listDevices(auth: AuthDto): Promise<ContactDevicesResponseDto> {
+    const devices = await this.contactRepository.listDevices(auth.user.id);
     return {
-      contacts,
-      total: contacts.length,
-      lastModified: stats.mtime.toISOString(),
+      devices: devices.map(
+        (d): ContactDeviceDto => ({
+          deviceId: d.deviceId,
+          lastUpload: d.lastUpload.toISOString(),
+          contactCount: d.contactCount,
+        }),
+      ),
     };
   }
 
-  async remove(auth: AuthDto): Promise<void> {
-    const filePath = this.getContactsPath(auth.user.id);
-
-    const exists = await this.storageRepository.checkFileExists(filePath);
-    if (!exists) {
-      throw new NotFoundException('No contacts backup found');
-    }
-
-    await this.storageRepository.unlink(filePath);
-    void StorageCore.appendToRcloneSyncList([filePath]);
+  async deleteDevice(auth: AuthDto, deviceId: string): Promise<void> {
+    await this.contactRepository.deleteDevice(auth.user.id, deviceId);
   }
 
-  private async parseVcf(data: string): Promise<ContactDto[]> {
-    const { default: ICAL } = await import('ical.js');
-    const rawCards = data.split(/(?=BEGIN:VCARD)/i).filter((s) => s.trim());
-    const byId = new Map<string, ContactDto>();
-
-    for (const raw of rawCards) {
-      try {
-        const parsed = ICAL.parse(raw);
-        const card = new ICAL.Component(parsed);
-
-        const displayName = String(card.getFirstPropertyValue('fn') || '');
-        const nValue = card.getFirstPropertyValue('n');
-
-        if (!displayName && !nValue) {
-          continue;
-        }
-
-        let firstName = '';
-        let lastName = '';
-        if (nValue) {
-          const nameParts = Array.isArray(nValue) ? nValue : String(nValue).split(';');
-          lastName = String(nameParts[0] || '');
-          firstName = String(nameParts[1] || '');
-        }
-
-        const phones = this.dedupePhones(this.extractMultiProperty(card, 'tel'));
-        const emails = this.dedupeEmails(this.extractMultiProperty(card, 'email'));
-        const addresses = this.dedupeAddresses(this.extractAddresses(card));
-        const avatar = this.extractPhoto(card);
-
-        const orgValue = card.getFirstPropertyValue('org');
-        const organization = orgValue ? String(Array.isArray(orgValue) ? orgValue[0] : orgValue) : null;
-        const title = card.getFirstPropertyValue('title') ? String(card.getFirstPropertyValue('title')) : null;
-        const birthday = card.getFirstPropertyValue('bday') ? String(card.getFirstPropertyValue('bday')) : null;
-        const notes = card.getFirstPropertyValue('note') ? String(card.getFirstPropertyValue('note')) : null;
-
-        const fields: Omit<ContactDto, 'id'> = {
-          displayName: displayName || `${firstName} ${lastName}`.trim(),
-          firstName,
-          lastName,
-          phones,
-          emails,
-          addresses,
-          organization,
-          title,
-          birthday,
-          notes,
-          avatar,
-        };
-
-        const id = this.hashContact(fields);
-        if (!byId.has(id)) {
-          byId.set(id, { id, ...fields });
-        }
-      } catch (error) {
-        this.logger.warn(`Skipping malformed vCard entry: ${error}`);
-      }
+  async getDeviceVcf(auth: AuthDto, deviceId: string): Promise<ImmichReadStream> {
+    const blocks = await this.contactRepository.getDeviceVcardBlocks(auth.user.id, deviceId);
+    if (blocks.length === 0) {
+      throw new NotFoundException('No contacts for this device');
     }
+    return this.streamVcards(blocks.map((b) => b.vcardBlock));
+  }
 
-    const contacts = [...byId.values()];
-    contacts.sort((a, b) => {
-      const aIsLetter = isLetter(a.displayName);
-      const bIsLetter = isLetter(b.displayName);
-      if (aIsLetter !== bIsLetter) {
-        return aIsLetter ? -1 : 1;
-      }
-      return a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' });
+  async getOwnerVcf(auth: AuthDto): Promise<ImmichReadStream> {
+    const blocks = await this.contactRepository.getOwnerVcardBlocks(auth.user.id);
+    if (blocks.length === 0) {
+      throw new NotFoundException('No contacts uploaded');
+    }
+    return this.streamVcards(blocks.map((b) => b.vcardBlock));
+  }
+
+  async export(auth: AuthDto, dto: ContactBulkRequestDto): Promise<ImmichReadStream> {
+    if (dto.ids.length === 0) {
+      throw new BadRequestException('No contacts selected');
+    }
+    const blocks = await this.contactRepository.getVcardBlocks(auth.user.id, dto.ids);
+    if (blocks.length === 0) {
+      throw new NotFoundException('No matching contacts found');
+    }
+    return this.streamVcards(blocks.map((b) => b.vcardBlock));
+  }
+
+  async deleteOne(auth: AuthDto, id: string): Promise<void> {
+    await this.contactRepository.deleteByIds(auth.user.id, [id]);
+  }
+
+  async deleteMany(auth: AuthDto, dto: ContactBulkRequestDto): Promise<void> {
+    await this.contactRepository.deleteByIds(auth.user.id, dto.ids);
+  }
+
+  async deleteAll(auth: AuthDto): Promise<void> {
+    await this.contactRepository.deleteAll(auth.user.id);
+  }
+
+  private streamVcards(blocks: string[]): ImmichReadStream {
+    const body = blocks.join('\r\n');
+    return {
+      stream: Readable.from([body]),
+      type: 'text/vcard',
+      length: Buffer.byteLength(body, 'utf8'),
+    };
+  }
+
+  private mapListItem(row: {
+    id: string;
+    displayName: string;
+    organization: string | null;
+    title: string | null;
+    avatar: string | null;
+  }): ContactListItemDto {
+    return {
+      id: row.id,
+      displayName: row.displayName,
+      organization: row.organization,
+      title: row.title,
+      avatar: row.avatar,
+    };
+  }
+
+  private mapContact(row: {
+    id: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    organization: string | null;
+    title: string | null;
+    birthday: string | null;
+    notes: string | null;
+    avatar: string | null;
+    phones: unknown;
+    emails: unknown;
+    addresses: unknown;
+  }): ContactDto {
+    return {
+      id: row.id,
+      displayName: row.displayName,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      organization: row.organization,
+      title: row.title,
+      birthday: row.birthday,
+      notes: row.notes,
+      avatar: row.avatar,
+      phones: (row.phones as ContactDto['phones']) ?? [],
+      emails: (row.emails as ContactDto['emails']) ?? [],
+      addresses: (row.addresses as ContactDto['addresses']) ?? [],
+    };
+  }
+
+  private hashContent(parsed: ParsedContact): string {
+    const canonical = JSON.stringify({
+      displayName: parsed.displayName,
+      firstName: parsed.firstName,
+      lastName: parsed.lastName,
+      phones: parsed.phones.map((p) => normalizePhone(p.value)),
+      emails: parsed.emails.map((e) => normalizeEmail(e.value)),
+      addresses: parsed.addresses.map((a) => normalizeAddress(a)),
+      organization: parsed.organization,
+      title: parsed.title,
+      birthday: parsed.birthday,
+      notes: parsed.notes,
+      avatar: parsed.avatar,
     });
+    return this.cryptoRepository.hashXxHash64(canonical).toString('hex');
+  }
 
-    return contacts;
+  private async tryParse(raw: string): Promise<ParsedContact | null> {
+    try {
+      const { default: ICAL } = await import('ical.js');
+      const parsed = ICAL.parse(raw);
+      const card = new ICAL.Component(parsed);
+
+      const fnValue = String(card.getFirstPropertyValue('fn') || '').trim();
+      const nValue = card.getFirstPropertyValue('n');
+
+      let firstName = '';
+      let lastName = '';
+      if (nValue) {
+        const nameParts = Array.isArray(nValue) ? nValue : String(nValue).split(';');
+        lastName = String(nameParts[0] || '');
+        firstName = String(nameParts[1] || '');
+      }
+
+      const phones = this.dedupePhones(this.extractMultiProperty(card, 'tel'));
+      const emails = this.dedupeEmails(this.extractMultiProperty(card, 'email'));
+      const addresses = this.dedupeAddresses(this.extractAddresses(card));
+      const avatar = this.extractPhoto(card);
+
+      // Resolve a usable label: explicit FN, then "first last", then the first
+      // phone or email so nameless entries (e.g. iPhone exports with N:;;;; and
+      // only a TEL) still surface with something the user can identify and act
+      // on. If none of those exist there's nothing to show — treat as malformed.
+      const displayName =
+        fnValue || `${firstName} ${lastName}`.trim() || phones[0]?.value || emails[0]?.value || '';
+      if (!displayName) {
+        return null;
+      }
+
+      const orgValue = card.getFirstPropertyValue('org');
+      const organization = orgValue ? String(Array.isArray(orgValue) ? orgValue[0] : orgValue) : null;
+      const title = card.getFirstPropertyValue('title') ? String(card.getFirstPropertyValue('title')) : null;
+      const birthday = card.getFirstPropertyValue('bday') ? String(card.getFirstPropertyValue('bday')) : null;
+      const notes = card.getFirstPropertyValue('note') ? String(card.getFirstPropertyValue('note')) : null;
+
+      return {
+        displayName,
+        firstName,
+        lastName,
+        phones,
+        emails,
+        addresses,
+        organization,
+        title,
+        birthday,
+        notes,
+        avatar,
+      };
+    } catch (error) {
+      this.logger.warn(`Skipping malformed vCard entry: ${error}`);
+      return null;
+    }
   }
 
   private dedupePhones(phones: { type: string; value: string }[]): { type: string; value: string }[] {
@@ -226,23 +367,6 @@ export class ContactsService extends BaseService {
       result.push(address);
     }
     return result;
-  }
-
-  private hashContact(contact: Omit<ContactDto, 'id'>): string {
-    const canonical = JSON.stringify({
-      displayName: contact.displayName,
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      phones: contact.phones.map((p) => normalizePhone(p.value)),
-      emails: contact.emails.map((e) => normalizeEmail(e.value)),
-      addresses: contact.addresses.map((a) => normalizeAddress(a)),
-      organization: contact.organization,
-      title: contact.title,
-      birthday: contact.birthday,
-      notes: contact.notes,
-      avatar: contact.avatar,
-    });
-    return this.cryptoRepository.hashXxHash64(canonical).toString('hex');
   }
 
   private extractPhoto(card: any): string | null {

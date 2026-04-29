@@ -1,4 +1,9 @@
-import { asset_face_source_type, asset_visibility_enum, assets_status_enum } from 'src/schema/enums';
+import {
+  asset_face_source_type,
+  asset_visibility_enum,
+  assets_status_enum,
+  contact_status_enum,
+} from 'src/schema/enums';
 import {
   album_delete_audit,
   album_user_after_insert,
@@ -38,6 +43,8 @@ import { AssetMetadataTable } from 'src/schema/tables/asset-metadata.table';
 import { AssetOcrTable } from 'src/schema/tables/asset-ocr.table';
 import { AssetTable } from 'src/schema/tables/asset.table';
 import { AuditTable } from 'src/schema/tables/audit.table';
+import { ContactSourceTable } from 'src/schema/tables/contact-source.table';
+import { ContactTable } from 'src/schema/tables/contact.table';
 import { FaceSearchTable } from 'src/schema/tables/face-search.table';
 import { GeodataPlacesTable } from 'src/schema/tables/geodata-places.table';
 import { LibraryTable } from 'src/schema/tables/library.table';
@@ -96,6 +103,8 @@ export class ImmichDatabase {
     AssetFileTable,
     AuditTable,
     AssetExifTable,
+    ContactTable,
+    ContactSourceTable,
     FaceSearchTable,
     GeodataPlacesTable,
     LibraryTable,
@@ -156,7 +165,7 @@ export class ImmichDatabase {
     asset_face_audit,
   ];
 
-  enum = [assets_status_enum, asset_face_source_type, asset_visibility_enum];
+  enum = [assets_status_enum, asset_face_source_type, asset_visibility_enum, contact_status_enum];
 }
 
 export interface Migrations {
@@ -190,6 +199,9 @@ export interface DB {
   ocr_search: OcrSearchTable;
 
   audit: AuditTable;
+
+  contact: ContactTable;
+  contact_source: ContactSourceTable;
 
   face_search: FaceSearchTable;
 

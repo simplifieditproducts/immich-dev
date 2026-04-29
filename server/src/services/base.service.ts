@@ -15,6 +15,7 @@ import { AssetJobRepository } from 'src/repositories/asset-job.repository';
 import { AssetRepository } from 'src/repositories/asset.repository';
 import { AuditRepository } from 'src/repositories/audit.repository';
 import { ConfigRepository } from 'src/repositories/config.repository';
+import { ContactRepository } from 'src/repositories/contact.repository';
 import { CronRepository } from 'src/repositories/cron.repository';
 import { CryptoRepository } from 'src/repositories/crypto.repository';
 import { DatabaseRepository } from 'src/repositories/database.repository';
@@ -73,6 +74,7 @@ export const BASE_SERVICE_DEPENDENCIES = [
   AssetJobRepository,
   AuditRepository,
   ConfigRepository,
+  ContactRepository,
   CronRepository,
   CryptoRepository,
   RedisRepository,
@@ -132,6 +134,7 @@ export class BaseService {
     protected assetJobRepository: AssetJobRepository,
     protected auditRepository: AuditRepository,
     protected configRepository: ConfigRepository,
+    protected contactRepository: ContactRepository,
     protected cronRepository: CronRepository,
     protected cryptoRepository: CryptoRepository,
     protected redisRepository: RedisRepository,

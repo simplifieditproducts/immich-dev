@@ -681,6 +681,27 @@ export type AuthStatusResponseDto = {
 export type ValidateAccessTokenResponseDto = {
     authStatus: boolean;
 };
+export type ContactListItemDto = {
+    avatar?: string | null;
+    displayName: string;
+    id: string;
+    organization?: string | null;
+    title?: string | null;
+};
+export type ContactsResponseDto = {
+    contacts: ContactListItemDto[];
+};
+export type ContactBulkRequestDto = {
+    ids: string[];
+};
+export type ContactDeviceDto = {
+    contactCount: number;
+    deviceId: string;
+    lastUpload: string;
+};
+export type ContactDevicesResponseDto = {
+    devices: ContactDeviceDto[];
+};
 export type ContactAddressDto = {
     city: string;
     country: string;
@@ -710,11 +731,6 @@ export type ContactDto = {
     organization?: string | null;
     phones: ContactPhoneDto[];
     title?: string | null;
-};
-export type ContactsResponseDto = {
-    contacts: ContactDto[];
-    lastModified: string;
-    total: number;
 };
 export type AssetIdsDto = {
     assetIds: string[];
@@ -2968,36 +2984,122 @@ export function validateAccessToken(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Delete contacts backup
+ * Delete all contacts for the user
  */
-export function deleteContacts(opts?: Oazapfts.RequestOpts) {
+export function deleteAllContacts(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/contacts", {
         ...opts,
         method: "DELETE"
     }));
 }
 /**
- * Retrieve contacts
+ * List contacts
  */
-export function getContacts({ raw }: {
-    raw: string;
-}, opts?: Oazapfts.RequestOpts) {
+export function getContacts(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ContactsResponseDto;
-    }>(`/contacts${QS.query(QS.explode({
-        raw
-    }))}`, {
+    }>("/contacts", {
         ...opts
     }));
 }
 /**
- * Upload contacts backup
+ * Delete the given contacts
  */
-export function uploadContacts(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText("/contacts", {
+export function deleteContacts({ contactBulkRequestDto }: {
+    contactBulkRequestDto: ContactBulkRequestDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/contacts/delete", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: contactBulkRequestDto
+    })));
+}
+/**
+ * List devices that have uploaded contacts
+ */
+export function getDevices(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: ContactDevicesResponseDto;
+    }>("/contacts/devices", {
+        ...opts
+    }));
+}
+/**
+ * Remove all contacts contributed by one device
+ */
+export function deleteDevice({ deviceId }: {
+    deviceId: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/contacts/devices/${encodeURIComponent(deviceId)}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Upload contacts from a device
+ */
+export function uploadContacts({ deviceId }: {
+    deviceId: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/contacts/devices/${encodeURIComponent(deviceId)}`, {
         ...opts,
         method: "PUT"
+    }));
+}
+/**
+ * Download a device's contacts as a VCF file
+ */
+export function getDeviceVcf({ deviceId }: {
+    deviceId: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/contacts/devices/${encodeURIComponent(deviceId)}/vcf`, {
+        ...opts
+    }));
+}
+/**
+ * Export selected contacts as a VCF file
+ */
+export function exportContacts({ contactBulkRequestDto }: {
+    contactBulkRequestDto: ContactBulkRequestDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/contacts/export", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: contactBulkRequestDto
+    })));
+}
+/**
+ * Download all contacts as a VCF file
+ */
+export function getAllVcf(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/contacts/vcf", {
+        ...opts
+    }));
+}
+/**
+ * Delete a single contact
+ */
+export function deleteContact({ id }: {
+    id: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/contacts/${encodeURIComponent(id)}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Retrieve a single contact
+ */
+export function getContact({ id }: {
+    id: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: ContactDto;
+    }>(`/contacts/${encodeURIComponent(id)}`, {
+        ...opts
     }));
 }
 /**

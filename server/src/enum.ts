@@ -345,6 +345,11 @@ export enum AssetStatus {
   Partial = 'partial',
 }
 
+export enum ContactStatus {
+  Active = 'active',
+  Unparsed = 'unparsed',
+}
+
 export enum SourceType {
   MachineLearning = 'machine-learning',
   Exif = 'exif',
