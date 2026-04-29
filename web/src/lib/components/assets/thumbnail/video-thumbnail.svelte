@@ -87,7 +87,7 @@
 
 <div class="absolute end-0 top-0 flex place-items-center gap-1 text-xs font-medium text-white">
   {#if showTime}
-    <span class="pt-2">
+    <span class="hidden sm:inline pt-2">
       {#if remainingSeconds < 60}
         {Duration.fromObject({ seconds: remainingSeconds }).toFormat('m:ss')}
       {:else if remainingSeconds < 3600}
