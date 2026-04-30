@@ -1,7 +1,12 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Endpoint, HistoryBuilder } from 'src/decorators';
-import { AssetStatsBulkDto, AssetStatsDto, AssetStatsResponseDto, BulkAssetStatsResponseDto } from 'src/dtos/asset.dto';
+import {
+  AssetStatsBulkDto,
+  AssetStatsDto,
+  UserStatsResponseDto,
+  BulkUserStatsResponseDto,
+} from 'src/dtos/asset.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { SessionResponseDto } from 'src/dtos/session.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto } from 'src/dtos/user-preferences.dto';
@@ -54,7 +59,7 @@ export class UserAdminController {
   getBulkUserStatisticsAdmin(
     @Auth() auth: AuthDto,
     @Query() dto: AssetStatsBulkDto,
-  ): Promise<BulkAssetStatsResponseDto[]> {
+  ): Promise<BulkUserStatsResponseDto[]> {
     return this.service.getBulkStatistics(auth, dto.ids, dto);
   }
 
@@ -121,7 +126,7 @@ export class UserAdminController {
     @Auth() auth: AuthDto,
     @Param() { id }: UUIDParamDto,
     @Query() dto: AssetStatsDto,
-  ): Promise<AssetStatsResponseDto> {
+  ): Promise<UserStatsResponseDto> {
     return this.service.getStatistics(auth, id, dto);
   }
 

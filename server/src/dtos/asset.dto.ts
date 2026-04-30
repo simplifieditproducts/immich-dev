@@ -162,9 +162,6 @@ export class AssetStatsResponseDto {
 
   @ApiProperty({ type: 'integer' })
   videos!: number;
-
-  @ApiProperty({ type: 'integer' })
-  total!: number;
 }
 
 export class AssetMetadataRouteParams {
@@ -237,10 +234,19 @@ export class BulkAssetStatsResponseDto extends AssetStatsResponseDto {
   userId!: string;
 }
 
+export class UserStatsResponseDto extends AssetStatsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  contacts!: number;
+}
+
+export class BulkUserStatsResponseDto extends BulkAssetStatsResponseDto {
+  @ApiProperty({ type: 'integer' })
+  contacts!: number;
+}
+
 export const mapStats = (stats: AssetStats): AssetStatsResponseDto => {
   return {
     images: stats[AssetType.Image],
     videos: stats[AssetType.Video],
-    total: Object.values(stats).reduce((total, value) => total + value, 0),
   };
 };

@@ -1,6 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { SALT_ROUNDS } from 'src/constants';
-import { AssetStatsDto, AssetStatsResponseDto, BulkAssetStatsResponseDto, mapStats } from 'src/dtos/asset.dto';
+import {
+  AssetStatsDto,
+  UserStatsResponseDto,
+  BulkUserStatsResponseDto,
+  mapStats,
+} from 'src/dtos/asset.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { SessionResponseDto, mapSession } from 'src/dtos/session.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto, mapPreferences } from 'src/dtos/user-preferences.dto';
@@ -129,16 +134,28 @@ export class UserAdminService extends BaseService {
     return sessions.map((session) => mapSession(session));
   }
 
-  async getStatistics(auth: AuthDto, id: string, dto: AssetStatsDto): Promise<AssetStatsResponseDto> {
-    const stats = await this.assetRepository.getStatistics(id, dto);
-    return mapStats(stats);
+  async getStatistics(auth: AuthDto, id: string, dto: AssetStatsDto): Promise<UserStatsResponseDto> {
+    const [stats, contactStats] = await Promise.all([
+      this.assetRepository.getStatistics(id, dto),
+      this.contactRepository.getStatistics(id),
+    ]);
+    return { ...mapStats(stats), contacts: contactStats.contacts };
   }
 
-  async getBulkStatistics(auth: AuthDto, ids: string[], dto: AssetStatsDto): Promise<BulkAssetStatsResponseDto[]> {
-    const rows = await this.assetRepository.getBulkStatistics(ids, dto);
+  async getBulkStatistics(
+    auth: AuthDto,
+    ids: string[],
+    dto: AssetStatsDto,
+  ): Promise<BulkUserStatsResponseDto[]> {
+    const [rows, contactRows] = await Promise.all([
+      this.assetRepository.getBulkStatistics(ids, dto),
+      this.contactRepository.getBulkStatistics(ids),
+    ]);
+    const contactsByOwner = new Map(contactRows.map((row) => [row.ownerId, row.contacts]));
     return rows.map(({ ownerId, ...stats }) => ({
       userId: ownerId,
       ...mapStats(stats),
+      contacts: contactsByOwner.get(ownerId) ?? 0,
     }));
   }
 

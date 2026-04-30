@@ -151,6 +151,9 @@ export class SimpleServerStatsResponseDto {
   @ApiProperty({ type: 'integer' })
   videos = 0;
 
+  @ApiProperty({ type: 'integer' })
+  contacts = 0;
+
   @ApiProperty({ type: 'integer', format: 'int64' })
   diskUsed = 0;
 

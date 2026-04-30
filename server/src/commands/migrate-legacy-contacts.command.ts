@@ -140,14 +140,16 @@ export class MigrateLegacyContactsCommand extends CommandRunner {
           continue;
         }
 
-        const data = await this.storageRepository.readFile(filePath);
-        if (data.length === 0) {
+        const { size } = await this.storageRepository.stat(filePath);
+        if (size === 0) {
           stdout.write(`[${user.id}] file is empty — deleting without import\n`);
           await this.storageRepository.unlink(filePath);
           await StorageCore.appendToRcloneSyncList([filePath]);
           removed++;
           continue;
         }
+
+        const data = await this.storageRepository.readFile(filePath);
 
         const auth = { user: { id: user.id } } as AuthDto;
         await this.contactsService.upload(auth, LEGACY_DEVICE_ID, data);

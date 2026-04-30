@@ -13,25 +13,21 @@
   let timelineStats: AssetStatsResponseDto = $state({
     videos: 0,
     images: 0,
-    total: 0,
   });
 
   let favoriteStats: AssetStatsResponseDto = $state({
     videos: 0,
     images: 0,
-    total: 0,
   });
 
   let archiveStats: AssetStatsResponseDto = $state({
     videos: 0,
     images: 0,
-    total: 0,
   });
 
   let trashStats: AssetStatsResponseDto = $state({
     videos: 0,
     images: 0,
-    total: 0,
   });
 
   let albumStats: AlbumStatisticsResponseDto = $state({
@@ -62,7 +58,7 @@
     <td class="w-1/4 px-4 text-sm">{viewName}</td>
     <td class="w-1/4 px-4 text-sm">{stats.images.toLocaleString($locale)}</td>
     <td class="w-1/4 px-4 text-sm">{stats.videos.toLocaleString($locale)}</td>
-    <td class="w-1/4 px-4">{stats.total.toLocaleString($locale)}</td>
+    <td class="w-1/4 px-4">{(stats.images + stats.videos).toLocaleString($locale)}</td>
   </tr>
 {/snippet}
 

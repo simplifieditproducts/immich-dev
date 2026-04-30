@@ -127,9 +127,9 @@ export type UserAdminCreateDto = {
     shouldChangePassword?: boolean;
     storageLabel?: string | null;
 };
-export type BulkAssetStatsResponseDto = {
+export type BulkUserStatsResponseDto = {
+    contacts: number;
     images: number;
-    total: number;
     userId: string;
     videos: number;
 };
@@ -272,9 +272,9 @@ export type SessionResponseDto = {
     isPendingSyncReset: boolean;
     updatedAt: string;
 };
-export type AssetStatsResponseDto = {
+export type UserStatsResponseDto = {
+    contacts: number;
     images: number;
-    total: number;
     videos: number;
 };
 export type AlbumUserResponseDto = {
@@ -568,6 +568,10 @@ export type GetAssetsInfoResponseDto = {
 export type AssetJobsDto = {
     assetIds: string[];
     name: AssetJobName;
+};
+export type AssetStatsResponseDto = {
+    images: number;
+    videos: number;
 };
 export type UpdateAssetDto = {
     dateTimeOriginal?: string;
@@ -1346,6 +1350,7 @@ export type ServerMediaTypesResponseDto = {
     video: string[];
 };
 export type SimpleServerStatsResponseDto = {
+    contacts: number;
     diskTotal: number;
     diskUsed: number;
     photos: number;
@@ -2089,7 +2094,7 @@ export function getBulkUserStatisticsAdmin({ ids, isFavorite, isTrashed, visibil
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: BulkAssetStatsResponseDto[];
+        data: BulkUserStatsResponseDto[];
     }>(`/admin/users/statistics${QS.query(QS.explode({
         ids,
         isFavorite,
@@ -2211,7 +2216,7 @@ export function getUserStatisticsAdmin({ id, isFavorite, isTrashed, visibility }
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: AssetStatsResponseDto;
+        data: UserStatsResponseDto;
     }>(`/admin/users/${encodeURIComponent(id)}/statistics${QS.query(QS.explode({
         isFavorite,
         isTrashed,

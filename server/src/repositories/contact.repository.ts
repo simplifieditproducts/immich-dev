@@ -184,6 +184,42 @@ export class ContactRepository {
     await this.db.deleteFrom('contact').where('ownerId', '=', ownerId).execute();
   }
 
+  getContactCount(sourceApp: string) {
+    return this.db
+      .selectFrom('contact')
+      .where('contact.ownerId', 'in',
+        this.db.selectFrom('user').where('user.sourceApp', '=', sourceApp).select('user.id'),
+      )
+      .where('contact.status', '=', ContactStatus.Active)
+      .select((eb) => eb.fn.countAll<number>().as('contacts'))
+      .executeTakeFirstOrThrow();
+  }
+
+  async getStatistics(ownerId: string): Promise<{ contacts: number }> {
+    const row = await this.db
+      .selectFrom('contact')
+      .where('contact.ownerId', '=', ownerId)
+      .where('contact.status', '=', ContactStatus.Active)
+      .select((eb) => eb.fn.count<number>('contact.contentHash').distinct().as('contacts'))
+      .executeTakeFirstOrThrow();
+    return { contacts: Number(row.contacts) };
+  }
+
+  async getBulkStatistics(ownerIds: string[]): Promise<{ ownerId: string; contacts: number }[]> {
+    if (ownerIds.length === 0) {
+      return [];
+    }
+    const rows = await this.db
+      .selectFrom('contact')
+      .where('contact.ownerId', 'in', ownerIds)
+      .where('contact.status', '=', ContactStatus.Active)
+      .select('contact.ownerId')
+      .select((eb) => eb.fn.count<number>('contact.contentHash').distinct().as('contacts'))
+      .groupBy('contact.ownerId')
+      .execute();
+    return rows.map((row) => ({ ownerId: row.ownerId, contacts: Number(row.contacts) }));
+  }
+
   async transaction<T>(fn: (trx: ContactRepository) => Promise<T>): Promise<T> {
     return this.db.transaction().execute(async (trx) => {
       const repo = new ContactRepository(trx as unknown as Kysely<DB>);

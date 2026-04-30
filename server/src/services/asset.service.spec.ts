@@ -22,7 +22,6 @@ const stats: AssetStats = {
 const statResponse: AssetStatsResponseDto = {
   images: 10,
   videos: 23,
-  total: 33,
 };
 
 describe(AssetService.name, () => {

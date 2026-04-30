@@ -817,7 +817,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/BulkAssetStatsResponseDto"
+                    "$ref": "#/components/schemas/BulkUserStatsResponseDto"
                   },
                   "type": "array"
                 }
@@ -1358,7 +1358,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssetStatsResponseDto"
+                  "$ref": "#/components/schemas/UserStatsResponseDto"
                 }
               }
             },
@@ -17111,16 +17111,12 @@
           "images": {
             "type": "integer"
           },
-          "total": {
-            "type": "integer"
-          },
           "videos": {
             "type": "integer"
           }
         },
         "required": [
           "images",
-          "total",
           "videos"
         ],
         "type": "object"
@@ -17198,30 +17194,6 @@
         },
         "type": "object"
       },
-      "BulkAssetStatsResponseDto": {
-        "properties": {
-          "images": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "userId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "videos": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "images",
-          "total",
-          "userId",
-          "videos"
-        ],
-        "type": "object"
-      },
       "BulkIdErrorReason": {
         "enum": [
           "duplicate",
@@ -17267,6 +17239,30 @@
         },
         "required": [
           "ids"
+        ],
+        "type": "object"
+      },
+      "BulkUserStatsResponseDto": {
+        "properties": {
+          "contacts": {
+            "type": "integer"
+          },
+          "images": {
+            "type": "integer"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "videos": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contacts",
+          "images",
+          "userId",
+          "videos"
         ],
         "type": "object"
       },
@@ -21455,6 +21451,10 @@
       },
       "SimpleServerStatsResponseDto": {
         "properties": {
+          "contacts": {
+            "default": 0,
+            "type": "integer"
+          },
           "diskTotal": {
             "default": 0,
             "format": "int64",
@@ -21479,6 +21479,7 @@
           }
         },
         "required": [
+          "contacts",
           "diskTotal",
           "diskUsed",
           "photos",
@@ -24732,6 +24733,25 @@
           "name",
           "profileChangedAt",
           "profileImagePath"
+        ],
+        "type": "object"
+      },
+      "UserStatsResponseDto": {
+        "properties": {
+          "contacts": {
+            "type": "integer"
+          },
+          "images": {
+            "type": "integer"
+          },
+          "videos": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contacts",
+          "images",
+          "videos"
         ],
         "type": "object"
       },
