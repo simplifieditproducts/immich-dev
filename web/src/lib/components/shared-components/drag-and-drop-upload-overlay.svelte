@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { shouldIgnoreEvent } from '$lib/actions/shortcut';
   import Logo from '$lib/components/shared-components/logo.svelte';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { dragAndDropFilesStore } from '$lib/stores/drag-and-drop-files.store';
+  import { getWebDeviceIdForFile } from '$lib/utils/contact-utils';
   import { fileUploadHandler } from '$lib/utils/file-uploader';
   import { handleError } from '$lib/utils/handle-error';
   import { isAlbumsRoute, isContactsRoute, isLockedFolderRoute } from '$lib/utils/navigation';
-  import { getBaseUrl } from '@immich/sdk';
+  import { refreshContacts } from '$lib/stores/contacts.store';
+  import { uploadContacts } from '@immich/sdk';
   import { toastManager } from '@immich/ui';
   import { t } from 'svelte-i18n';
   import { fade } from 'svelte/transition';
@@ -149,13 +150,15 @@
 
   const handleVcfUpload = async (file: File) => {
     try {
-      const body = await file.text();
-      const response = await fetch(`${getBaseUrl()}/contacts`, { method: 'PUT', body });
-      if (!response.ok) {
-        throw new Error(response.statusText);
-      }
+      const deviceId = getWebDeviceIdForFile(file.name);
+      const body = await file.arrayBuffer();
+      await uploadContacts(
+        { deviceId },
+        { body, headers: { 'Content-Type': 'text/vcard' } } as RequestInit,
+      );
       toastManager.success($t('contacts_uploaded'));
-      await invalidateAll();
+      // Signal the contacts page to re-fetch if mounted.
+      refreshContacts();
     } catch (error) {
       handleError(error, $t('contacts_upload_failed'));
     }

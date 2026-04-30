@@ -1,8 +1,8 @@
 <script lang="ts">
   import Logo from '$lib/components/shared-components/logo.svelte';
   import { copyToClipboard } from '$lib/utils';
-  import { Icon, IconButton } from '@immich/ui';
-  import { mdiCodeTags, mdiContentCopy, mdiMessage, mdiPartyPopper } from '@mdi/js';
+  import { IconButton } from '@immich/ui';
+  import { mdiContentCopy } from '@mdi/js';
   import { t } from 'svelte-i18n';
 
   interface Props {
@@ -62,10 +62,10 @@
             </div>
           </div>
 
-          <hr />
+          <!-- Kevin: don't expose Immich links -->
+          <!-- <hr />
 
           <div class="flex place-content-center place-items-center justify-around">
-            <!-- href="https://github.com/immich-app/immich/issues/new" -->
             <a
               href="https://discord.immich.app"
               target="_blank"
@@ -101,7 +101,7 @@
                 <p class="text-sm">{$t('check_logs')}</p>
               </div>
             </a>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
