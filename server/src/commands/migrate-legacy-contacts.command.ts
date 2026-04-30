@@ -149,7 +149,11 @@ export class MigrateLegacyContactsCommand extends CommandRunner {
           continue;
         }
 
-        const data = await this.storageRepository.readFile(filePath);
+        const data = await this.storageRepository.readFile(filePath, {
+          buffer: Buffer.alloc(size),
+          position: 0,
+          length: size,
+        });
 
         const auth = { user: { id: user.id } } as AuthDto;
         await this.contactsService.upload(auth, LEGACY_DEVICE_ID, data);
