@@ -40,7 +40,7 @@
     mdiSelectRemove,
     mdiShareVariantOutline,
   } from '@mdi/js';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { t } from 'svelte-i18n';
   import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import { get } from 'svelte/store';
@@ -308,6 +308,84 @@
     selectionMode = true;
     selectedIds.add(id);
   }
+
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  let longPressStartX = 0;
+  let longPressStartY = 0;
+
+  const preventContextMenu = (event: Event) => event.preventDefault();
+  const longPressDisposables: (() => void)[] = [];
+
+  const clearLongPressTimer = () => {
+    if (!longPressTimer) {
+      return;
+    }
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    for (const dispose of longPressDisposables) {
+      dispose();
+    }
+    longPressDisposables.length = 0;
+  };
+
+  function longPress(element: HTMLElement, { onLongPress }: { onLongPress: () => void }) {
+    let didPress = false;
+    const start = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+      longPressStartX = event.clientX;
+      longPressStartY = event.clientY;
+      didPress = false;
+      // 350ms for longpress. For reference: iOS uses 500ms for default long press, or 200ms for fast long press.
+      longPressTimer = setTimeout(() => {
+        onLongPress();
+        element.addEventListener('contextmenu', preventContextMenu, { once: true });
+        longPressDisposables.push(() => element.removeEventListener('contextmenu', preventContextMenu));
+        didPress = true;
+      }, 350);
+    };
+
+    const click = (event: MouseEvent) => {
+      if (!didPress) {
+        return;
+      }
+
+      event.stopPropagation();
+      event.preventDefault();
+    };
+
+    element.addEventListener('click', click);
+    element.addEventListener('pointerdown', start, true);
+    element.addEventListener('pointerup', clearLongPressTimer, { capture: true, passive: true });
+
+    return {
+      destroy() {
+        element.removeEventListener('click', click);
+        element.removeEventListener('pointerdown', start, true);
+        element.removeEventListener('pointerup', clearLongPressTimer, true);
+      },
+    };
+  }
+
+  function moveLongPressHandler(event: PointerEvent) {
+    if (Math.abs(longPressStartX - event.clientX) >= 10 || Math.abs(longPressStartY - event.clientY) >= 10) {
+      clearLongPressTimer();
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('scroll', clearLongPressTimer, { capture: true, passive: true });
+    document.addEventListener('wheel', clearLongPressTimer, { capture: true, passive: true });
+    document.addEventListener('contextmenu', clearLongPressTimer, { capture: true, passive: true });
+    document.addEventListener('pointermove', moveLongPressHandler, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('scroll', clearLongPressTimer, true);
+      document.removeEventListener('wheel', clearLongPressTimer, true);
+      document.removeEventListener('contextmenu', clearLongPressTimer, true);
+      document.removeEventListener('pointermove', moveLongPressHandler, true);
+    };
+  });
 
   function exitSelection() {
     selectedIds.clear();
@@ -660,6 +738,7 @@
               >
                 <button
                   type="button"
+                  use:longPress={{ onLongPress: () => enterSelection(contact.id) }}
                   class="absolute inset-0 flex select-none items-center gap-4 overflow-hidden rounded-lg px-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100 dark:hover:bg-immich-dark-gray/80 dark:active:bg-immich-dark-gray
                     {isSelected ? 'bg-immich-primary/10 dark:bg-immich-dark-primary/20' : ''}"
                   onclick={(e) => handleCardClick(contact, e)}
