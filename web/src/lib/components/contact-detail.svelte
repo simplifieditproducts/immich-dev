@@ -240,7 +240,7 @@
     <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
       <div class="flex items-center gap-3">
         <Icon icon={mdiBriefcase} size="18" class="shrink-0 text-gray-400" />
-        <button type="button" class="min-w-0 flex-1 cursor-pointer rounded px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard([contact.title, contact.organization].filter(Boolean).join(' · '))}>
+        <button type="button" class="min-w-0 flex-1 cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard([contact.title, contact.organization].filter(Boolean).join(' · '))}>
           {#if contact.title}
             <p class="text-sm text-immich-dark-bg dark:text-white">{contact.title}</p>
           {/if}
@@ -263,7 +263,7 @@
         {#if formatted}
           <div class="flex items-start gap-3 {i > 0 ? 'mt-2 border-t border-gray-200 pt-2 dark:border-gray-700' : ''}">
             <Icon icon={mdiMapMarker} size="18" class="mt-0.5 shrink-0 text-gray-400" />
-            <button type="button" class="min-w-0 flex-1 cursor-pointer rounded px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(formatted)}>
+            <button type="button" class="min-w-0 flex-1 cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(formatted)}>
               <p class="text-sm text-immich-dark-bg dark:text-white">{formatted}</p>
               {#if address.type}
                 <p class="text-xs text-gray-400 dark:text-gray-500">{address.type}</p>
@@ -279,7 +279,7 @@
     <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
       <div class="flex items-center gap-3">
         <Icon icon={mdiCakeVariant} size="18" class="shrink-0 text-gray-400" />
-        <button type="button" class="cursor-pointer rounded px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.birthday!)}>
+        <button type="button" class="cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.birthday!)}>
           <p class="text-sm text-immich-dark-bg dark:text-white">{formatBirthday(contact.birthday)}</p>
         </button>
       </div>
@@ -290,7 +290,7 @@
     <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
       <div class="flex items-start gap-3">
         <Icon icon={mdiNoteText} size="18" class="mt-0.5 shrink-0 text-gray-400" />
-        <button type="button" class="cursor-pointer rounded px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.notes!)}>
+        <button type="button" class="cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.notes!)}>
           <p class="whitespace-pre-wrap text-sm text-immich-dark-bg dark:text-white">{contact.notes}</p>
         </button>
       </div>
