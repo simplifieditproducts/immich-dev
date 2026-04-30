@@ -6,6 +6,10 @@ import {
   PromptConfirmMoveQuestions,
   PromptMediaLocationQuestions,
 } from 'src/commands/media-location.command';
+import {
+  MigrateLegacyContactsCommand,
+  PromptMigrateLegacyContactsQuestion,
+} from 'src/commands/migrate-legacy-contacts.command';
 import { DisableOAuthLogin, EnableOAuthLogin } from 'src/commands/oauth-login';
 import { DisablePasswordLoginCommand, EnablePasswordLoginCommand } from 'src/commands/password-login';
 import { PromptRecalculateChecksumsQuestion, RecalculateChecksumsCommand } from 'src/commands/recalculate-checksums.command';
@@ -31,4 +35,6 @@ export const commandsAndQuestions = [
   PromptConfirmMoveQuestions,
   RecalculateChecksumsCommand,
   PromptRecalculateChecksumsQuestion,
+  MigrateLegacyContactsCommand,
+  PromptMigrateLegacyContactsQuestion,
 ];
