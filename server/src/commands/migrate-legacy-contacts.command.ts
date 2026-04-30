@@ -4,6 +4,7 @@ import { stdout } from 'node:process';
 import { StorageCore } from 'src/cores/storage.core';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { StorageFolder } from 'src/enum';
+import { ConfigRepository } from 'src/repositories/config.repository';
 import { ContactRepository } from 'src/repositories/contact.repository';
 import { StorageRepository } from 'src/repositories/storage.repository';
 import { CliService } from 'src/services/cli.service';
@@ -28,6 +29,7 @@ export class MigrateLegacyContactsCommand extends CommandRunner {
     private contactsService: ContactsService,
     private contactRepository: ContactRepository,
     private storageRepository: StorageRepository,
+    private configRepository: ConfigRepository,
     private inquirer: InquirerService,
   ) {
     super();
@@ -49,8 +51,35 @@ export class MigrateLegacyContactsCommand extends CommandRunner {
     return true;
   }
 
+  private detectMediaLocation(): string {
+    const envData = this.configRepository.getEnv();
+    if (envData.storage.mediaLocation) {
+      return envData.storage.mediaLocation;
+    }
+
+    const targets: string[] = [];
+    const candidates = ['/data', '/usr/src/app/upload'];
+
+    for (const candidate of candidates) {
+      const exists = this.storageRepository.existsSync(candidate);
+      if (exists) {
+        targets.push(candidate);
+      }
+    }
+
+    if (targets.length === 1) {
+      return targets[0];
+    }
+
+    return '/usr/src/app/upload';
+  }
+
   async run(_passed: string[], opts: MigrateOptions = {}): Promise<void> {
     const dryRun = !!opts.dryRun;
+
+    const mediaLocation = this.detectMediaLocation();
+    stdout.write(`Using media location: ${mediaLocation}\n`);
+    StorageCore.setMediaLocation(mediaLocation);
 
     if (dryRun) {
       stdout.write('[DRY RUN] No changes will be made.\n');
