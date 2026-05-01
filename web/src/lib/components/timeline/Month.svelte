@@ -76,7 +76,13 @@
         assetInteraction.selectedAssets.length > 0 && 'hover:cursor-pointer',
       ]}
       style:width={dayGroup.width + 'px'}
-      onclick={assetInteraction.selectedAssets.length > 0 ? () => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets())) : undefined}
+      style:touch-action="manipulation"
+      onpointerdown={(e) => {
+        if (assetInteraction.selectedAssets.length > 0) {
+          e.preventDefault();
+          onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets()));
+        }
+      }}
       onkeydown={assetInteraction.selectedAssets.length > 0 ? () => onDayGroupSelect(dayGroup, assetsSnapshot(dayGroup.getAssets())) : undefined}
     >
       {#if assetInteraction.selectedAssets.length > 0}
@@ -110,6 +116,6 @@
 
 <style>
   section {
-    contain: layout paint style;
+    contain: layout style;
   }
 </style>
