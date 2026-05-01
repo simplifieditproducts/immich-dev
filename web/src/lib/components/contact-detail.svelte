@@ -290,8 +290,8 @@
     <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
       <div class="flex items-start gap-3">
         <Icon icon={mdiNoteText} size="18" class="mt-0.5 shrink-0 text-gray-400" />
-        <button type="button" class="cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.notes!)}>
-          <p class="whitespace-pre-wrap text-sm text-immich-dark-bg dark:text-white">{contact.notes}</p>
+        <button type="button" class="min-w-0 flex-1 cursor-pointer rounded -mx-1 px-1 text-left hover:bg-gray-100 dark:hover:bg-gray-700" onclick={() => copyToClipboard(contact.notes!)}>
+          <p class="whitespace-pre-wrap wrap-break-word text-sm text-immich-dark-bg dark:text-white">{contact.notes}</p>
         </button>
       </div>
     </div>

@@ -42,9 +42,11 @@ API changes we made in our fork compared to the [official API documentation](htt
 - The `getAssetsInfo` API function has been added to accept a list of asset IDs and return the asset info for each of them. This API supports the 'Download' feature, which requires fetching asset info in bulk. See this change [here](https://github.com/simplifieditproducts/immich-dev/commit/dfe1e16711138b9f7a19ce3023f482c68a637aa8).
 
 APIs added for 'Contacts':
-- **Upload contacts**: `PUT /api/contacts` — Uploads a VCF file as the contacts backup, replacing any existing backup. The request body should contain the raw bytes of the VCF file.
-- **Download contacts**: `GET /api/contacts?raw=true` — Downloads contacts as a single VCF file. When the `raw` query parameter is omitted, the API returns the contacts list in JSON format instead.
-- **Delete contacts**: `DELETE /api/contacts` — Deletes the stored contacts backup.
+- **Upload contacts from a device**: `PUT /api/contacts/devices/:deviceId` — Uploads a VCF file for the given device, replacing only that device's contributions; other devices are unaffected. The request body should contain the raw bytes of the VCF file.
+- **Download all contacts as a single VCF**: `GET /api/contacts/vcf` — Streams every stored vCard block for the user (across all devices, including unparsed entries) concatenated into a single VCF file.
+- **Export selected contacts by IDs**: `POST /api/contacts/export` — Returns a VCF file containing only the contacts whose IDs are passed in the request body (`{ "ids": ["...", "..."] }`). Pass a single ID to get a single contact's VCF.
+- **Delete all contacts of a device**: `DELETE /api/contacts/devices/:deviceId` — Removes all contacts contributed by one device.
+- **Delete all contacts of a user**: `DELETE /api/contacts` — Deletes every contact for the authenticated user, across all devices.
 
 Communication between the Immich app and the native app is handled via `postMessage`:
 - The `CMD_PAGE_READY` message informs the native app that either the `/photos` or `/search` page has finished loading.
@@ -53,6 +55,8 @@ Communication between the Immich app and the native app is handled via `postMess
 - The `CMD_SETBGMODE_DEFAULT` message instructs the native app to reset the background to its default.
 - The `CMD_SHARE_ASSETS` message instructs the native app to share a list of assets using the system Share popup. It comes with a list of assets in JSON format.
 - The `CMD_DOWNLOAD_ASSETS` message instructs the native app to download a list of assets. It comes with a list of assets in JSON format.
+- The `CMD_SHARE_CONTACTS` message instructs the native app to share a list of contacts using the system Share popup. It comes with a list of contacts in JSON format. The native app fetches the vCard via `GET /api/contacts/export` and presents the share sheet.
+- The `CMD_DOWNLOAD_CONTACTS` message instructs the native app to download contacts as a vCard file. The payload is either `{ "contacts": [{ "id", "displayName" }, ...] }` to download a specific selection (fetched via `POST /api/contacts/export`) or `{ "all": true }` to download every contact (fetched via `GET /api/contacts/vcf`).
 - (Optional) The `CMD_DOWNLOAD_ALBUM` message instructs the native app to download an album. Currently, this command is not sent as the 'Download' button is hidden from end users.
 
 More documentation can be found [here](https://github.com/simplifieditproducts/immich-devops/tree/main/docs).

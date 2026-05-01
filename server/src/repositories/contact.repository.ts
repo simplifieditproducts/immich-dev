@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Insertable, Kysely, sql } from 'kysely';
+import { Insertable, Kysely, Updateable, sql } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { columns } from 'src/database';
 import { ContactStatus } from 'src/enum';
@@ -182,6 +182,32 @@ export class ContactRepository {
 
   async deleteAll(ownerId: string) {
     await this.db.deleteFrom('contact').where('ownerId', '=', ownerId).execute();
+  }
+
+  listUnparsed() {
+    return this.db
+      .selectFrom('contact')
+      .select(['id', 'ownerId', 'vcardHash', 'vcardBlock'])
+      .where('status', '=', ContactStatus.Unparsed)
+      .orderBy('ownerId')
+      .execute();
+  }
+
+  async promoteUnparsed(id: string, values: Updateable<ContactTable>) {
+    await this.db
+      .updateTable('contact')
+      .set(values)
+      .where('id', '=', id)
+      .where('status', '=', ContactStatus.Unparsed)
+      .execute();
+  }
+
+  async deleteAllUnparsed(): Promise<number> {
+    const result = await this.db
+      .deleteFrom('contact')
+      .where('status', '=', ContactStatus.Unparsed)
+      .executeTakeFirst();
+    return Number(result.numDeletedRows);
   }
 
   getContactCount(sourceApp: string) {

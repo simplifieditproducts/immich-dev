@@ -55,6 +55,84 @@ function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
 
+// Some clients export NOTE as physical lines instead of a single escaped value.
+// Text like "Email:" then looks like a vCard property to ical.js. Remove the
+// NOTE block before parsing the rest of the card and read the note here.
+const VCARD_NOTE_PROPERTY_REGEX = /^NOTE(?:;[^:]*)?:/i;
+const VCARD_END_REGEX = /^END:VCARD$/i;
+const VCARD_X_EXTENSION_REGEX = /^X-[A-Za-z0-9-]+(?:;[^:]*)?:/i;
+
+function decodeVcardText(value: string): string {
+  let text = '';
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] !== '\\' || i === value.length - 1) {
+      text += value[i];
+      continue;
+    }
+
+    const next = value[++i];
+    text += next.toLowerCase() === 'n' ? '\n' : next;
+  }
+
+  return text;
+}
+
+function parseNoteBlock(lines: string[]): string | null {
+  const noteLines = [lines[0].slice(lines[0].indexOf(':') + 1)];
+  let skippingXProperty = false;
+
+  for (const line of lines.slice(1)) {
+    const isContinuationLine = line.startsWith(' ') || line.startsWith('\t');
+
+    if (skippingXProperty && isContinuationLine) {
+      continue;
+    }
+
+    skippingXProperty = false;
+    if (VCARD_X_EXTENSION_REGEX.test(line)) {
+      skippingXProperty = true;
+      continue;
+    }
+
+    if (isContinuationLine) {
+      noteLines[noteLines.length - 1] += line.slice(1);
+      continue;
+    }
+
+    noteLines.push(line);
+  }
+
+  // If NOTE: is followed by note text on the next physical line, do not keep an
+  // artificial blank line before that text.
+  if (noteLines.length > 1 && noteLines[0] === '') {
+    noteLines.shift();
+  }
+
+  const note = decodeVcardText(noteLines.join('\n'));
+  return note ?? null;
+}
+
+function repairVcard(raw: string): { vcard: string; note: string | null } {
+  const lines = raw.split(/\r?\n/);
+  const noteStart = lines.findIndex((line) => VCARD_NOTE_PROPERTY_REGEX.test(line));
+  if (noteStart === -1) {
+    return { vcard: raw, note: null };
+  }
+
+  const noteEnd = lines.findIndex((line, index) => index > noteStart && VCARD_END_REGEX.test(line));
+  if (noteEnd === -1) {
+    return { vcard: raw, note: null };
+  }
+
+  const noteLines = lines.slice(noteStart, noteEnd);
+  const note = parseNoteBlock(noteLines);
+
+  return {
+    vcard: [...lines.slice(0, noteStart), ...lines.slice(noteEnd)].join('\r\n'),
+    note,
+  };
+}
+
 function normalizeAddress(address: {
   street: string;
   city: string;
@@ -87,7 +165,7 @@ export class ContactService extends BaseService {
         if (existing) {
           contactId = existing.id;
         } else {
-          const parsed = await this.tryParse(block);
+          const { parsed, error: parseError } = await this.tryParse(block);
           if (parsed) {
             const contentHash = this.hashContent(parsed);
             const inserted = await repo.insertIfNew({
@@ -117,6 +195,10 @@ export class ContactService extends BaseService {
               vcardBlock: block,
             });
             contactId = inserted?.id ?? (await repo.findByVcardHash(ownerId, vcardHash))!.id;
+            if (parseError) {
+              const message = parseError instanceof Error ? parseError.message : String(parseError);
+              this.logger.warn(`Failed to parse vCard for contact ${contactId}: ${message}`);
+            }
           }
         }
 
@@ -196,6 +278,42 @@ export class ContactService extends BaseService {
     await this.contactRepository.deleteAll(auth.user.id);
   }
 
+  async reparseUnparsed(): Promise<{ total: number; promoted: number; stillUnparsed: number }> {
+    const rows = await this.contactRepository.listUnparsed();
+    let promoted = 0;
+    for (const row of rows) {
+      const { parsed, error: parseError } = await this.tryParse(row.vcardBlock);
+      if (!parsed) {
+        if (parseError) {
+          const message = parseError instanceof Error ? parseError.message : String(parseError);
+          this.logger.warn(`Failed to re-parse vCard for contact ${row.id}: ${message}`);
+        }
+        continue;
+      }
+      await this.contactRepository.promoteUnparsed(row.id, {
+        contentHash: this.hashContent(parsed),
+        status: ContactStatus.Active,
+        displayName: parsed.displayName,
+        firstName: parsed.firstName,
+        lastName: parsed.lastName,
+        organization: parsed.organization,
+        title: parsed.title,
+        birthday: parsed.birthday,
+        notes: parsed.notes,
+        avatar: parsed.avatar,
+        phones: parsed.phones,
+        emails: parsed.emails,
+        addresses: parsed.addresses,
+      });
+      promoted++;
+    }
+    return { total: rows.length, promoted, stillUnparsed: rows.length - promoted };
+  }
+
+  async deleteAllUnparsed(): Promise<number> {
+    return await this.contactRepository.deleteAllUnparsed();
+  }
+
   private streamVcards(blocks: string[]): ImmichReadStream {
     const body = blocks.join('\r\n');
     return {
@@ -268,10 +386,11 @@ export class ContactService extends BaseService {
     return this.cryptoRepository.hashXxHash64(canonical).toString('hex');
   }
 
-  private async tryParse(raw: string): Promise<ParsedContact | null> {
+  private async tryParse(raw: string): Promise<{ parsed: ParsedContact | null; error?: unknown }> {
     try {
       const { default: ICAL } = await import('ical.js');
-      const parsed = ICAL.parse(raw);
+      const { vcard, note } = repairVcard(raw);
+      const parsed = ICAL.parse(vcard);
       const card = new ICAL.Component(parsed);
 
       const fnValue = String(card.getFirstPropertyValue('fn') || '').trim();
@@ -297,31 +416,33 @@ export class ContactService extends BaseService {
       const displayName =
         fnValue || `${firstName} ${lastName}`.trim() || phones[0]?.value || emails[0]?.value || '';
       if (!displayName) {
-        return null;
+        return { parsed: null };
       }
 
       const orgValue = card.getFirstPropertyValue('org');
       const organization = orgValue ? String(Array.isArray(orgValue) ? orgValue[0] : orgValue) : null;
       const title = card.getFirstPropertyValue('title') ? String(card.getFirstPropertyValue('title')) : null;
       const birthday = card.getFirstPropertyValue('bday') ? String(card.getFirstPropertyValue('bday')) : null;
-      const notes = card.getFirstPropertyValue('note') ? String(card.getFirstPropertyValue('note')) : null;
+      const noteValue = card.getFirstPropertyValue('note');
+      const notes = note ?? (noteValue ? String(noteValue) : null);
 
       return {
-        displayName,
-        firstName,
-        lastName,
-        phones,
-        emails,
-        addresses,
-        organization,
-        title,
-        birthday,
-        notes,
-        avatar,
+        parsed: {
+          displayName,
+          firstName,
+          lastName,
+          phones,
+          emails,
+          addresses,
+          organization,
+          title,
+          birthday,
+          notes,
+          avatar,
+        },
       };
     } catch (error) {
-      this.logger.warn(`Skipping malformed vCard entry: ${error}`);
-      return null;
+      return { parsed: null, error };
     }
   }
 

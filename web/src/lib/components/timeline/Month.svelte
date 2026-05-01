@@ -11,8 +11,8 @@
   import { fromTimelinePlainDate, getDateLocaleString } from '$lib/utils/timeline-util';
   import { Icon } from '@immich/ui';
   import { mdiCheckCircle, mdiCircleOutline } from '@mdi/js';
-  import { fly } from 'svelte/transition';
   import type { Snippet } from 'svelte';
+  import { fly } from 'svelte/transition';
 
   type Props = {
     thumbnail: Snippet<[{ asset: TimelineAsset; position: CommonPosition; dayGroup: DayGroup; groupIndex: number }]>;
@@ -72,7 +72,7 @@
     <!-- Month title -->
     <div
       class={[
-        'flex pt-7 pb-5 max-md:pt-5 max-md:pb-3 h-6 place-items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm',
+       'flex h-12 max-md:h-8 items-center text-xs font-medium text-immich-fg dark:text-immich-dark-fg md:text-sm',
         assetInteraction.selectedAssets.length > 0 && 'hover:cursor-pointer',
       ]}
       style:width={dayGroup.width + 'px'}
