@@ -116,6 +116,6 @@
 
 <style>
   section {
-    contain: layout style;
+    contain: layout paint style;
   }
 </style>
