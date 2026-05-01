@@ -7,7 +7,7 @@
   import MenuOption from '$lib/components/shared-components/context-menu/menu-option.svelte';
   import ControlAppBar from '$lib/components/shared-components/control-app-bar.svelte';
   import { QueryParameter } from '$lib/constants';
-  import { contactsRevision } from '$lib/stores/contacts.store';
+  import { contactsRevision } from '$lib/stores/contact.store';
   import { embeddedInApp } from '$lib/stores/preferences.store';
   import {
     downloadAllContactsViaApp,

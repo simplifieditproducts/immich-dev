@@ -3,7 +3,7 @@
   import { embeddedInApp } from '$lib/stores/preferences.store';
   import { handleError } from '$lib/utils/handle-error';
   import { formatBirthday, getInitials, shareContactsViaApp } from '$lib/utils/contact-utils';
-  import { refreshContacts } from '$lib/stores/contacts.store';
+  import { refreshContacts } from '$lib/stores/contact.store';
   import { type ContactDto, deleteContact, exportContacts } from '@immich/sdk';
   import { Icon, IconButton, modalManager } from '@immich/ui';
   import {

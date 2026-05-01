@@ -8,7 +8,7 @@ import { ConfigRepository } from 'src/repositories/config.repository';
 import { ContactRepository } from 'src/repositories/contact.repository';
 import { StorageRepository } from 'src/repositories/storage.repository';
 import { CliService } from 'src/services/cli.service';
-import { ContactsService } from 'src/services/contacts.service';
+import { ContactService } from 'src/services/contact.service';
 
 const LEGACY_CONTACTS_FILENAME = 'contacts.dat';
 const LEGACY_DEVICE_ID = 'legacy';
@@ -26,7 +26,7 @@ interface MigrateOptions {
 export class MigrateLegacyContactsCommand extends CommandRunner {
   constructor(
     private cliService: CliService,
-    private contactsService: ContactsService,
+    private contactService: ContactService,
     private contactRepository: ContactRepository,
     private storageRepository: StorageRepository,
     private configRepository: ConfigRepository,
@@ -156,7 +156,7 @@ export class MigrateLegacyContactsCommand extends CommandRunner {
         });
 
         const auth = { user: { id: user.id } } as AuthDto;
-        await this.contactsService.upload(auth, LEGACY_DEVICE_ID, data);
+        await this.contactService.upload(auth, LEGACY_DEVICE_ID, data);
         imported++;
         stdout.write(`[${user.id}] imported into DB as device "${LEGACY_DEVICE_ID}"\n`);
 

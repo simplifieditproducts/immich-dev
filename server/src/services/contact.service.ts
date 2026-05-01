@@ -8,7 +8,7 @@ import {
   ContactDto,
   ContactListItemDto,
   ContactsResponseDto,
-} from 'src/dtos/contacts.dto';
+} from 'src/dtos/contact.dto';
 import { ContactStatus } from 'src/enum';
 import { ImmichReadStream } from 'src/repositories/storage.repository';
 import { BaseService } from 'src/services/base.service';
@@ -69,7 +69,7 @@ function normalizeAddress(address: {
 }
 
 @Injectable()
-export class ContactsService extends BaseService {
+export class ContactService extends BaseService {
   async upload(auth: AuthDto, deviceId: string, data: Buffer): Promise<void> {
     const ownerId = auth.user.id;
     const text = data.toString('utf8');

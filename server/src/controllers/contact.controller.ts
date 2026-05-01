@@ -21,10 +21,10 @@ import {
   ContactDevicesResponseDto,
   ContactDto,
   ContactsResponseDto,
-} from 'src/dtos/contacts.dto';
+} from 'src/dtos/contact.dto';
 import { ApiTag, Permission } from 'src/enum';
 import { Auth, Authenticated } from 'src/middleware/auth.guard';
-import { ContactsService } from 'src/services/contacts.service';
+import { ContactService } from 'src/services/contact.service';
 import { asStreamableFile } from 'src/utils/file';
 import { UUIDParamDto } from 'src/validation';
 
@@ -41,8 +41,8 @@ class DeviceIdParamDto {
 
 @ApiTags(ApiTag.Contacts)
 @Controller('contacts')
-export class ContactsController {
-  constructor(private service: ContactsService) {}
+export class ContactController {
+  constructor(private service: ContactService) {}
 
   @Put('devices/:deviceId')
   @Authenticated({ permission: Permission.ContactUpload })

@@ -8,7 +8,7 @@
   import { fileUploadHandler } from '$lib/utils/file-uploader';
   import { handleError } from '$lib/utils/handle-error';
   import { isAlbumsRoute, isContactsRoute, isLockedFolderRoute } from '$lib/utils/navigation';
-  import { refreshContacts } from '$lib/stores/contacts.store';
+  import { refreshContacts } from '$lib/stores/contact.store';
   import { uploadContacts } from '@immich/sdk';
   import { toastManager } from '@immich/ui';
   import { t } from 'svelte-i18n';
