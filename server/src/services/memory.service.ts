@@ -7,6 +7,7 @@ import { MemoryCreateDto, MemoryResponseDto, MemorySearchDto, MemoryUpdateDto, m
 import { DatabaseLock, JobName, JobStatus, MemoryType, Permission, QueueName, SystemMetadataKey } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { addAssets, removeAssets } from 'src/utils/asset.util';
+import { isSubscriber } from 'src/utils/user.util';
 
 const DAYS = 3;
 const MEMORY_GENERATE_CONCURRENCY = 30;
@@ -15,7 +16,9 @@ const MEMORY_GENERATE_CONCURRENCY = 30;
 export class MemoryService extends BaseService {
   @OnJob({ name: JobName.MemoryGenerate, queue: QueueName.BackgroundTask })
   async onMemoriesCreate(): Promise<JobStatus> {
-    const users = await this.userRepository.getList({ withDeleted: false });
+    // Memories are a subscriber-only feature
+    const users = await this.userRepository.getList({ withDeleted: false, subscriberOnly: true });
+    this.logger.log(`Generating memories for ${users.length} subscribers`);
 
     // A try-lock keeps a stuck or orphaned lock holder from hanging this job forever
     // and pinning a queue worker slot every night (advisory locks are session-scoped,
@@ -89,11 +92,19 @@ export class MemoryService extends BaseService {
   }
 
   async search(auth: AuthDto, dto: MemorySearchDto) {
+    if (!isSubscriber(auth.user)) {
+      return [];
+    }
+
     const memories = await this.memoryRepository.search(auth.user.id, dto);
     return memories.map((memory) => mapMemory(memory, auth));
   }
 
-  statistics(auth: AuthDto, dto: MemorySearchDto) {
+  async statistics(auth: AuthDto, dto: MemorySearchDto) {
+    if (!isSubscriber(auth.user)) {
+      return { total: 0 };
+    }
+
     return this.memoryRepository.statistics(auth.user.id, dto);
   }
 

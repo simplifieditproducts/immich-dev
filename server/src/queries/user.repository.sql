@@ -307,6 +307,59 @@ where
 order by
   "createdAt" desc
 
+-- UserRepository.getList (subscriber only)
+select
+  "id",
+  "name",
+  "email",
+  "avatarColor",
+  "profileImagePath",
+  "profileChangedAt",
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "isAdmin",
+  "status",
+  "oauthId",
+  "profileImagePath",
+  "shouldChangePassword",
+  "storageLabel",
+  "quotaSizeInBytes",
+  "quotaUsageInBytes",
+  (
+    select
+      coalesce(json_agg(agg), '[]')
+    from
+      (
+        select
+          "user_metadata"."key",
+          "user_metadata"."value"
+        from
+          "user_metadata"
+        where
+          "user"."id" = "user_metadata"."userId"
+      ) as agg
+  ) as "metadata"
+from
+  "user"
+where
+  "user"."deletedAt" is null
+  and (
+    "user"."quotaSizeInBytes" >= $1
+    or "user"."quotaSizeInBytes" is null
+  )
+order by
+  "createdAt" desc
+
+-- UserRepository.getUserCount
+select
+  count(*) as "users"
+from
+  "user"
+where
+  "user"."sourceApp" = $1
+  and "user"."deletedAt" is null
+
 -- UserRepository.getUserStats
 select
   "user"."id" as "userId",

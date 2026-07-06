@@ -12,6 +12,11 @@ export const VECTOR_VERSION_RANGE = '>=0.5 <1';
 export const JOBS_ASSET_PAGINATION_SIZE = 1000;
 export const JOBS_LIBRARY_PAGINATION_SIZE = 10_000;
 
+// A subscriber (paying customer) is identified by a storage quota of 2TB or more.
+// A null quota means unlimited storage (typically an admin) and is treated as a
+// subscriber for feature gating — see isSubscriber.
+export const SUBSCRIBER_MIN_QUOTA_BYTES = 2_000_000_000_000;
+
 export const EXTENSION_NAMES: Record<DatabaseExtension, string> = {
   cube: 'cube',
   earthdistance: 'earthdistance',

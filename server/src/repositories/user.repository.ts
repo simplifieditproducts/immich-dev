@@ -3,6 +3,7 @@ import { ExpressionBuilder, Insertable, Kysely, sql, Updateable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { DateTime } from 'luxon';
 import { InjectKysely } from 'nestjs-kysely';
+import { SUBSCRIBER_MIN_QUOTA_BYTES } from 'src/constants';
 import { columns } from 'src/database';
 import { DummyValue, GenerateSql } from 'src/decorators';
 import { AssetType, AssetVisibility, UserStatus } from 'src/enum';
@@ -17,6 +18,7 @@ export interface UserListFilter {
   withDeleted?: boolean;
   sourceApp?: string;
   updatedAfter?: Date;
+  subscriberOnly?: boolean;
 }
 
 export interface UserStatsQueryResponse {
@@ -162,8 +164,9 @@ export class UserRepository {
   @GenerateSql(
     { name: 'with deleted', params: [{ withDeleted: true }] },
     { name: 'without deleted', params: [{ withDeleted: false }] },
+    { name: 'subscriber only', params: [{ subscriberOnly: true }] },
   )
-  getList({ id, ids, withDeleted, sourceApp, updatedAfter }: UserListFilter = {}) {
+  getList({ id, ids, withDeleted, sourceApp, updatedAfter, subscriberOnly }: UserListFilter = {}) {
     return this.db
       .selectFrom('user')
       .select(columns.userAdmin)
@@ -173,6 +176,14 @@ export class UserRepository {
       .$if(!!ids, (eb) => eb.where('user.id', '=', anyUuid(ids!)))
       .$if(!!sourceApp, (eb) => eb.where('user.sourceApp', '=', sourceApp!))
       .$if(!!updatedAfter, (eb) => eb.where('user.updatedAt', '>=', updatedAfter!))
+      .$if(!!subscriberOnly, (qb) =>
+        qb.where((eb) =>
+          eb.or([
+            eb('user.quotaSizeInBytes', '>=', SUBSCRIBER_MIN_QUOTA_BYTES),
+            eb('user.quotaSizeInBytes', 'is', null),
+          ]),
+        ),
+      )
       .orderBy('createdAt', 'desc')
       .execute();
   }
