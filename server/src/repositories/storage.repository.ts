@@ -146,6 +146,12 @@ export class StorageRepository {
     await fs.rm(folder, options);
   }
 
+  // Unlike crawl/walk, this lists every file regardless of extension (sidecars included)
+  async readdirRecursive(folder: string): Promise<string[]> {
+    const entries = await fs.readdir(folder, { recursive: true, withFileTypes: true });
+    return entries.filter((entry) => entry.isFile()).map((entry) => path.join(entry.parentPath, entry.name));
+  }
+
   async removeEmptyDirs(directory: string, self: boolean = false) {
     // lstat does not follow symlinks (in contrast to stat)
     const stats = await fs.lstat(directory);

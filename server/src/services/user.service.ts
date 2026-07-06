@@ -243,9 +243,21 @@ export class UserService extends BaseService {
 
     this.logger.log(`Deleting user: ${user.id}`);
 
+    // Record the upload files in the rclone sync list before removing them from disk,
+    // so the next from-list sync deletes them from the remote backup as well.
+    const uploadFolder = StorageCore.getFolderLocation(StorageFolder.Upload, user.id);
+    try {
+      const uploadFiles = await this.storageRepository.readdirRecursive(uploadFolder);
+      await StorageCore.appendToRcloneSyncList(uploadFiles);
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        this.logger.warn(`Unable to record upload files of user ${user.id} for rclone sync: ${error}`);
+      }
+    }
+
     const folders = [
       StorageCore.getLibraryFolder(user),
-      StorageCore.getFolderLocation(StorageFolder.Upload, user.id),
+      uploadFolder,
       StorageCore.getFolderLocation(StorageFolder.Profile, user.id),
       StorageCore.getFolderLocation(StorageFolder.Thumbnails, user.id),
       StorageCore.getFolderLocation(StorageFolder.EncodedVideo, user.id),
