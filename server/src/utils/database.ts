@@ -74,7 +74,8 @@ export const getKyselyConfig = (
             console.warn('Postgres notice:', notice);
           }
         },
-        max: 50,
+        // 100 per worker process (api + microservices = 200 max) — pg max_connections is 300
+        max: 100,
         idle_timeout: 30,
         connect_timeout: 30,
         socket: ({ host: [host], port: [port] }: { host: [string]; port: [number] }) => {
