@@ -1,12 +1,12 @@
 {
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "[dart]": {
     "editor.defaultFormatter": "Dart-Code.dart-code",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.selectionHighlight": false,
     "editor.suggest.snippetsPreventQuickSuggestions": false,
     "editor.suggestSelection": "first",
@@ -19,17 +19,17 @@
       "source.removeUnusedImports": "explicit"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "[svelte]": {
@@ -38,7 +38,7 @@
       "source.removeUnusedImports": "explicit"
     },
     "editor.defaultFormatter": "svelte.svelte-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "[typescript]": {
@@ -47,11 +47,11 @@
       "source.removeUnusedImports": "explicit"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.tabSize": 2
   },
   "cSpell.words": ["immich"],
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "eslint.validate": ["javascript", "typescript", "svelte"],
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
