@@ -4,7 +4,7 @@ import { OnJob } from 'src/decorators';
 import { BulkIdResponseDto, BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { MemoryCreateDto, MemoryResponseDto, MemorySearchDto, MemoryUpdateDto, mapMemory } from 'src/dtos/memory.dto';
-import { DatabaseLock, JobName, MemoryType, Permission, QueueName, SystemMetadataKey } from 'src/enum';
+import { DatabaseLock, JobName, JobStatus, MemoryType, Permission, QueueName, SystemMetadataKey } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { addAssets, removeAssets } from 'src/utils/asset.util';
 
@@ -14,10 +14,13 @@ const MEMORY_GENERATE_CONCURRENCY = 30;
 @Injectable()
 export class MemoryService extends BaseService {
   @OnJob({ name: JobName.MemoryGenerate, queue: QueueName.BackgroundTask })
-  async onMemoriesCreate() {
+  async onMemoriesCreate(): Promise<JobStatus> {
     const users = await this.userRepository.getList({ withDeleted: false });
 
-    await this.databaseRepository.withLock(DatabaseLock.MemoryCreation, async () => {
+    // A try-lock keeps a stuck or orphaned lock holder from hanging this job forever
+    // and pinning a queue worker slot every night (advisory locks are session-scoped,
+    // so a leaked connection can hold one indefinitely).
+    const { acquired } = await this.databaseRepository.withTryLock(DatabaseLock.MemoryCreation, async () => {
       const state = await this.systemMetadataRepository.get(SystemMetadataKey.MemoriesState);
       const start = DateTime.utc().startOf('day').minus({ days: DAYS });
       const lastOnThisDayDate = state?.lastOnThisDayDate ? DateTime.fromISO(state.lastOnThisDayDate) : start;
@@ -48,6 +51,15 @@ export class MemoryService extends BaseService {
         });
       }
     });
+
+    if (!acquired) {
+      this.logger.warn(
+        `Skipping memory generation: another run is in progress or the memory creation lock (advisory lock ${DatabaseLock.MemoryCreation}) is held by another session; will retry on the next run`,
+      );
+      return JobStatus.Skipped;
+    }
+
+    return JobStatus.Success;
   }
 
   private async createOnThisDayMemories(ownerId: string, target: DateTime) {

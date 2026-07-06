@@ -491,6 +491,30 @@ export class DatabaseRepository {
     return res as R;
   }
 
+  async withTryLock<R>(lock: DatabaseLock, callback: () => Promise<R>): Promise<{ acquired: boolean; result?: R }> {
+    if (this.asyncLock.isBusy(DatabaseLock[lock])) {
+      return { acquired: false };
+    }
+
+    let res: { acquired: boolean; result?: R } = { acquired: false };
+    await this.asyncLock.acquire(DatabaseLock[lock], async () => {
+      await this.db.connection().execute(async (connection) => {
+        const acquired = await this.acquireTryLock(lock, connection);
+        if (!acquired) {
+          return;
+        }
+
+        try {
+          res = { acquired: true, result: await callback() };
+        } finally {
+          await this.releaseLock(lock, connection);
+        }
+      });
+    });
+
+    return res;
+  }
+
   async withUuidLock<R>(uuid: string, callback: () => Promise<R>): Promise<R> {
     let res;
     await this.db.connection().execute(async (connection) => {
