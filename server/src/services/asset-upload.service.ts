@@ -374,12 +374,22 @@ export class AssetUploadService extends BaseService {
       }
     });
 
-    req.on('close', () => {
+    const onRequestClosed = () => {
       if (receivedLength < size) {
         writeStream.emit('error', new Error('Request closed before all data received'));
       }
       writeStream.end();
-    });
+    };
+
+    // The request may have been aborted while queued for the asset lock, in which case
+    // 'close' has already fired and will not fire again. Without this check the write
+    // stream never ends, the awaiting promise never settles, and the asset lock is held
+    // until the session dies (2026-08-05 incident).
+    if (req.closed || req.destroyed) {
+      onRequestClosed();
+    } else {
+      req.on('close', onRequestClosed);
+    }
   }
 
   private sendInterimResponse({ socket }: Response, location: string, interopVersion: number, limits: string): void {
