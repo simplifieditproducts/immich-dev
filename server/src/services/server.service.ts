@@ -26,6 +26,7 @@ import {
   isFilterExtractionEnabled,
   isOcrEnabled,
   isSmartSearchEnabled,
+  withTimeout,
 } from 'src/utils/misc';
 
 @Injectable()
@@ -88,13 +89,15 @@ export class ServerService extends BaseService {
   }
 
   async getHealth(): Promise<ServerPingResponse> {
-    // Check if database is responding
-    let machineLearning;
+    // Check if database is responding, timeout after 5s. This must be a real query through
+    // the connection pool.
     try {
-      ({ machineLearning } = await this.getConfig({ withCache: false }));
-    } catch (error) {
+      await withTimeout(this.userRepository.hasAdmin(), 5000, 'health check database probe');
+    } catch {
       throw new BadRequestException('Database is not responding');
     }
+
+    const { machineLearning } = await this.getConfig({ withCache: true });
 
     // Check if machine learning (i.e. GPU) is responding, timeout after 15s.
     if (isSmartSearchEnabled(machineLearning)) {
