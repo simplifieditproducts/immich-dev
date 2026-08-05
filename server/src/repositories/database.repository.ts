@@ -518,8 +518,8 @@ export class DatabaseRepository {
   async withUuidLock<R>(uuid: string, callback: () => Promise<R>): Promise<R> {
     let res;
     await this.db.connection().execute(async (connection) => {
+      await this.acquireUuidLock(uuid, connection);
       try {
-        await this.acquireUuidLock(uuid, connection);
         res = await callback();
       } finally {
         await this.releaseUuidLock(uuid, connection);
@@ -546,7 +546,16 @@ export class DatabaseRepository {
   }
 
   private async acquireUuidLock(uuid: string, connection: Kysely<DB>): Promise<void> {
-    await sql`SELECT pg_advisory_lock(uuid_hash_extended(${uuid}, 0))`.execute(connection);
+    // Advisory locks are session-scoped: a holder whose request hangs keeps the lock
+    // indefinitely, and every unbounded waiter pins a pooled connection. On 2026-08-05
+    // waiters behind one stuck upload exhausted the API pool and took the server down,
+    // so fail fast instead of queueing forever.
+    await sql`SET lock_timeout = '10s'`.execute(connection);
+    try {
+      await sql`SELECT pg_advisory_lock(uuid_hash_extended(${uuid}, 0))`.execute(connection);
+    } finally {
+      await sql`SET lock_timeout = DEFAULT`.execute(connection);
+    }
   }
 
   private async acquireTryLock(lock: DatabaseLock, connection: Kysely<DB>): Promise<boolean> {
