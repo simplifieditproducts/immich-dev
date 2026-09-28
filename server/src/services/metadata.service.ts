@@ -539,7 +539,17 @@ export class MetadataService extends BaseService {
   }
 
   private async applyTagList(asset: { id: string; ownerId: string }, exifTags: ImmichTags) {
-    const tags = this.getTagList(exifTags);
+    const tags = this.getTagList(exifTags).filter((tag) => {
+      // The tag_userId_value_uq btree index rejects keys larger than 2704 bytes. Corrupt
+      // metadata can yield garbage keyword values, so skip oversized tags (2000-byte margin)
+      // instead of letting the whole metadata extraction job fail on that asset.
+      const byteLength = Buffer.byteLength(tag, 'utf8');
+      if (byteLength > 2000) {
+        this.logger.warn(`Skipping oversized tag (${byteLength} bytes) on asset ${asset.id}`);
+        return false;
+      }
+      return true;
+    });
     const results = await upsertTags(this.tagRepository, { userId: asset.ownerId, tags });
     await this.tagRepository.replaceAssetTags(
       asset.id,
