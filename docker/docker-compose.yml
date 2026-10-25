@@ -154,29 +154,5 @@ services:
       AUTOHEAL_INTERVAL: 30
       AUTOHEAL_START_PERIOD: 300
 
-  immich-prometheus:
-    container_name: immich_prometheus
-    # ports:
-    #   - 9090:9090
-    image: prom/prometheus@sha256:d936808bdea528155c0154a922cd42fd75716b8bb7ba302641350f9f3eaeba09
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.retention.time=45d'
-      - '--storage.tsdb.retention.size=10GB'
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-
-  immich-grafana:
-    container_name: immich_grafana
-    command: ['./run.sh', '-disable-reporting']
-    ports:
-      - 61209:3000
-    image: grafana/grafana:12.3.0-ubuntu@sha256:cee936306135e1925ab21dffa16f8a411535d16ab086bef2309339a8e74d62df
-    volumes:
-      - grafana-data:/var/lib/grafana
-
 volumes:
   model-cache:
-  prometheus-data:
-  grafana-data:
