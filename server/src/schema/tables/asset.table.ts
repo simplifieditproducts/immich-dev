@@ -50,6 +50,13 @@ import { ASSET_CHECKSUM_CONSTRAINT } from 'src/utils/database';
 })
 @Index({ columns: ['originalPath', 'libraryId'] })
 @Index({ columns: ['id', 'stackId'] })
+// Covers the photo/video counts per owner (server statistics) as an
+// index-only scan, so they don't fetch every asset row.
+@Index({
+  name: 'asset_ownerId_type_visibility_idx',
+  columns: ['ownerId', 'type', 'visibility'],
+  where: '("deletedAt" IS NULL)',
+})
 @Index({
   name: 'asset_originalFilename_trigram_idx',
   using: 'gin',
