@@ -125,10 +125,22 @@ export class DatabaseService extends BaseService {
       if (!database.skipMigrations) {
         await this.databaseRepository.runMigrations();
       }
+    });
+
+    // Not awaited: on a large server prewarming takes minutes, and the API
+    // only starts listening once bootstrap is done. Outside the migrations
+    // lock, so the other worker doesn't wait for it either.
+    void this.prewarmVectorIndexes();
+  }
+
+  private async prewarmVectorIndexes() {
+    try {
       // Sequential prewarm to avoid I/O contention on large indexes
       await this.databaseRepository.prewarm(VectorIndex.Clip);
       await this.databaseRepository.prewarm(VectorIndex.Face);
-    });
+    } catch (error) {
+      this.logger.warn(`Could not prewarm the vector indexes: ${error}`);
+    }
   }
 
   private async createExtension(extension: DatabaseExtension) {
