@@ -142,7 +142,7 @@ export class DatabaseService extends BaseService {
   // reading a whole index in then only pushes those pages out. Indexes are only
   // prewarmed while they fit in shared_buffers together: past that, each one
   // pushes out the last, or its own first pages. Face goes first, as every
-  // upload's face jobs use it. Findings: immich-devops docs/vector-index-prewarm.md
+  // upload's face jobs use it. Findings: docs/vector-index-prewarm.md
   private async prewarmVectorIndexes() {
     const indexes = [VectorIndex.Face, VectorIndex.Clip];
     try {
