@@ -27,7 +27,7 @@
     description?: Component;
     allText?: string;
     refreshText?: string;
-    missingText: string;
+    missingText?: string;
     disabled?: boolean;
     handleCommand?: (jobId: QueueName, jobCommand: QueueCommandDto) => Promise<void>;
   };
@@ -86,6 +86,11 @@
     [QueueName.Migration]: {
       missingText: $t('start'),
     },
+    // No missingText, so the card's button opens the queue's details instead of
+    // starting it: the server can't start BackgroundTask, and a manual backup
+    // runs a multi-hour pg_dump.
+    [QueueName.BackgroundTask]: {},
+    [QueueName.BackupDatabase]: {},
   };
 
   let queueList = Object.entries(queueDetails) as [QueueName, QueueDetails][];

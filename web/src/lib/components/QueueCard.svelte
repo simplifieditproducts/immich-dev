@@ -2,7 +2,7 @@
   import QueueCardBadge from '$lib/components/QueueCardBadge.svelte';
   import QueueCardButton from '$lib/components/QueueCardButton.svelte';
   import Badge from '$lib/elements/Badge.svelte';
-  import { asQueueItem, getQueueDetailUrl } from '$lib/services/queue.service';
+  import { asQueueItem, getQueueDetailUrl, handleViewQueue } from '$lib/services/queue.service';
   import { locale } from '$lib/stores/preferences.store';
   import { QueueCommand, type QueueCommandDto, type QueueResponseDto } from '@immich/sdk';
   import { Icon, IconButton, Link } from '@immich/ui';
@@ -26,7 +26,7 @@
     disabled?: boolean;
     allText?: string;
     refreshText?: string;
-    missingText: string;
+    missingText?: string;
     onCommand: (command: QueueCommandDto) => void;
   }
 
@@ -176,10 +176,17 @@
     {/if}
 
     {#if !disabled && !multipleButtons && isIdle}
-      <QueueCardButton color="light-gray" onClick={() => onCommand({ command: QueueCommand.Start, force: false })}>
-        <Icon icon={mdiPlay} size="48" />
-        <span class="uppercase">{missingText}</span>
-      </QueueCardButton>
+      {#if missingText}
+        <QueueCardButton color="light-gray" onClick={() => onCommand({ command: QueueCommand.Start, force: false })}>
+          <Icon icon={mdiPlay} size="48" />
+          <span class="uppercase">{missingText}</span>
+        </QueueCardButton>
+      {:else}
+        <QueueCardButton color="light-gray" onClick={() => handleViewQueue(queue)}>
+          <Icon icon={mdiChartLine} size="48" />
+          <span class="uppercase">{$t('details')}</span>
+        </QueueCardButton>
+      {/if}
     {/if}
   </div>
 </div>
