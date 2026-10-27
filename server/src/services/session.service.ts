@@ -13,6 +13,8 @@ import { JobName, JobStatus, Permission, QueueName } from 'src/enum';
 import { ArgOf } from 'src/repositories/event.repository';
 import { BaseService } from 'src/services/base.service';
 
+const MAX_API_KEY_SESSION_SECONDS = 86_400;
+
 @Injectable()
 export class SessionService extends BaseService {
   @OnJob({ name: JobName.SessionCleanup, queue: QueueName.BackgroundTask })
@@ -28,14 +30,22 @@ export class SessionService extends BaseService {
   }
 
   async create(auth: AuthDto, dto: SessionCreateDto): Promise<SessionCreateResponseDto> {
-    if (!auth.session) {
-      throw new BadRequestException('This endpoint can only be used with a session token');
+    // Fork: an admin's API key may also open a session, with no parent and a
+    // duration of at most a day. The API site (api.picturekeeper.com) uses it to
+    // sign a super admin in to this server's admin pages without a password.
+    if (
+      !auth.session &&
+      !(auth.apiKey && auth.user.isAdmin && dto.duration && dto.duration <= MAX_API_KEY_SESSION_SECONDS)
+    ) {
+      throw new BadRequestException(
+        'This endpoint can only be used with a session token, or an admin API key and a duration of at most a day',
+      );
     }
 
     const token = this.cryptoRepository.randomBytesAsText(32);
     const tokenHashed = this.cryptoRepository.hashSha256(token);
     const session = await this.sessionRepository.create({
-      parentId: auth.session.id,
+      parentId: auth.session?.id ?? null,
       userId: auth.user.id,
       expiresAt: dto.duration ? DateTime.now().plus({ seconds: dto.duration }).toJSDate() : null,
       deviceType: dto.deviceType,
