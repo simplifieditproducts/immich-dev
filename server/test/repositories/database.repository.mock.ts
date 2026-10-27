@@ -17,6 +17,7 @@ export const newDatabaseRepositoryMock = (): Mocked<RepositoryInterface<Database
     getDimensionSize: vitest.fn(),
     setDimensionSize: vitest.fn(),
     deleteAllSearchEmbeddings: vitest.fn(),
+    getPrewarmStats: vitest.fn(),
     prewarm: vitest.fn(),
     runMigrations: vitest.fn(),
     revertLastMigration: vitest.fn(),

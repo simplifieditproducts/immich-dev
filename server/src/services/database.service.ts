@@ -5,6 +5,10 @@ import { OnEvent } from 'src/decorators';
 import { BootstrapEventPriority, DatabaseExtension, DatabaseLock, VectorIndex } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { VectorExtension } from 'src/types';
+import { asHumanReadable } from 'src/utils/bytes';
+
+// Postgres up longer than this has warm buffers: a deploy, not a database restart.
+const PREWARM_MAX_POSTGRES_UPTIME = 10 * 60;
 
 type CreateFailedArgs = { name: string; extension: string };
 type UpdateFailedArgs = { name: string; extension: string; availableVersion: string };
@@ -133,11 +137,39 @@ export class DatabaseService extends BaseService {
     void this.prewarmVectorIndexes();
   }
 
+  // Prewarming only pays off when Postgres's buffers are cold. A deploy restarts
+  // Immich, not Postgres, and its buffers already hold what the workload uses;
+  // reading a whole index in then only pushes those pages out. Indexes are only
+  // prewarmed while they fit in shared_buffers together: past that, each one
+  // pushes out the last, or its own first pages. Face goes first, as every
+  // upload's face jobs use it. Findings: immich-devops docs/vector-index-prewarm.md
   private async prewarmVectorIndexes() {
+    const indexes = [VectorIndex.Face, VectorIndex.Clip];
     try {
+      const { uptime, sharedBuffers, sizes } = await this.databaseRepository.getPrewarmStats(indexes);
+      if (uptime > PREWARM_MAX_POSTGRES_UPTIME) {
+        this.logger.log(
+          `Skipping vector index prewarm: Postgres has been up for ${Math.round(uptime / 60)} minutes, so its buffers are warm`,
+        );
+        return;
+      }
+
       // Sequential prewarm to avoid I/O contention on large indexes
-      await this.databaseRepository.prewarm(VectorIndex.Clip);
-      await this.databaseRepository.prewarm(VectorIndex.Face);
+      let used = 0;
+      for (const index of indexes) {
+        const size = sizes[index];
+        if (size === null || size === undefined) {
+          continue;
+        }
+        if (used + size > sharedBuffers) {
+          this.logger.log(
+            `Skipping prewarm of ${index}: ${asHumanReadable(size)} doesn't fit in the ${asHumanReadable(sharedBuffers - used)} of shared_buffers left`,
+          );
+          continue;
+        }
+        await this.databaseRepository.prewarm(index);
+        used += size;
+      }
     } catch (error) {
       this.logger.warn(`Could not prewarm the vector indexes: ${error}`);
     }

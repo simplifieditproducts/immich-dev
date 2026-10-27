@@ -164,6 +164,31 @@ export class DatabaseRepository {
     return { restartRequired };
   }
 
+  /** How long Postgres has been up, its shared_buffers and each index's size, all in seconds and bytes. */
+  async getPrewarmStats(indexes: VectorIndex[]): Promise<{
+    uptime: number;
+    sharedBuffers: number;
+    sizes: Record<string, number | null>;
+  }> {
+    const { rows } = await sql<{ uptime: number; shared_buffers: string; sizes: Record<string, string | null> }>`
+      SELECT
+        extract(epoch FROM now() - pg_postmaster_start_time())::float8 AS uptime,
+        pg_size_bytes(current_setting('shared_buffers'))::text AS shared_buffers,
+        (
+          SELECT json_object_agg(name, pg_relation_size(to_regclass(name))::text)
+          FROM unnest(ARRAY[${sql.join(indexes)}]::text[]) AS name
+        ) AS sizes
+    `.execute(this.db);
+    const { uptime, shared_buffers, sizes } = rows[0];
+    return {
+      uptime,
+      sharedBuffers: Number(shared_buffers),
+      sizes: Object.fromEntries(
+        Object.entries(sizes).map(([name, size]) => [name, size === null ? null : Number(size)]),
+      ),
+    };
+  }
+
   async prewarm(index: VectorIndex): Promise<void> {
     const vectorExtension = await getVectorExtension(this.db);
     if (vectorExtension !== DatabaseExtension.VectorChord) {
