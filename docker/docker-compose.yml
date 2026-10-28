@@ -27,8 +27,18 @@ services:
     ports:
       - "127.0.0.1:2283:2283"
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      # Restart with the database: jobs in the middle of a query when Postgres
+      # stops never finish and keep their slots (2026-10-27: all facial
+      # recognition slots hung for a day). Applies to `docker compose restart
+      # database` and to `docker compose up -d` recreating it, not to `docker
+      # compose up -d database` or `docker restart immich_postgres`. Not
+      # service_healthy: the image reports unhealthy on any data checksum
+      # failure, and a newly created server would then never start.
+      database:
+        condition: service_started
+        restart: true
     restart: always
     healthcheck:
       disable: false
@@ -50,8 +60,12 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      # Restart with the database: see immich-server.
+      database:
+        condition: service_started
+        restart: true
     restart: always
     healthcheck:
       disable: false
