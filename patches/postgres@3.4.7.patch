@@ -1,0 +1,84 @@
+diff --git a/cf/src/index.js b/cf/src/index.js
+index 3ffb7e65a477928e543617dad15201c4ed656bf3..7685627820ba5f513e1dba7a15cc1b8a150487f6 100644
+--- a/cf/src/index.js
++++ b/cf/src/index.js
+@@ -424,7 +424,10 @@ function Postgres(a, b) {
+     c.reserved = null
+     c.onclose && (c.onclose(e), c.onclose = null)
+     options.onclose && options.onclose(c.id)
+-    queries.length && connect(c, queries.shift())
++    // A queued reserve() stays in queries, as reserve() itself leaves it, for
++    // onopen to resolve. Shifted out, it was dropped as the reconnect's initial
++    // and never settled (porsager/postgres#1195).
++    queries.length && connect(c, queries.peek().reserve ? queries.peek() : queries.shift())
+   }
+ }
+ 
+diff --git a/cf/src/queue.js b/cf/src/queue.js
+index c4ef97164f057db99dce1b9af3401dbb1af37e31..8fba891b879e8f5c7fdb03ea0590753663c824c3 100644
+--- a/cf/src/queue.js
++++ b/cf/src/queue.js
+@@ -15,6 +15,7 @@ function Queue(initial = []) {
+         : (xs.splice(index, 1), x)
+     },
+     push: (x) => (xs.push(x), x),
++    peek: () => xs[index],
+     shift: () => {
+       const out = xs[index++]
+ 
+diff --git a/cjs/src/index.js b/cjs/src/index.js
+index baf7e60a860afb3418908e9c27cff6d9abd0ced0..14de6b0f32473c794f7544a780cb59d20123d2cf 100644
+--- a/cjs/src/index.js
++++ b/cjs/src/index.js
+@@ -423,7 +423,10 @@ function Postgres(a, b) {
+     c.reserved = null
+     c.onclose && (c.onclose(e), c.onclose = null)
+     options.onclose && options.onclose(c.id)
+-    queries.length && connect(c, queries.shift())
++    // A queued reserve() stays in queries, as reserve() itself leaves it, for
++    // onopen to resolve. Shifted out, it was dropped as the reconnect's initial
++    // and never settled (porsager/postgres#1195).
++    queries.length && connect(c, queries.peek().reserve ? queries.peek() : queries.shift())
+   }
+ }
+ 
+diff --git a/cjs/src/queue.js b/cjs/src/queue.js
+index 8438f5da92cf7637d98a33491d75c75b1c817c25..c444310ff87b0ac81fd19cd3170a0ba607a66781 100644
+--- a/cjs/src/queue.js
++++ b/cjs/src/queue.js
+@@ -15,6 +15,7 @@ function Queue(initial = []) {
+         : (xs.splice(index, 1), x)
+     },
+     push: (x) => (xs.push(x), x),
++    peek: () => xs[index],
+     shift: () => {
+       const out = xs[index++]
+ 
+diff --git a/src/index.js b/src/index.js
+index 944d50cf2b599ee84c750e8530b5433caa6d8a4a..b627562c6eb96d730cf0277d3e9564f553b18ac5 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -423,7 +423,10 @@ function Postgres(a, b) {
+     c.reserved = null
+     c.onclose && (c.onclose(e), c.onclose = null)
+     options.onclose && options.onclose(c.id)
+-    queries.length && connect(c, queries.shift())
++    // A queued reserve() stays in queries, as reserve() itself leaves it, for
++    // onopen to resolve. Shifted out, it was dropped as the reconnect's initial
++    // and never settled (porsager/postgres#1195).
++    queries.length && connect(c, queries.peek().reserve ? queries.peek() : queries.shift())
+   }
+ }
+ 
+diff --git a/src/queue.js b/src/queue.js
+index c4ef97164f057db99dce1b9af3401dbb1af37e31..8fba891b879e8f5c7fdb03ea0590753663c824c3 100644
+--- a/src/queue.js
++++ b/src/queue.js
+@@ -15,6 +15,7 @@ function Queue(initial = []) {
+         : (xs.splice(index, 1), x)
+     },
+     push: (x) => (xs.push(x), x),
++    peek: () => xs[index],
+     shift: () => {
+       const out = xs[index++]
+ 

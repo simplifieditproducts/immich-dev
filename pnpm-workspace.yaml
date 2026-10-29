@@ -61,3 +61,7 @@ preferWorkspacePackages: true
 injectWorkspacePackages: true
 shamefullyHoist: false
 verifyDepsBeforeRun: install
+patchedDependencies:
+  # Queued reserve() never settles after a connection closes:
+  # porsager/postgres#1195. Drop once on a postgres.js release that fixes it.
+  postgres@3.4.7: patches/postgres@3.4.7.patch
