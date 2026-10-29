@@ -80,7 +80,14 @@ services:
     ports:
       - "127.0.0.1:2284:8080"
     depends_on:
-      - immich-server
+      # Restart with immich-server: nginx resolves immich-server once, at
+      # start, and a restarted server can come back on another IP. Applies
+      # when the server is recreated, and to `docker compose restart
+      # database`; not when `docker compose up -d` recreates the database,
+      # nor to `docker restart immich_server`.
+      immich-server:
+        condition: service_started
+        restart: true
     restart: always
     healthcheck:
       disable: false
