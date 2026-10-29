@@ -15,7 +15,7 @@ pnpmfileChecksum: sha256-AG/qwrPNpmy9q60PZwCpecoYVptglTHgH+N6RKQHOM0=
 
 patchedDependencies:
   postgres@3.4.7:
-    hash: 934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83
+    hash: 99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647
     path: patches/postgres@3.4.7.patch
 
 importers:
@@ -479,7 +479,7 @@ importers:
         version: 0.28.2
       kysely-postgres-js:
         specifier: ^3.0.0
-        version: 3.0.0(kysely@0.28.2)(postgres@3.4.7(patch_hash=934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83))
+        version: 3.0.0(kysely@0.28.2)(postgres@3.4.7(patch_hash=99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647))
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -524,7 +524,7 @@ importers:
         version: 4.0.3
       postgres:
         specifier: 3.4.7
-        version: 3.4.7(patch_hash=934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83)
+        version: 3.4.7(patch_hash=99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647)
       react:
         specifier: ^19.0.0
         version: 19.2.3
@@ -20742,11 +20742,11 @@ snapshots:
       type-is: 2.0.1
       vary: 1.1.2
 
-  kysely-postgres-js@3.0.0(kysely@0.28.2)(postgres@3.4.7(patch_hash=934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83)):
+  kysely-postgres-js@3.0.0(kysely@0.28.2)(postgres@3.4.7(patch_hash=99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647)):
     dependencies:
       kysely: 0.28.2
     optionalDependencies:
-      postgres: 3.4.7(patch_hash=934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83)
+      postgres: 3.4.7(patch_hash=99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647)
 
   kysely@0.28.2: {}
 
@@ -22779,7 +22779,7 @@ snapshots:
     dependencies:
       xtend: 4.0.2
 
-  postgres@3.4.7(patch_hash=934f54ef0c10fd0e6ff6bd29ca8ced6d8d5beadc4cf04abad5e734e697c03d83): {}
+  postgres@3.4.7(patch_hash=99603ff42c4d8fd4caf6f027f4f768abc486d07eaba456bc1d4d94a8c4ca2647): {}
 
   potpack@1.0.2: {}
 

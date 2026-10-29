@@ -1,8 +1,39 @@
 diff --git a/cf/src/index.js b/cf/src/index.js
-index 3ffb7e65a477928e543617dad15201c4ed656bf3..7685627820ba5f513e1dba7a15cc1b8a150487f6 100644
+index 3ffb7e65a477928e543617dad15201c4ed656bf3..3a93365651730898e586fff0603d47c147e26598 100644
 --- a/cf/src/index.js
 +++ b/cf/src/index.js
-@@ -424,7 +424,10 @@ function Postgres(a, b) {
+@@ -212,20 +212,29 @@ function Postgres(a, b) {
+       })
+ 
+     move(c, reserved)
+-    c.reserved = () => queue.length
++    const owner = c.reserved = () => queue.length
+       ? c.execute(queue.shift())
+       : move(c, reserved)
+     c.reserved.release = true
++    // When the connection closes, onclose clears c.reserved and can hand c to a
++    // queued reserve(). This reservation is then over: its queued and later
++    // queries fail, and its release() leaves c to the new owner.
++    c.onclose = e => { while (queue.length) queue.shift().reject(e) }
+ 
+     const sql = Sql(handler)
+     sql.release = () => {
++      if (c.reserved !== owner)
++        return
+       c.reserved = null
++      c.onclose = null
+       onopen(c)
+     }
+ 
+     return sql
+ 
+     function handler(q) {
++      if (c.reserved !== owner)
++        return q.reject(Errors.connection('CONNECTION_CLOSED', options))
+       c.queue === full
+         ? queue.push(q)
+         : c.execute(q) || move(c, full)
+@@ -424,7 +433,10 @@ function Postgres(a, b) {
      c.reserved = null
      c.onclose && (c.onclose(e), c.onclose = null)
      options.onclose && options.onclose(c.id)
@@ -27,10 +58,41 @@ index c4ef97164f057db99dce1b9af3401dbb1af37e31..8fba891b879e8f5c7fdb03ea05907536
        const out = xs[index++]
  
 diff --git a/cjs/src/index.js b/cjs/src/index.js
-index baf7e60a860afb3418908e9c27cff6d9abd0ced0..14de6b0f32473c794f7544a780cb59d20123d2cf 100644
+index baf7e60a860afb3418908e9c27cff6d9abd0ced0..ec5b324cf1913a348ba1b29bfaf374f33e2fbc94 100644
 --- a/cjs/src/index.js
 +++ b/cjs/src/index.js
-@@ -423,7 +423,10 @@ function Postgres(a, b) {
+@@ -211,20 +211,29 @@ function Postgres(a, b) {
+       })
+ 
+     move(c, reserved)
+-    c.reserved = () => queue.length
++    const owner = c.reserved = () => queue.length
+       ? c.execute(queue.shift())
+       : move(c, reserved)
+     c.reserved.release = true
++    // When the connection closes, onclose clears c.reserved and can hand c to a
++    // queued reserve(). This reservation is then over: its queued and later
++    // queries fail, and its release() leaves c to the new owner.
++    c.onclose = e => { while (queue.length) queue.shift().reject(e) }
+ 
+     const sql = Sql(handler)
+     sql.release = () => {
++      if (c.reserved !== owner)
++        return
+       c.reserved = null
++      c.onclose = null
+       onopen(c)
+     }
+ 
+     return sql
+ 
+     function handler(q) {
++      if (c.reserved !== owner)
++        return q.reject(Errors.connection('CONNECTION_CLOSED', options))
+       c.queue === full
+         ? queue.push(q)
+         : c.execute(q) || move(c, full)
+@@ -423,7 +432,10 @@ function Postgres(a, b) {
      c.reserved = null
      c.onclose && (c.onclose(e), c.onclose = null)
      options.onclose && options.onclose(c.id)
@@ -55,10 +117,41 @@ index 8438f5da92cf7637d98a33491d75c75b1c817c25..c444310ff87b0ac81fd19cd3170a0ba6
        const out = xs[index++]
  
 diff --git a/src/index.js b/src/index.js
-index 944d50cf2b599ee84c750e8530b5433caa6d8a4a..b627562c6eb96d730cf0277d3e9564f553b18ac5 100644
+index 944d50cf2b599ee84c750e8530b5433caa6d8a4a..9b6f5bab949c312e0017c4b97fd6a7064e43c8a4 100644
 --- a/src/index.js
 +++ b/src/index.js
-@@ -423,7 +423,10 @@ function Postgres(a, b) {
+@@ -211,20 +211,29 @@ function Postgres(a, b) {
+       })
+ 
+     move(c, reserved)
+-    c.reserved = () => queue.length
++    const owner = c.reserved = () => queue.length
+       ? c.execute(queue.shift())
+       : move(c, reserved)
+     c.reserved.release = true
++    // When the connection closes, onclose clears c.reserved and can hand c to a
++    // queued reserve(). This reservation is then over: its queued and later
++    // queries fail, and its release() leaves c to the new owner.
++    c.onclose = e => { while (queue.length) queue.shift().reject(e) }
+ 
+     const sql = Sql(handler)
+     sql.release = () => {
++      if (c.reserved !== owner)
++        return
+       c.reserved = null
++      c.onclose = null
+       onopen(c)
+     }
+ 
+     return sql
+ 
+     function handler(q) {
++      if (c.reserved !== owner)
++        return q.reject(Errors.connection('CONNECTION_CLOSED', options))
+       c.queue === full
+         ? queue.push(q)
+         : c.execute(q) || move(c, full)
+@@ -423,7 +432,10 @@ function Postgres(a, b) {
      c.reserved = null
      c.onclose && (c.onclose(e), c.onclose = null)
      options.onclose && options.onclose(c.id)
