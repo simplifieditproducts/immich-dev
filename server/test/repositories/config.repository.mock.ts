@@ -31,6 +31,7 @@ const envData: EnvData = {
     },
 
     skipMigrations: false,
+    allowVectorReset: false,
     vectorExtension: DatabaseExtension.Vectors,
   },
 

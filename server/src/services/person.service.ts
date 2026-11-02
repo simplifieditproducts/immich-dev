@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Insertable, Updateable } from 'kysely';
-import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
 import { Person } from 'src/database';
 import { Chunked, OnJob } from 'src/decorators';
 import { BulkIdErrorReason, BulkIdResponseDto, BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
@@ -278,9 +278,13 @@ export class PersonService extends BaseService {
     }
 
     if (force) {
+      if (!(await this.databaseRepository.canResetVectors('face_search'))) {
+        this.logger.error(`Face Detection "All" ${VECTOR_RESET_REFUSED}`);
+        return JobStatus.Skipped;
+      }
       await this.personRepository.deleteFaces({ sourceType: SourceType.MachineLearning });
       await this.handlePersonCleanup();
-      await this.personRepository.vacuum({ reindexVectors: true });
+      await this.personRepository.vacuum();
     }
 
     let jobs: JobItem[] = [];
@@ -414,12 +418,19 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }
 
+    // "All" takes every face off its person and deletes the people left
+    // empty, names included, for every user.
+    if (force && !(await this.databaseRepository.canResetVectors('face_search'))) {
+      this.logger.error(`Facial Recognition "All" ${VECTOR_RESET_REFUSED}`);
+      return JobStatus.Skipped;
+    }
+
     await this.jobRepository.waitForQueueCompletion(QueueName.ThumbnailGeneration, QueueName.FaceDetection);
 
     if (force) {
       await this.personRepository.unassignFaces({ sourceType: SourceType.MachineLearning });
       await this.handlePersonCleanup();
-      await this.personRepository.vacuum({ reindexVectors: false });
+      await this.personRepository.vacuum();
     }
 
     let ownerIds: string[] = [];

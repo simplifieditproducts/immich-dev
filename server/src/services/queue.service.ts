@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ClassConstructor } from 'class-transformer';
 import { SystemConfig } from 'src/config';
+import { VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnEvent } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
 import {
@@ -37,6 +38,13 @@ const asNightlyTasksCron = (config: SystemConfig) => {
   return `${minutes} ${hours} * * *`;
 };
 
+
+// Queues whose "All" (force) empties a vector table, and that table.
+const VECTOR_RESET_QUEUES: Partial<Record<QueueName, 'smart_search' | 'face_search'>> = {
+  [QueueName.SmartSearch]: 'smart_search',
+  [QueueName.FaceDetection]: 'face_search',
+  [QueueName.FacialRecognition]: 'face_search',
+};
 @Injectable()
 export class QueueService extends BaseService {
   private services: ClassConstructor<unknown>[] = [];
@@ -187,6 +195,12 @@ export class QueueService extends BaseService {
     const isActive = await this.jobRepository.isActive(name);
     if (isActive) {
       throw new BadRequestException(`Job is already running`);
+    }
+
+    // Refused here too, so the admin sees why instead of a job that skips.
+    const resetTable = force && VECTOR_RESET_QUEUES[name];
+    if (resetTable && !(await this.databaseRepository.canResetVectors(resetTable))) {
+      throw new BadRequestException(`"All" ${VECTOR_RESET_REFUSED}`);
     }
 
     await this.eventRepository.emit('QueueStart', { name });

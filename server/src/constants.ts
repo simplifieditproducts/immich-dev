@@ -31,6 +31,16 @@ export const VECTOR_EXTENSIONS = [
   DatabaseExtension.Vector,
 ] as const;
 
+// A vector table with this many rows or more is never emptied, nor its index
+// dropped and rebuilt, by Immich itself unless IMMICH_ALLOW_VECTOR_RESET is
+// set (see EnvData.database.allowVectorReset). Below it a rebuild takes
+// seconds to minutes, as on a new server.
+export const VECTOR_RESET_MAX_ROWS = 100_000;
+export const VECTOR_RESET_REFUSED =
+  'refused on this server: it would delete and recompute every vector of a large vector table (hours of work, ' +
+  'search or face recognition broken meanwhile, and archived users recomputed too). ' +
+  'To do it anyway, set IMMICH_ALLOW_VECTOR_RESET=true on the server and restart Immich.';
+
 export const VECTOR_INDEX_TABLES = {
   [VectorIndex.Clip]: 'smart_search',
   [VectorIndex.Face]: 'face_search',

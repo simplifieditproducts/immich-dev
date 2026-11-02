@@ -562,13 +562,13 @@ export class PersonRepository {
     await this.db.updateTable('asset_face').set({ deletedAt: new Date() }).where('asset_face.id', '=', id).execute();
   }
 
-  async vacuum({ reindexVectors }: { reindexVectors: boolean }): Promise<void> {
-    await sql`VACUUM ANALYZE asset_face, face_search, person`.execute(this.db);
+  // Not face_search: any VACUUM or ANALYZE that cleans up its vchordrq index
+  // rewrites all of it, and REINDEX rebuilds it without CONCURRENTLY; that
+  // table gets its VACUUM from immich-devops' weekly maintenance instead.
+  async vacuum(): Promise<void> {
+    await sql`VACUUM ANALYZE asset_face, person`.execute(this.db);
     await sql`REINDEX TABLE asset_face`.execute(this.db);
     await sql`REINDEX TABLE person`.execute(this.db);
-    if (reindexVectors) {
-      await sql`REINDEX TABLE face_search`.execute(this.db);
-    }
   }
 
   @GenerateSql({ params: [[DummyValue.UUID]] })

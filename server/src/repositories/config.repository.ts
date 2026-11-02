@@ -59,6 +59,12 @@ export interface EnvData {
     config: DatabaseConnectionParams;
     skipMigrations: boolean;
     vectorExtension?: VectorExtension;
+    // Jobs and settings that delete or rebuild a whole vector table or index
+    // (Smart Search / Face Detection / Facial Recognition "All", changing the
+    // CLIP model, automatic index rebuilds) only run when this is set, or on
+    // a server whose vector tables are still small. On a large server they
+    // mean hours of rewrites and recomputing every user's photos.
+    allowVectorReset: boolean;
   };
 
   licensePublicKey: {
@@ -277,6 +283,7 @@ const getEnv = (): EnvData => {
       config: databaseConnection,
       skipMigrations: dto.DB_SKIP_MIGRATIONS ?? false,
       vectorExtension,
+      allowVectorReset: !!dto.IMMICH_ALLOW_VECTOR_RESET,
     },
 
     licensePublicKey: isProd ? productionKeys : stagingKeys,

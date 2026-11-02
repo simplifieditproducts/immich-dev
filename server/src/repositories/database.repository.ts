@@ -10,6 +10,7 @@ import {
   POSTGRES_VERSION_RANGE,
   VECTOR_EXTENSIONS,
   VECTOR_INDEX_TABLES,
+  VECTOR_RESET_MAX_ROWS,
   VECTOR_VERSION_RANGE,
   VECTORCHORD_LIST_SLACK_FACTOR,
   VECTORCHORD_VERSION_RANGE,
@@ -292,8 +293,8 @@ export class DatabaseRepository {
                 `${needsReindexType ? 'wrong index type' : ''}${needsReindexType && needsReindexLists ? ' AND ' : ''}` +
                 `${needsReindexLists ? `lists mismatch (${lists} != ${targetLists} and ${lists} != ${slackLists})` : ''}`,
             );
-            probes[indexName] = this.targetProbeCount(targetLists);
-            await this.reindexVectors(indexName, { lists: targetLists });
+            const rebuilt = await this.reindexVectors(indexName, { lists: targetLists });
+            probes[indexName] = this.targetProbeCount(rebuilt ? targetLists : lists);
           } else {
             this.logger.log(`VectorChord ${indexName}: index is OK, no reindex needed`);
             probes[indexName] = this.targetProbeCount(lists);
@@ -304,8 +305,22 @@ export class DatabaseRepository {
     }
   }
 
-  private async reindexVectors(indexName: VectorIndex, { lists }: { lists?: number } = {}): Promise<void> {
-    this.logger.log(`Reindexing ${indexName} (This may take a while, do not restart)`);
+  /**
+   * Whether Immich may empty a whole vector table or drop and rebuild its
+   * index: with IMMICH_ALLOW_VECTOR_RESET, or while the table is small.
+   */
+  async canResetVectors(table: 'smart_search' | 'face_search'): Promise<boolean> {
+    if (this.configRepository.getEnv().database.allowVectorReset) {
+      return true;
+    }
+    const { rows } = await sql<{ count: number }>`
+      SELECT count(*)::int AS count FROM (SELECT 1 FROM ${sql.table(table)} LIMIT ${VECTOR_RESET_MAX_ROWS}) t
+    `.execute(this.db);
+    return rows[0].count < VECTOR_RESET_MAX_ROWS;
+  }
+
+  /** Rebuilds a vector index in place; false when it was left alone. */
+  private async reindexVectors(indexName: VectorIndex, { lists }: { lists?: number } = {}): Promise<boolean> {
     const table = VECTOR_INDEX_TABLES[indexName];
     const vectorExtension = await getVectorExtension(this.db);
 
@@ -316,8 +331,20 @@ export class DatabaseRepository {
       this.logger.warn(
         `Table ${table} does not exist, skipping reindexing. This is only normal if this is a new Immich instance.`,
       );
-      return;
+      return false;
     }
+    // A plain rebuild of a large index takes hours, blocks searches meanwhile
+    // and can run the server out of memory (its k-means sample); a large one
+    // is rebuilt by hand, concurrently, instead.
+    if (!(await this.canResetVectors(table))) {
+      this.logger.error(
+        `Not rebuilding ${indexName}: ${table} has ${VECTOR_RESET_MAX_ROWS} rows or more. Rebuild it by hand ` +
+          `(immich-devops, docs/vector-index-capacity.md, "Rebuilding the indexes"), ` +
+          `or set IMMICH_ALLOW_VECTOR_RESET=true and restart.`,
+      );
+      return false;
+    }
+    this.logger.log(`Reindexing ${indexName} (This may take a while, do not restart)`);
     const dimSize = await this.getDimensionSize(table);
     lists ||= this.targetListCount(await this.getRowCount(table));
 
@@ -347,6 +374,7 @@ export class DatabaseRepository {
       this.logger.warn(`Failed to vacuum table '${table}'. The DB will temporarily use more disk space: ${error}`);
     }
     this.logger.log(`Reindexed ${indexName}`);
+    return true;
   }
 
   private async setSearchPath(tx: Transaction<DB>): Promise<void> {

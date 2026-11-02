@@ -42,6 +42,9 @@ export class EnvDto {
   IMMICH_HOST?: string;
 
   @ValidateBoolean({ optional: true })
+  IMMICH_ALLOW_VECTOR_RESET?: boolean;
+
+  @ValidateBoolean({ optional: true })
   IMMICH_IGNORE_MOUNT_CHECK_ERRORS?: boolean;
 
   @IsEnum(LogLevel)

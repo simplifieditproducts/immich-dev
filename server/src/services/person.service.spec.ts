@@ -476,7 +476,7 @@ describe(PersonService.name, () => {
 
       expect(mocks.person.deleteFaces).toHaveBeenCalledWith({ sourceType: SourceType.MachineLearning });
       expect(mocks.person.delete).toHaveBeenCalledWith([personStub.withName.id]);
-      expect(mocks.person.vacuum).toHaveBeenCalledWith({ reindexVectors: true });
+      expect(mocks.person.vacuum).toHaveBeenCalledWith();
       expect(mocks.storage.unlink).toHaveBeenCalledWith(personStub.withName.thumbnailPath);
       expect(mocks.assetJob.streamForDetectFacesJob).toHaveBeenCalledWith(true);
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
@@ -524,7 +524,7 @@ describe(PersonService.name, () => {
       ]);
       expect(mocks.person.delete).toHaveBeenCalledWith([personStub.randomPerson.id]);
       expect(mocks.storage.unlink).toHaveBeenCalledWith(personStub.randomPerson.thumbnailPath);
-      expect(mocks.person.vacuum).toHaveBeenCalledWith({ reindexVectors: true });
+      expect(mocks.person.vacuum).toHaveBeenCalledWith();
     });
   });
 
@@ -616,7 +616,7 @@ describe(PersonService.name, () => {
       expect(mocks.systemMetadata.set).toHaveBeenCalledWith(SystemMetadataKey.FacialRecognitionState, {
         lastRun: expect.any(String),
       });
-      expect(mocks.person.vacuum).toHaveBeenCalledWith({ reindexVectors: false });
+      expect(mocks.person.vacuum).toHaveBeenCalledWith();
     });
 
     it('should run nightly if new face has been added since last run', async () => {
@@ -699,7 +699,7 @@ describe(PersonService.name, () => {
       ]);
       expect(mocks.person.delete).toHaveBeenCalledWith([personStub.randomPerson.id]);
       expect(mocks.storage.unlink).toHaveBeenCalledWith(personStub.randomPerson.thumbnailPath);
-      expect(mocks.person.vacuum).toHaveBeenCalledWith({ reindexVectors: false });
+      expect(mocks.person.vacuum).toHaveBeenCalledWith();
     });
   });
 

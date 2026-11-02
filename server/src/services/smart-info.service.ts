@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SystemConfig } from 'src/config';
-import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnEvent, OnJob } from 'src/decorators';
 import { AssetVisibility, DatabaseLock, ImmichWorker, JobName, JobStatus, QueueName } from 'src/enum';
 import { ArgOf } from 'src/repositories/event.repository';
@@ -21,13 +21,22 @@ export class SmartInfoService extends BaseService {
   }
 
   @OnEvent({ name: 'ConfigValidate' })
-  onConfigValidate({ newConfig }: ArgOf<'ConfigValidate'>) {
+  async onConfigValidate({ newConfig, oldConfig }: ArgOf<'ConfigValidate'>) {
     try {
       getCLIPModelInfo(newConfig.machineLearning.clip.modelName);
     } catch {
       throw new Error(
         `Unknown CLIP model: ${newConfig.machineLearning.clip.modelName}. Please check the model name for typos and confirm this is a supported model.`,
       );
+    }
+
+    // A new model empties smart_search (below, in init).
+    if (
+      oldConfig &&
+      oldConfig.machineLearning.clip.modelName !== newConfig.machineLearning.clip.modelName &&
+      !(await this.databaseRepository.canResetVectors('smart_search'))
+    ) {
+      throw new Error(`Changing the CLIP model is ${VECTOR_RESET_REFUSED}`);
     }
   }
 
@@ -45,6 +54,15 @@ export class SmartInfoService extends BaseService {
         oldConfig && oldConfig.machineLearning.clip.modelName !== newConfig.machineLearning.clip.modelName;
       const dimSizeChange = dbDimSize !== dimSize;
       if (!modelChange && !dimSizeChange) {
+        return;
+      }
+
+      // Also reached at start, after a model change in a config file.
+      if (!(await this.databaseRepository.canResetVectors('smart_search'))) {
+        this.logger.error(
+          `CLIP model ${newConfig.machineLearning.clip.modelName} (dimension ${dimSize}) doesn't match the search ` +
+            `vectors in the database (dimension ${dbDimSize}); not emptying smart_search: ${VECTOR_RESET_REFUSED}`,
+        );
         return;
       }
 
@@ -68,6 +86,11 @@ export class SmartInfoService extends BaseService {
   async handleQueueEncodeClip({ force }: JobOf<JobName.SmartSearchQueueAll>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isSmartSearchEnabled(machineLearning)) {
+      return JobStatus.Skipped;
+    }
+
+    if (force && !(await this.databaseRepository.canResetVectors('smart_search'))) {
+      this.logger.error(`Smart Search "All" ${VECTOR_RESET_REFUSED}`);
       return JobStatus.Skipped;
     }
 

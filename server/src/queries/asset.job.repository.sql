@@ -274,6 +274,14 @@ where
     where
       "assetId" = "asset"."id"
   )
+  and not exists (
+    select
+      1
+    from
+      vector_archive.users
+    where
+      "userId" = "asset"."ownerId"
+  )
 
 -- AssetJobRepository.getForClipEncoding
 select

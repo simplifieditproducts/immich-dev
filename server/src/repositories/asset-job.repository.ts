@@ -187,7 +187,12 @@ export class AssetJobRepository {
     return this.assetsWithPreviews()
       .select(['asset.id'])
       .$if(!force, (qb) =>
-        qb.where((eb) => eb.not((eb) => eb.exists(eb.selectFrom('smart_search').whereRef('assetId', '=', 'asset.id')))),
+        qb
+          .where((eb) => eb.not((eb) => eb.exists(eb.selectFrom('smart_search').whereRef('assetId', '=', 'asset.id'))))
+          // Archived users' photos have no smart_search rows on purpose
+          // (immich-devops' vector-archive.py); they get theirs back when
+          // they return.
+          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
       )
       .stream();
   }

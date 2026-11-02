@@ -14,6 +14,7 @@ export const newDatabaseRepositoryMock = (): Mocked<RepositoryInterface<Database
     dropExtension: vitest.fn(),
     updateVectorExtension: vitest.fn(),
     reindexVectorsIfNeeded: vitest.fn(),
+    canResetVectors: vitest.fn().mockResolvedValue(true),
     getDimensionSize: vitest.fn(),
     setDimensionSize: vitest.fn(),
     deleteAllSearchEmbeddings: vitest.fn(),
