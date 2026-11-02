@@ -22,7 +22,8 @@
 
   let { queues }: Props = $props();
   const featureFlags = featureFlagsManager.value;
-  // "All" and "Refresh" of the vector queues are turned off on a large server.
+  // "All" and "Refresh" of the vector queues are turned off on a large server,
+  // or while users' vectors are archived (immich-devops' vector-archive.py).
   const smartSearchLocked = featureFlags.smartSearchResetAllowed ? undefined : $t('admin.vector_reset_locked');
   const faceLocked = featureFlags.faceResetAllowed ? undefined : $t('admin.vector_reset_locked');
 
