@@ -286,7 +286,7 @@ The city value must match a valid entry in the cities500 dataset. All fields are
     },
     clip: {
       enabled: true,
-      modelName: 'ViT-B-32__openai',
+      modelName: 'ViT-B-32__openai', // fork: pinned, a new default would switch models silently (CLAUDE.md)
     },
     duplicateDetection: {
       enabled: true,
@@ -294,7 +294,7 @@ The city value must match a valid entry in the cities500 dataset. All fields are
     },
     facialRecognition: {
       enabled: true,
-      modelName: 'buffalo_l',
+      modelName: 'buffalo_l', // fork: pinned, a new default would switch models silently (CLAUDE.md)
       minScore: 0.7,
       maxDistance: 0.5,
       minFaces: 3,
