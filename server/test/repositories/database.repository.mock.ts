@@ -16,6 +16,7 @@ export const newDatabaseRepositoryMock = (): Mocked<RepositoryInterface<Database
     reindexVectorsIfNeeded: vitest.fn(),
     canResetVectors: vitest.fn().mockResolvedValue(true),
     canResetVectorsCached: vitest.fn().mockResolvedValue({ smart_search: true, face_search: true }),
+    canResetVectorsWithin: vitest.fn(),
     hasArchivedVectorUsers: vitest.fn().mockResolvedValue(false),
     countVectorsUpTo: vitest.fn().mockResolvedValue(0),
     getDimensionSize: vitest.fn(),

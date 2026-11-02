@@ -57,10 +57,12 @@ export interface GetAllFacesOptions {
   assetId?: string;
   sourceType?: SourceType;
   ownerIds?: string[];
-  // Leave out the faces of users whose vectors immich-devops'
-  // vector-archive.py has archived: they have no face_search rows until the
-  // user returns, so their recognition jobs could only fail.
-  skipArchivedOwners?: boolean;
+  // Only faces Facial Recognition can work on: with an embedding, of a user
+  // whose vectors immich-devops' vector-archive.py hasn't archived. Any other
+  // face's job could only fail ("does not have an embedding"): archived
+  // users have no face_search rows until they return, nor do faces kept
+  // after a model change.
+  recognizable?: boolean;
 }
 
 export type UnassignFacesOptions = DeleteFacesOptions;
@@ -128,8 +130,10 @@ export class PersonRepository {
       .$if(!!options.sourceType, (qb) => qb.where('asset_face.sourceType', '=', options.sourceType!))
       .$if(!!options.assetId, (qb) => qb.where('asset_face.assetId', '=', options.assetId!))
       .$if(!!options.ownerIds && options.ownerIds.length > 0, (qb) => qb.where('asset.ownerId', 'in', options.ownerIds!))
-      .$if(!!options.skipArchivedOwners, (qb) =>
-        qb.where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
+      .$if(!!options.recognizable, (qb) =>
+        qb
+          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`)
+          .where((eb) => eb.exists(eb.selectFrom('face_search').whereRef('face_search.faceId', '=', 'asset_face.id'))),
       )
       .where('asset_face.deletedAt', 'is', null)
       .stream();

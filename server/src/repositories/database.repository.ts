@@ -142,9 +142,10 @@ export class DatabaseRepository {
     }
 
     // An update drops both vector indexes and rebuilds them, hours of work on
-    // a large table. Refused before anything is dropped: the installed
-    // version keeps working, and the update is done by hand in a maintenance
-    // window.
+    // a large table. Refused before anything is dropped, which is all this
+    // can do: a new image already runs the new library against the old
+    // catalog. Images with another VectorChord are pinned and changed by hand
+    // in a maintenance window (immich-devops docs/vector-index-capacity.md).
     for (const table of ['smart_search', 'face_search'] as const) {
       if (!(await this.canResetVectors(table))) {
         this.logger.error(
@@ -326,57 +327,76 @@ export class DatabaseRepository {
    * while the table is small and no user's vectors are archived (a reset
    * would recompute them, and their archived vectors would no longer fit).
    */
-  async canResetVectors(table: 'smart_search' | 'face_search'): Promise<boolean> {
+  async canResetVectors(table: 'smart_search' | 'face_search', db: Kysely<DB> = this.db): Promise<boolean> {
     if (this.configRepository.getEnv().database.allowVectorReset) {
       return true;
     }
-    if (await this.hasArchivedVectorUsers()) {
+    if (await this.hasArchivedVectorUsers(db)) {
       return false;
     }
-    return (await this.countVectorsUpTo(table, VECTOR_RESET_MAX_ROWS)) < VECTOR_RESET_MAX_ROWS;
+    return (await this.countVectorsUpTo(table, VECTOR_RESET_MAX_ROWS, db)) < VECTOR_RESET_MAX_ROWS;
   }
 
-  private vectorResetCache?: { at: number; value: Record<'smart_search' | 'face_search', boolean> };
+  private vectorResetCache?: { until: number; value: Record<'smart_search' | 'face_search', boolean> };
 
   /**
    * canResetVectors for both tables, at most 10 minutes old: for the web UI,
    * which greys out what the guards would refuse. The guards themselves
-   * always ask afresh.
+   * always ask afresh. It backs /server/features, which every client loads
+   * at start, so it never fails or waits long: on an error or a lock it
+   * says no (greyed out) and asks again 30 seconds later.
    */
   async canResetVectorsCached(): Promise<Record<'smart_search' | 'face_search', boolean>> {
-    if (!this.vectorResetCache || Date.now() - this.vectorResetCache.at > 10 * 60 * 1000) {
-      const value = {
-        smart_search: await this.canResetVectors('smart_search'),
-        face_search: await this.canResetVectors('face_search'),
-      };
-      this.vectorResetCache = { at: Date.now(), value };
+    if (!this.vectorResetCache || Date.now() > this.vectorResetCache.until) {
+      try {
+        const value = await this.canResetVectorsWithin('2s');
+        this.vectorResetCache = { until: Date.now() + 10 * 60 * 1000, value };
+      } catch (error) {
+        this.logger.warn(`Could not check whether the vector tables may be reset, treating them as locked: ${error}`);
+        this.vectorResetCache = { until: Date.now() + 30 * 1000, value: { smart_search: false, face_search: false } };
+      }
     }
     return this.vectorResetCache.value;
   }
 
+  /** canResetVectors for both tables, waiting at most lockTimeout for a lock. */
+  async canResetVectorsWithin(lockTimeout: string): Promise<Record<'smart_search' | 'face_search', boolean>> {
+    return this.db.transaction().execute(async (trx) => {
+      await sql`SELECT set_config('lock_timeout', ${lockTimeout}, true)`.execute(trx);
+      return {
+        smart_search: await this.canResetVectors('smart_search', trx),
+        face_search: await this.canResetVectors('face_search', trx),
+      };
+    });
+  }
+
   /** Whether immich-devops' vector-archive.py lists any user as archived. */
-  async hasArchivedVectorUsers(): Promise<boolean> {
+  async hasArchivedVectorUsers(db: Kysely<DB> = this.db): Promise<boolean> {
     // The table comes from a migration, but this can run before migrations
     // (the vector index checks at start).
     const { rows: found } = await sql<{ name: string | null }>`
       SELECT to_regclass('vector_archive.users')::text AS name
-    `.execute(this.db);
+    `.execute(db);
     if (!found[0].name) {
       return false;
     }
     const { rows } = await sql<{ archived: boolean }>`
       SELECT exists (SELECT 1 FROM vector_archive.users) AS archived
-    `.execute(this.db);
+    `.execute(db);
     return rows[0].archived;
   }
 
   /** The table's row count, counted up to max only (cheap on big tables). */
-  async countVectorsUpTo(table: 'smart_search' | 'face_search', max: number): Promise<number> {
+  async countVectorsUpTo(
+    table: 'smart_search' | 'face_search',
+    max: number,
+    db: Kysely<DB> = this.db,
+  ): Promise<number> {
     // Not pg_class.reltuples: CREATE INDEX CONCURRENTLY with vchordrq has
     // left it at 0 on a table of 39M rows.
     const { rows } = await sql<{ count: number }>`
       SELECT count(*)::int AS count FROM (SELECT 1 FROM ${sql.table(table)} LIMIT ${max}) t
-    `.execute(this.db);
+    `.execute(db);
     return rows[0].count;
   }
 

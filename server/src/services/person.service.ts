@@ -460,13 +460,13 @@ export class PersonService extends BaseService {
         personId: null, 
         sourceType: SourceType.MachineLearning,
         ownerIds,
-        skipArchivedOwners: true,
+        recognizable: true,
       });
     } else {
       facePagination = this.personRepository.getAllFaces(
         force
-          ? { skipArchivedOwners: true }
-          : { personId: null, sourceType: SourceType.MachineLearning, skipArchivedOwners: true },
+          ? { recognizable: true }
+          : { personId: null, sourceType: SourceType.MachineLearning, recognizable: true },
       );
     }
 

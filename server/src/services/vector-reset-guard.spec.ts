@@ -186,13 +186,13 @@ describe('vector reset guard', () => {
     });
 
     it.each([
-      ['"Missing"', {}, { personId: null, sourceType: 'machine-learning', skipArchivedOwners: true }],
+      ['"Missing"', {}, { personId: null, sourceType: 'machine-learning', recognizable: true }],
       [
         'one user',
         { ownerId: 'u1' },
-        { personId: null, sourceType: 'machine-learning', ownerIds: ['u1'], skipArchivedOwners: true },
+        { personId: null, sourceType: 'machine-learning', ownerIds: ['u1'], recognizable: true },
       ],
-      ['"All"', { force: true }, { skipArchivedOwners: true }],
+      ['"All"', { force: true }, { recognizable: true }],
     ])('Facial Recognition %s leaves out archived users', async (_, data, expected) => {
       const sut = setup(PersonService, true);
       (sut as any).handlePersonCleanup = vitest.fn();
@@ -240,9 +240,19 @@ describe('vector reset guard', () => {
 
     it('is cached for the web UI', async () => {
       const sut = repo(false, false, 100_000);
-      await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: false });
+      sut.canResetVectorsWithin = vitest.fn().mockResolvedValue({ smart_search: false, face_search: true });
+      await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: true });
       await sut.canResetVectorsCached();
-      expect(sut.countVectorsUpTo).toHaveBeenCalledTimes(2);
+      expect(sut.canResetVectorsWithin).toHaveBeenCalledTimes(1);
+      expect(sut.canResetVectorsWithin).toHaveBeenCalledWith('2s');
+    });
+
+    it('says no for the web UI when the check fails (an error or a lock)', async () => {
+      const sut = repo(false, false, 0);
+      sut.logger = { warn: vitest.fn() };
+      sut.canResetVectorsWithin = vitest.fn().mockRejectedValue(new Error('canceling statement due to lock timeout'));
+      await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: false });
+      expect(sut.logger.warn).toHaveBeenCalled();
     });
   });
 });
