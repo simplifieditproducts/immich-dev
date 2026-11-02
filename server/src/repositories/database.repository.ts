@@ -462,12 +462,13 @@ export class DatabaseRepository {
    * Puts a user's archived vectors back and takes them off the registry, in
    * one transaction under vector-archive.py's lock for that user; null when
    * they were no longer archived (restored meanwhile). A kind given as null
-   * isn't loaded (its model changed). Rows whose photo or face is gone are
+   * isn't loaded (its model changed); the others are read as they are
+   * written, 500 rows at a time. Rows whose photo or face is gone are
    * skipped, as are rows already there.
    */
   async restoreArchivedVectors(
     userId: string,
-    vectors: Record<'clip' | 'face', ArchivedVector[] | null>,
+    vectors: Record<'clip' | 'face', AsyncIterable<ArchivedVector> | null>,
   ): Promise<Record<'clip' | 'face', number> | null> {
     return this.db.transaction().execute(async (trx) => {
       await sql`SELECT set_config('lock_timeout', '60s', true)`.execute(trx);
@@ -479,29 +480,40 @@ export class DatabaseRepository {
 
       const restored = { clip: 0, face: 0 };
       for (const kind of ['clip', 'face'] as const) {
-        const rows = vectors[kind] ?? [];
-        for (let i = 0; i < rows.length; i += VECTOR_RESTORE_BATCH) {
-          const batch = rows.slice(i, i + VECTOR_RESTORE_BATCH);
-          const v = sql`unnest(
-            ARRAY[${sql.join(batch.map(({ id }) => id))}]::uuid[],
-            ARRAY[${sql.join(batch.map(({ embedding }) => embedding))}]::text[]
-          ) v (id, embedding)`;
-          const insert =
-            kind === 'clip'
-              ? sql`INSERT INTO smart_search ("assetId", embedding)
-                  SELECT v.id, v.embedding::vector FROM ${v} JOIN asset ON asset.id = v.id`
-              : sql`INSERT INTO face_search ("faceId", embedding)
-                  SELECT v.id, v.embedding::vector FROM ${v} JOIN asset_face ON asset_face.id = v.id`;
-          const { rows: done } = await sql<{ count: number }>`
-            WITH i AS (${insert} ON CONFLICT DO NOTHING RETURNING 1) SELECT count(*)::int AS count FROM i
-          `.execute(trx);
-          restored[kind] += done[0].count;
+        let batch: ArchivedVector[] = [];
+        for await (const row of vectors[kind] ?? []) {
+          batch.push(row);
+          if (batch.length === VECTOR_RESTORE_BATCH) {
+            restored[kind] += await this.insertArchivedVectors(trx, kind, batch);
+            batch = [];
+          }
         }
+        restored[kind] += await this.insertArchivedVectors(trx, kind, batch);
       }
 
       await sql`DELETE FROM vector_archive.users WHERE "userId" = ${userId}`.execute(trx);
       return restored;
     });
+  }
+
+  private async insertArchivedVectors(trx: Kysely<DB>, kind: 'clip' | 'face', rows: ArchivedVector[]): Promise<number> {
+    if (rows.length === 0) {
+      return 0;
+    }
+    const v = sql`unnest(
+      ARRAY[${sql.join(rows.map(({ id }) => id))}]::uuid[],
+      ARRAY[${sql.join(rows.map(({ embedding }) => embedding))}]::text[]
+    ) v (id, embedding)`;
+    const insert =
+      kind === 'clip'
+        ? sql`INSERT INTO smart_search ("assetId", embedding)
+            SELECT v.id, v.embedding::vector FROM ${v} JOIN asset ON asset.id = v.id`
+        : sql`INSERT INTO face_search ("faceId", embedding)
+            SELECT v.id, v.embedding::vector FROM ${v} JOIN asset_face ON asset_face.id = v.id`;
+    const { rows: done } = await sql<{ count: number }>`
+      WITH i AS (${insert} ON CONFLICT DO NOTHING RETURNING 1) SELECT count(*)::int AS count FROM i
+    `.execute(trx);
+    return done[0].count;
   }
 
   /** The table's row count, counted up to max only (cheap on big tables). */

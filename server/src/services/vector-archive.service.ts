@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
-import { zstdDecompress } from 'node:zlib';
+import { pipeline } from 'node:stream';
+import { createZstdDecompress } from 'node:zlib';
 import { VECTOR_ARCHIVE_LEGACY_MODELS } from 'src/constants';
 import { StorageCore } from 'src/cores/storage.core';
 import { OnJob } from 'src/decorators';
@@ -11,45 +11,62 @@ import { ArchivedVector } from 'src/repositories/database.repository';
 import { BaseService } from 'src/services/base.service';
 import { JobOf } from 'src/types';
 
-const unzstd = promisify(zstdDecompress);
 const COPY_SIGNATURE = Buffer.from([0x50, 0x47, 0x43, 0x4f, 0x50, 0x59, 0x0a, 0xff, 0x0d, 0x0a, 0x00]);
+// Field count, uuid length, uuid, vector length: the part of a row before the vector.
+const ROW_HEAD = 2 + 4 + 16 + 4;
 
 /**
- * The rows of one of vector-archive.py's files once unpacked: a binary COPY
- * of (uuid, vector), the vector in pgvector's binary form (dimension, unused,
+ * The rows of one of vector-archive.py's files as they are unpacked, a few
+ * at a time (the largest files hold 80,000 rows): a binary COPY of
+ * (uuid, vector), the vector in pgvector's binary form (dimension, unused,
  * then the floats), each written back as text.
  */
-export const parseVectorCopy = (buffer: Buffer): ArchivedVector[] => {
-  if (buffer.length < 19 || !buffer.subarray(0, 11).equals(COPY_SIGNATURE)) {
-    throw new Error('not a binary COPY file');
+export async function* readVectorCopy(chunks: AsyncIterable<Buffer>): AsyncGenerator<ArchivedVector> {
+  let buffer: Buffer = Buffer.alloc(0);
+  let headerRead = false;
+  for await (const chunk of chunks) {
+    buffer = buffer.length > 0 ? Buffer.concat([buffer, chunk]) : chunk;
+    let offset = 0;
+    if (!headerRead) {
+      if (buffer.length >= 11 && !buffer.subarray(0, 11).equals(COPY_SIGNATURE)) {
+        throw new Error('not a binary COPY file');
+      }
+      if (buffer.length < 19) {
+        continue;
+      }
+      offset = 19 + buffer.readInt32BE(15);
+      if (buffer.length < offset) {
+        continue;
+      }
+      headerRead = true;
+    }
+    for (;;) {
+      if (buffer.length - offset >= 2 && buffer.readInt16BE(offset) === -1) {
+        return;
+      }
+      if (buffer.length - offset < ROW_HEAD) {
+        break;
+      }
+      const length = buffer.readInt32BE(offset + 22);
+      if (buffer.length - offset < ROW_HEAD + length) {
+        break;
+      }
+      const dimensions = buffer.readUInt16BE(offset + ROW_HEAD);
+      if (buffer.readInt16BE(offset) !== 2 || buffer.readInt32BE(offset + 2) !== 16 || length !== 4 + 4 * dimensions) {
+        throw new Error('unexpected row in a binary COPY file');
+      }
+      const hex = buffer.toString('hex', offset + 6, offset + 22);
+      const values = Array.from({ length: dimensions }, (_, i) => buffer.readFloatBE(offset + ROW_HEAD + 4 + 4 * i));
+      offset += ROW_HEAD + length;
+      yield {
+        id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
+        embedding: `[${values.join(',')}]`,
+      };
+    }
+    buffer = buffer.subarray(offset);
   }
-  let offset = 15;
-  offset += 4 + buffer.readInt32BE(offset);
-  const rows: ArchivedVector[] = [];
-  for (;;) {
-    const fields = buffer.readInt16BE(offset);
-    offset += 2;
-    if (fields === -1) {
-      return rows;
-    }
-    if (fields !== 2 || buffer.readInt32BE(offset) !== 16) {
-      throw new Error(`unexpected row at byte ${offset}`);
-    }
-    const hex = buffer.toString('hex', offset + 4, offset + 20);
-    offset += 20;
-    const length = buffer.readInt32BE(offset);
-    const dimensions = buffer.readUInt16BE(offset + 4);
-    if (length !== 4 + 4 * dimensions) {
-      throw new Error(`unexpected vector at byte ${offset}`);
-    }
-    const values = Array.from({ length: dimensions }, (_, i) => buffer.readFloatBE(offset + 8 + 4 * i));
-    offset += 4 + length;
-    rows.push({
-      id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
-      embedding: `[${values.join(',')}]`,
-    });
-  }
-};
+  throw new Error(headerRead ? 'a binary COPY file that ends before its last row' : 'not a binary COPY file');
+}
 
 // immich-devops' scripts/vector-archive.py moves idle free users' search and
 // face vectors to files (docs/vector-index-capacity.md). This puts them back
@@ -69,15 +86,15 @@ export class VectorArchiveService extends BaseService {
     const { machineLearning } = await this.getConfig({ withCache: false });
     const models = { clip: machineLearning.clip.modelName, face: machineLearning.facialRecognition.modelName };
     const base = join(StorageCore.getMediaLocation(), 'vector-archive', id.slice(0, 2), id);
-    const vectors: Record<'clip' | 'face', ArchivedVector[] | null> = { clip: null, face: null };
+    // Read while they are written back (in the transaction, after it has
+    // checked the user is still archived), so memory stays a few MB.
+    const vectors: Record<'clip' | 'face', AsyncIterable<ArchivedVector> | null> = { clip: null, face: null };
     const skipped: string[] = [];
     for (const kind of ['clip', 'face'] as const) {
       const saved = archived[`${kind}Model`];
       const model = saved === 'default' ? VECTOR_ARCHIVE_LEGACY_MODELS[kind] : saved;
       if (model === models[kind]) {
-        vectors[kind] = parseVectorCopy(
-          await unzstd(await this.storageRepository.readWholeFile(`${base}.${kind}.bin.zst`)),
-        );
+        vectors[kind] = readVectorCopy(this.unpack(`${base}.${kind}.bin.zst`));
       } else {
         skipped.push(`${kind} (${model} -> ${models[kind]})`);
       }
@@ -107,5 +124,12 @@ export class VectorArchiveService extends BaseService {
       );
     }
     return JobStatus.Success;
+  }
+
+  /** A zstd file's content, chunk by chunk; opened on the first read. */
+  private async *unpack(path: string): AsyncGenerator<Buffer> {
+    const { stream } = await this.storageRepository.createReadStream(path);
+    // A read or zstd error ends the iteration with it; nothing to do here.
+    yield* pipeline(stream, createZstdDecompress(), () => {});
   }
 }

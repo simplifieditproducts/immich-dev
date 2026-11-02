@@ -117,11 +117,6 @@ export class StorageRepository {
     }
   }
 
-  /** All of the file: readFile above reads only as much as its buffer holds (16 KiB by default). */
-  readWholeFile(filepath: string): Promise<Buffer> {
-    return fs.readFile(filepath);
-  }
-
   async readTextFile(filepath: string): Promise<string> {
     return fs.readFile(filepath, 'utf8');
   }

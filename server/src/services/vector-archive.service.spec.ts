@@ -1,9 +1,10 @@
+import { Readable } from 'node:stream';
 import { zstdCompressSync } from 'node:zlib';
 import { StorageCore } from 'src/cores/storage.core';
 import { JobName, JobStatus } from 'src/enum';
 import { AuthService } from 'src/services/auth.service';
 import { DuplicateService } from 'src/services/duplicate.service';
-import { parseVectorCopy, VectorArchiveService } from 'src/services/vector-archive.service';
+import { readVectorCopy, VectorArchiveService } from 'src/services/vector-archive.service';
 import { describe, expect, it, vitest } from 'vitest';
 
 // The restore of immich-devops' vector archive at login (VectorArchiveService)
@@ -40,6 +41,14 @@ const machineLearning = {
 
 const RESTORED = { clip: 1, face: 1 };
 
+const toArray = async <T>(rows: AsyncIterable<T>) => {
+  const all: T[] = [];
+  for await (const row of rows) {
+    all.push(row);
+  }
+  return all;
+};
+
 const restoreService = (archived?: object, restored: object | null = RESTORED) => {
   StorageCore.setMediaLocation('/usr/src/app/upload');
   const sut = Object.create(VectorArchiveService.prototype) as any;
@@ -47,20 +56,22 @@ const restoreService = (archived?: object, restored: object | null = RESTORED) =
   sut.getConfig = vitest.fn().mockResolvedValue({ machineLearning });
   sut.databaseRepository = {
     getArchivedVectorUser: vitest.fn().mockResolvedValue(archived),
-    restoreArchivedVectors: vitest.fn().mockResolvedValue(restored),
+    // Reads what it is given, as the real one does in its transaction.
+    restoreArchivedVectors: vitest.fn().mockImplementation(async (_: string, vectors: Record<string, any>) => {
+      sut.written = {
+        clip: vectors.clip && (await toArray(vectors.clip)),
+        face: vectors.face && (await toArray(vectors.face)),
+      };
+      return restored;
+    }),
   };
   sut.storageRepository = {
-    readWholeFile: vitest
-      .fn()
-      .mockImplementation((path: string) =>
-        Promise.resolve(
-          zstdCompressSync(
-            path.endsWith('.clip.bin.zst')
-              ? copyOf([{ id: ASSET, values: [1, 2.5] }])
-              : copyOf([{ id: FACE, values: [-3] }]),
-          ),
-        ),
-      ),
+    createReadStream: vitest.fn().mockImplementation((path: string) => {
+      const copy = path.endsWith('.clip.bin.zst')
+        ? copyOf([{ id: ASSET, values: [1, 2.5] }])
+        : copyOf([{ id: FACE, values: [-3] }]);
+      return Promise.resolve({ stream: Readable.from([zstdCompressSync(copy)]) });
+    }),
     rename: vitest.fn(),
   };
   return sut;
@@ -84,29 +95,38 @@ const login = (archived: boolean | Error) => {
 };
 
 describe('vector archive restore', () => {
-  it('reads a binary COPY of (uuid, vector)', () => {
-    expect(
-      parseVectorCopy(
-        copyOf([
-          { id: ASSET, values: [1, 2.5, -3] },
-          { id: FACE, values: [0.5] },
-        ]),
-      ),
-    ).toEqual([
+  it('reads a binary COPY of (uuid, vector), however it is cut into chunks', async () => {
+    const copy = copyOf([
+      { id: ASSET, values: [1, 2.5, -3] },
+      { id: FACE, values: [0.5] },
+    ]);
+    const rows = [
       { id: ASSET, embedding: '[1,2.5,-3]' },
       { id: FACE, embedding: '[0.5]' },
-    ]);
-    expect(() => parseVectorCopy(Buffer.from('not a copy at all'))).toThrow('not a binary COPY file');
+    ];
+    await expect(toArray(readVectorCopy(Readable.from([copy])))).resolves.toEqual(rows);
+    const bytes = [...copy].map((byte) => Buffer.from([byte]));
+    await expect(toArray(readVectorCopy(Readable.from(bytes)))).resolves.toEqual(rows);
+  });
+
+  it('refuses what is not a whole binary COPY', async () => {
+    await expect(toArray(readVectorCopy(Readable.from([Buffer.from('not a copy at all')])))).rejects.toThrow(
+      'not a binary COPY file',
+    );
+    const copy = copyOf([{ id: ASSET, values: [1, 2.5] }]);
+    await expect(toArray(readVectorCopy(Readable.from([copy.subarray(0, -5)])))).rejects.toThrow(
+      'ends before its last row',
+    );
   });
 
   it('puts back both kinds, then renames the files', async () => {
     const sut = restoreService(archivedUser);
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Success);
-    expect(sut.storageRepository.readWholeFile).toHaveBeenCalledWith(
+    expect(sut.storageRepository.createReadStream).toHaveBeenCalledWith(
       `/usr/src/app/upload/vector-archive/b1/${USER}.clip.bin.zst`,
     );
     // 'default' in the registry is buffalo_l, the face model in use.
-    expect(sut.databaseRepository.restoreArchivedVectors).toHaveBeenCalledWith(USER, {
+    expect(sut.written).toEqual({
       clip: [{ id: ASSET, embedding: '[1,2.5]' }],
       face: [{ id: FACE, embedding: '[-3]' }],
     });
@@ -120,18 +140,15 @@ describe('vector archive restore', () => {
   it('leaves out the vectors of a model no longer in use', async () => {
     const sut = restoreService({ ...archivedUser, faceModel: 'antelopev2' });
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Success);
-    expect(sut.storageRepository.readWholeFile).toHaveBeenCalledTimes(1);
-    expect(sut.databaseRepository.restoreArchivedVectors).toHaveBeenCalledWith(USER, {
-      clip: [{ id: ASSET, embedding: '[1,2.5]' }],
-      face: null,
-    });
+    expect(sut.storageRepository.createReadStream).toHaveBeenCalledTimes(1);
+    expect(sut.written).toEqual({ clip: [{ id: ASSET, embedding: '[1,2.5]' }], face: null });
     expect(sut.logger.warn).toHaveBeenCalledWith(expect.stringContaining('face (antelopev2 -> buffalo_l)'));
   });
 
   it('skips a user who is not archived', async () => {
     const sut = restoreService();
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Skipped);
-    expect(sut.storageRepository.readWholeFile).not.toHaveBeenCalled();
+    expect(sut.storageRepository.createReadStream).not.toHaveBeenCalled();
   });
 
   it('keeps the files of a user restored meanwhile (the cron)', async () => {
