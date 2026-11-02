@@ -75,7 +75,9 @@ export class VectorArchiveService extends BaseService {
       const saved = archived[`${kind}Model`];
       const model = saved === 'default' ? VECTOR_ARCHIVE_LEGACY_MODELS[kind] : saved;
       if (model === models[kind]) {
-        vectors[kind] = parseVectorCopy(await unzstd(await this.storageRepository.readFile(`${base}.${kind}.bin.zst`)));
+        vectors[kind] = parseVectorCopy(
+          await unzstd(await this.storageRepository.readWholeFile(`${base}.${kind}.bin.zst`)),
+        );
       } else {
         skipped.push(`${kind} (${model} -> ${models[kind]})`);
       }

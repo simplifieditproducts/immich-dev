@@ -50,7 +50,7 @@ const restoreService = (archived?: object, restored: object | null = RESTORED) =
     restoreArchivedVectors: vitest.fn().mockResolvedValue(restored),
   };
   sut.storageRepository = {
-    readFile: vitest
+    readWholeFile: vitest
       .fn()
       .mockImplementation((path: string) =>
         Promise.resolve(
@@ -102,7 +102,7 @@ describe('vector archive restore', () => {
   it('puts back both kinds, then renames the files', async () => {
     const sut = restoreService(archivedUser);
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Success);
-    expect(sut.storageRepository.readFile).toHaveBeenCalledWith(
+    expect(sut.storageRepository.readWholeFile).toHaveBeenCalledWith(
       `/usr/src/app/upload/vector-archive/b1/${USER}.clip.bin.zst`,
     );
     // 'default' in the registry is buffalo_l, the face model in use.
@@ -120,7 +120,7 @@ describe('vector archive restore', () => {
   it('leaves out the vectors of a model no longer in use', async () => {
     const sut = restoreService({ ...archivedUser, faceModel: 'antelopev2' });
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Success);
-    expect(sut.storageRepository.readFile).toHaveBeenCalledTimes(1);
+    expect(sut.storageRepository.readWholeFile).toHaveBeenCalledTimes(1);
     expect(sut.databaseRepository.restoreArchivedVectors).toHaveBeenCalledWith(USER, {
       clip: [{ id: ASSET, embedding: '[1,2.5]' }],
       face: null,
@@ -131,7 +131,7 @@ describe('vector archive restore', () => {
   it('skips a user who is not archived', async () => {
     const sut = restoreService();
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Skipped);
-    expect(sut.storageRepository.readFile).not.toHaveBeenCalled();
+    expect(sut.storageRepository.readWholeFile).not.toHaveBeenCalled();
   });
 
   it('keeps the files of a user restored meanwhile (the cron)', async () => {
