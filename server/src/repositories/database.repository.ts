@@ -338,22 +338,36 @@ export class DatabaseRepository {
   }
 
   private vectorResetCache?: { until: number; value: Record<'smart_search' | 'face_search', boolean> };
+  private vectorResetCheck?: Promise<Record<'smart_search' | 'face_search', boolean>>;
 
   /**
    * canResetVectors for both tables, at most 10 minutes old: for the web UI,
    * which greys out what the guards would refuse. The guards themselves
    * always ask afresh. It backs /server/features, which every client loads
-   * at start, so it never fails or waits long: on an error or a lock it
-   * says no (greyed out) and asks again 30 seconds later.
+   * at start, so it never fails or waits long: on an error, a lock or after
+   * 3 seconds it says no (greyed out) and asks again 30 seconds later. One
+   * check at a time, and one that never ends (postgres.js reserve(),
+   * immich-dev#9) isn't started again.
    */
   async canResetVectorsCached(): Promise<Record<'smart_search' | 'face_search', boolean>> {
     if (!this.vectorResetCache || Date.now() > this.vectorResetCache.until) {
+      this.vectorResetCheck ??= this.canResetVectorsWithin('2s').finally(() => {
+        this.vectorResetCheck = undefined;
+      });
+      let timer: NodeJS.Timeout | undefined;
       try {
-        const value = await this.canResetVectorsWithin('2s');
+        const value = await Promise.race([
+          this.vectorResetCheck,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('timed out after 3s')), 3000);
+          }),
+        ]);
         this.vectorResetCache = { until: Date.now() + 10 * 60 * 1000, value };
       } catch (error) {
         this.logger.warn(`Could not check whether the vector tables may be reset, treating them as locked: ${error}`);
         this.vectorResetCache = { until: Date.now() + 30 * 1000, value: { smart_search: false, face_search: false } };
+      } finally {
+        clearTimeout(timer);
       }
     }
     return this.vectorResetCache.value;

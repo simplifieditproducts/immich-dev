@@ -247,6 +247,25 @@ describe('vector reset guard', () => {
       expect(sut.canResetVectorsWithin).toHaveBeenCalledWith('2s');
     });
 
+    it('says no for the web UI after 3 seconds, and never starts a second check while one hangs', async () => {
+      vitest.useFakeTimers();
+      try {
+        const sut = repo(false, false, 0);
+        sut.logger = { warn: vitest.fn() };
+        sut.canResetVectorsWithin = vitest.fn().mockReturnValue(new Promise(() => {}));
+        const first = sut.canResetVectorsCached();
+        await vitest.advanceTimersByTimeAsync(3000);
+        await expect(first).resolves.toEqual({ smart_search: false, face_search: false });
+        await vitest.advanceTimersByTimeAsync(31_000);
+        const second = sut.canResetVectorsCached();
+        await vitest.advanceTimersByTimeAsync(3000);
+        await expect(second).resolves.toEqual({ smart_search: false, face_search: false });
+        expect(sut.canResetVectorsWithin).toHaveBeenCalledTimes(1);
+      } finally {
+        vitest.useRealTimers();
+      }
+    });
+
     it('says no for the web UI when the check fails (an error or a lock)', async () => {
       const sut = repo(false, false, 0);
       sut.logger = { warn: vitest.fn() };
