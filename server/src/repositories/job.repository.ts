@@ -175,9 +175,9 @@ export class JobRepository {
         options: this.getJobOptions(item) || undefined,
       } as JobItem & { data: any; options: JobsOptions | undefined };
 
-      // add() for jobId deduplication and for a delay: addBulk() reads its
+      // add() for jobId deduplication, a delay or lifo: addBulk() reads its
       // options from `opts`, so `options` there are ignored.
-      if (job.options?.jobId || job.options?.delay) {
+      if (job.options?.jobId || job.options?.delay || job.options?.lifo) {
         promises.push(this.getQueue(queueName).add(item.name, item.data, job.options));
       } else {
         itemsByQueue[queueName] = itemsByQueue[queueName] || [];
@@ -237,8 +237,14 @@ export class JobRepository {
       case JobName.FacialRecognitionQueueAll: {
         return { jobId: JobName.FacialRecognitionQueueAll };
       }
-      case JobName.FacialRecognition: {
+      case JobName.FacialRecognition:
+      case JobName.AssetDetectDuplicates: {
         return item.data.delay ? { delay: item.data.delay } : null;
+      }
+      case JobName.VectorRestore: {
+        // Ahead of what is waiting: the user is back and their searches are
+        // wrong until it runs.
+        return { lifo: true };
       }
       default: {
         return null;

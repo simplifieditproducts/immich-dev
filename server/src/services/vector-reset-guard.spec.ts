@@ -53,7 +53,7 @@ const recognize = (archived: boolean, archivedWaits?: number) => {
     faceSearch: { embedding: '[1,2,3]' },
     asset: { ownerId: 'user-1' },
   });
-  sut.databaseRepository.hasArchivedFaces = vitest.fn().mockResolvedValue(archived);
+  sut.databaseRepository.hasArchivedVectors = vitest.fn().mockResolvedValue(archived);
   sut.redisRepository = { tryAcquireLock: vitest.fn().mockResolvedValue(false) };
   return { sut, result: sut.handleRecognizeFaces({ id: 'face-1', archivedWaits }) };
 };
@@ -303,19 +303,19 @@ describe('vector reset guard', () => {
   });
 
   describe('Facial Recognition while the owner is archived', () => {
-    it('waits 5 minutes for the restore instead of starting a new person', async () => {
+    it('waits a minute for the restore instead of starting a new person', async () => {
       const { sut, result } = recognize(true);
       await expect(result).resolves.toBe(JobStatus.Skipped);
-      expect(sut.databaseRepository.hasArchivedFaces).toHaveBeenCalledWith('user-1');
+      expect(sut.databaseRepository.hasArchivedVectors).toHaveBeenCalledWith('user-1', 'face');
       expect(sut.jobRepository.queue).toHaveBeenCalledWith({
         name: JobName.FacialRecognition,
-        data: { id: 'face-1', deferred: undefined, userId: 'user-1', archivedWaits: 1, delay: 300_000 },
+        data: { id: 'face-1', deferred: undefined, userId: 'user-1', archivedWaits: 1, delay: 60_000 },
       });
       expect(sut.redisRepository.tryAcquireLock).not.toHaveBeenCalled();
     });
 
     it('gives up after an hour', async () => {
-      const { sut, result } = recognize(true, 12);
+      const { sut, result } = recognize(true, 60);
       await expect(result).resolves.toBe(JobStatus.Skipped);
       expect(sut.jobRepository.queue).not.toHaveBeenCalled();
       expect(sut.logger.warn).toHaveBeenCalled();

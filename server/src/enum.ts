@@ -629,6 +629,9 @@ export enum JobName {
   UserSyncUsage = 'UserSyncUsage',
 
   PersonCleanup = 'PersonCleanup',
+
+  // immich-devops' vector-archive.py archived this user's vectors; put them back.
+  VectorRestore = 'VectorRestore',
   PersonFileMigration = 'PersonFileMigration',
   PersonGenerateThumbnail = 'PersonGenerateThumbnail',
 

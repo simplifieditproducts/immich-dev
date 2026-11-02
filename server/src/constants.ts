@@ -50,10 +50,18 @@ export const FULL_RERUN_REFUSED =
   'turned off on this server: it would go through every photo and video of every user again (days to weeks ' +
   'of work, with new uploads waiting behind it). See docs/vector-index-capacity.md in immich-devops.';
 
-// Facial Recognition of a face whose owner's vectors are archived waits this
-// long for the restore cron (every 5 minutes), at most this many times.
-export const ARCHIVED_FACE_WAIT_MS = 5 * 60 * 1000;
-export const ARCHIVED_FACE_MAX_WAITS = 12;
+// Facial Recognition and Duplicate Detection of a photo whose owner's vectors
+// are archived wait this long for the restore (VectorRestore at login, or
+// immich-devops' cron every 5 minutes), at most this many times (an hour).
+export const ARCHIVED_WAIT_MS = 60 * 1000;
+export const ARCHIVED_MAX_WAITS = 60;
+
+// The advisory lock class immich-devops' vector-archive.py takes per user
+// (pg_advisory_xact_lock(4180, hashtext(userId))) to archive or restore.
+export const VECTOR_ARCHIVE_LOCK_CLASS = 4180;
+// Registry rows archived before 2026-11-02 say 'default' for a model left at
+// its default: the defaults were these then.
+export const VECTOR_ARCHIVE_LEGACY_MODELS = { clip: 'ViT-B-32__openai', face: 'buffalo_l' };
 
 export const VECTOR_INDEX_TABLES = {
   [VectorIndex.Clip]: 'smart_search',

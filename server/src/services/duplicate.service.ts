@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
+import { ARCHIVED_MAX_WAITS, ARCHIVED_WAIT_MS, JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnJob } from 'src/decorators';
 import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { mapAsset } from 'src/dtos/asset-response.dto';
@@ -61,7 +61,11 @@ export class DuplicateService extends BaseService {
   }
 
   @OnJob({ name: JobName.AssetDetectDuplicates, queue: QueueName.DuplicateDetection })
-  async handleSearchDuplicates({ id, userId }: JobOf<JobName.AssetDetectDuplicates>): Promise<JobStatus> {
+  async handleSearchDuplicates({
+    id,
+    userId,
+    archivedWaits = 0,
+  }: JobOf<JobName.AssetDetectDuplicates>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isDuplicateDetectionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -71,6 +75,21 @@ export class DuplicateService extends BaseService {
     if (!asset) {
       this.logger.error(`Asset ${id} not found`);
       return JobStatus.Failed;
+    }
+
+    // Like Facial Recognition: a returning user's search vectors are archived
+    // until restored, and searched before that, a new photo finds none of
+    // their older ones. It waits for the restore, an hour at most.
+    if (await this.databaseRepository.hasArchivedVectors(asset.ownerId, 'clip')) {
+      if (archivedWaits >= ARCHIVED_MAX_WAITS) {
+        this.logger.warn(`Asset ${id}: its owner's vectors are still archived after an hour, not searching duplicates`);
+        return JobStatus.Skipped;
+      }
+      await this.jobRepository.queue({
+        name: JobName.AssetDetectDuplicates,
+        data: { id, userId: asset.ownerId, archivedWaits: archivedWaits + 1, delay: ARCHIVED_WAIT_MS },
+      });
+      return JobStatus.Skipped;
     }
 
     // Acquire distributed lock for this user to prevent concurrent execution

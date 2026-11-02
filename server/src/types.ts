@@ -360,6 +360,7 @@ export type JobItem =
 
   // Asset Deletion
   | { name: JobName.PersonCleanup; data?: IBaseJob }
+  | { name: JobName.VectorRestore; data: IEntityJob }
   | { name: JobName.AssetDelete; data: IAssetDeleteJob }
   | { name: JobName.AssetDeleteCheck; data?: IBaseJob }
   | { name: JobName.AssetMissingCheckQueueAll; data?: IBaseJob }

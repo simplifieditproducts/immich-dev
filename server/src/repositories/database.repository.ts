@@ -9,6 +9,7 @@ import {
   EXTENSION_NAMES,
   FULL_RERUN_MAX_ASSETS,
   POSTGRES_VERSION_RANGE,
+  VECTOR_ARCHIVE_LOCK_CLASS,
   VECTOR_EXTENSIONS,
   VECTOR_INDEX_TABLES,
   VECTOR_RESET_MAX_ROWS,
@@ -51,6 +52,13 @@ export const probes: Record<VectorIndex, number> = {
   [VectorIndex.Clip]: 1,
   [VectorIndex.Face]: 1,
 };
+
+/** A vector-archive.py registry row. */
+export type ArchivedVectorUser = { clipCount: number; faceCount: number; clipModel: string; faceModel: string };
+/** One archived vector: its photo's or face's id, and the vector as text ('[1,2,3]'). */
+export type ArchivedVector = { id: string; embedding: string };
+// Rows per INSERT when restoring (a 768-dimension vector is about 8 KB as text).
+const VECTOR_RESTORE_BATCH = 500;
 
 /** What the web UI may offer: a vector table reset each, and a rerun of every asset. */
 type ResetChecks = Record<'smart_search' | 'face_search' | 'asset', boolean>;
@@ -427,12 +435,73 @@ export class DatabaseRepository {
     return rows[0].archived;
   }
 
-  /** Whether vector-archive.py holds face vectors of this user (not restored yet). */
-  async hasArchivedFaces(userId: string): Promise<boolean> {
+  /**
+   * Whether vector-archive.py holds this user's vectors (not restored yet):
+   * any, or only when it holds some of that kind.
+   */
+  async hasArchivedVectors(userId: string, kind?: 'clip' | 'face'): Promise<boolean> {
+    const count = kind === 'clip' ? sql`"clipCount"` : sql`"faceCount"`;
     const { rows } = await sql<{ archived: boolean }>`
-      SELECT exists (SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId} AND "faceCount" > 0) AS archived
+      SELECT exists (
+        SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId} ${kind ? sql`AND ${count} > 0` : sql``}
+      ) AS archived
     `.execute(this.db);
     return rows[0].archived;
+  }
+
+  /** The vector-archive.py registry row of a user, if archived. */
+  async getArchivedVectorUser(userId: string): Promise<ArchivedVectorUser | undefined> {
+    const { rows } = await sql<ArchivedVectorUser>`
+      SELECT "clipCount", "faceCount", "clipModel", "faceModel"
+      FROM vector_archive.users WHERE "userId" = ${userId}
+    `.execute(this.db);
+    return rows[0];
+  }
+
+  /**
+   * Puts a user's archived vectors back and takes them off the registry, in
+   * one transaction under vector-archive.py's lock for that user; null when
+   * they were no longer archived (restored meanwhile). A kind given as null
+   * isn't loaded (its model changed). Rows whose photo or face is gone are
+   * skipped, as are rows already there.
+   */
+  async restoreArchivedVectors(
+    userId: string,
+    vectors: Record<'clip' | 'face', ArchivedVector[] | null>,
+  ): Promise<Record<'clip' | 'face', number> | null> {
+    return this.db.transaction().execute(async (trx) => {
+      await sql`SELECT set_config('lock_timeout', '60s', true)`.execute(trx);
+      await sql`SELECT pg_advisory_xact_lock(${VECTOR_ARCHIVE_LOCK_CLASS}, hashtext(${userId}))`.execute(trx);
+      const { rows } = await sql`SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId}`.execute(trx);
+      if (rows.length === 0) {
+        return null;
+      }
+
+      const restored = { clip: 0, face: 0 };
+      for (const kind of ['clip', 'face'] as const) {
+        const rows = vectors[kind] ?? [];
+        for (let i = 0; i < rows.length; i += VECTOR_RESTORE_BATCH) {
+          const batch = rows.slice(i, i + VECTOR_RESTORE_BATCH);
+          const v = sql`unnest(
+            ARRAY[${sql.join(batch.map(({ id }) => id))}]::uuid[],
+            ARRAY[${sql.join(batch.map(({ embedding }) => embedding))}]::text[]
+          ) v (id, embedding)`;
+          const insert =
+            kind === 'clip'
+              ? sql`INSERT INTO smart_search ("assetId", embedding)
+                  SELECT v.id, v.embedding::vector FROM ${v} JOIN asset ON asset.id = v.id`
+              : sql`INSERT INTO face_search ("faceId", embedding)
+                  SELECT v.id, v.embedding::vector FROM ${v} JOIN asset_face ON asset_face.id = v.id`;
+          const { rows: done } = await sql<{ count: number }>`
+            WITH i AS (${insert} ON CONFLICT DO NOTHING RETURNING 1) SELECT count(*)::int AS count FROM i
+          `.execute(trx);
+          restored[kind] += done[0].count;
+        }
+      }
+
+      await sql`DELETE FROM vector_archive.users WHERE "userId" = ${userId}`.execute(trx);
+      return restored;
+    });
   }
 
   /** The table's row count, counted up to max only (cheap on big tables). */

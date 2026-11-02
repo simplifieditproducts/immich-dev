@@ -549,6 +549,17 @@ export class AuthService extends BaseService {
       userId: user.id,
     });
 
+    // A user back after immich-devops' vector-archive.py archived their
+    // vectors gets them back now, not at its next cron run. Never in the way
+    // of the login.
+    try {
+      if (await this.databaseRepository.hasArchivedVectors(user.id)) {
+        await this.jobRepository.queue({ name: JobName.VectorRestore, data: { id: user.id } });
+      }
+    } catch (error) {
+      this.logger.warn(`Could not queue the vector restore of user ${user.id}: ${error}`);
+    }
+
     return mapLoginResponse(user, token);
   }
 

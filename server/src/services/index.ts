@@ -45,6 +45,7 @@ import { TimelineService } from 'src/services/timeline.service';
 import { TrashService } from 'src/services/trash.service';
 import { UserAdminService } from 'src/services/user-admin.service';
 import { UserService } from 'src/services/user.service';
+import { VectorArchiveService } from 'src/services/vector-archive.service';
 import { VersionService } from 'src/services/version.service';
 import { ViewService } from 'src/services/view.service';
 import { WorkflowService } from 'src/services/workflow.service';
@@ -97,6 +98,7 @@ export const services = [
   TrashService,
   UserAdminService,
   UserService,
+  VectorArchiveService,
   VersionService,
   ViewService,
   WorkflowService,
