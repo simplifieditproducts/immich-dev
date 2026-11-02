@@ -223,9 +223,11 @@ export interface ISidecarWriteJob extends IEntityJob {
   tags?: true;
 }
 
-export interface IDeferrableJob extends IEntityJob {
+export interface IDeferrableJob extends IEntityJob, IDelayedJob {
   deferred?: boolean;
   userId?: string;
+  /** How often Facial Recognition has waited for the owner's archived vectors. */
+  archivedWaits?: number;
 }
 
 export interface INightlyJob extends IBaseJob {

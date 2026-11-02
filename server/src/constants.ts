@@ -41,6 +41,11 @@ export const VECTOR_RESET_REFUSED =
   'included (hours of work on the database, with search, faces or duplicates broken or slow meanwhile). ' +
   'See docs/vector-index-capacity.md in immich-devops.';
 
+// Facial Recognition of a face whose owner's vectors are archived waits this
+// long for the restore cron (every 5 minutes), at most this many times.
+export const ARCHIVED_FACE_WAIT_MS = 5 * 60 * 1000;
+export const ARCHIVED_FACE_MAX_WAITS = 12;
+
 export const VECTOR_INDEX_TABLES = {
   [VectorIndex.Clip]: 'smart_search',
   [VectorIndex.Face]: 'face_search',

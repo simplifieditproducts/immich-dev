@@ -236,6 +236,9 @@ export class JobRepository {
       case JobName.FacialRecognitionQueueAll: {
         return { jobId: JobName.FacialRecognitionQueueAll };
       }
+      case JobName.FacialRecognition: {
+        return item.data.delay ? { delay: item.data.delay } : null;
+      }
       default: {
         return null;
       }

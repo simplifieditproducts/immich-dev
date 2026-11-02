@@ -402,6 +402,14 @@ export class DatabaseRepository {
     return rows[0].archived;
   }
 
+  /** Whether vector-archive.py holds this user's vectors (not restored yet). */
+  async isUserVectorArchived(userId: string): Promise<boolean> {
+    const { rows } = await sql<{ archived: boolean }>`
+      SELECT exists (SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId}) AS archived
+    `.execute(this.db);
+    return rows[0].archived;
+  }
+
   /** The table's row count, counted up to max only (cheap on big tables). */
   async countVectorsUpTo(
     table: 'smart_search' | 'face_search',

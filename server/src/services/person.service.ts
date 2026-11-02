@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Insertable, Updateable } from 'kysely';
-import { JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
+import {
+  ARCHIVED_FACE_MAX_WAITS,
+  ARCHIVED_FACE_WAIT_MS,
+  JOBS_ASSET_PAGINATION_SIZE,
+  VECTOR_RESET_REFUSED,
+} from 'src/constants';
 import { Person } from 'src/database';
 import { Chunked, OnJob } from 'src/decorators';
 import { BulkIdErrorReason, BulkIdResponseDto, BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
@@ -488,7 +493,12 @@ export class PersonService extends BaseService {
   }
 
   @OnJob({ name: JobName.FacialRecognition, queue: QueueName.FacialRecognition })
-  async handleRecognizeFaces({ id, deferred, userId }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
+  async handleRecognizeFaces({
+    id,
+    deferred,
+    userId,
+    archivedWaits = 0,
+  }: JobOf<JobName.FacialRecognition>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: true });
     if (!isFacialRecognitionEnabled(machineLearning)) {
       return JobStatus.Skipped;
@@ -508,6 +518,22 @@ export class PersonService extends BaseService {
     if (!face.faceSearch?.embedding) {
       this.logger.warn(`Face ${id} does not have an embedding`);
       return JobStatus.Failed;
+    }
+
+    // A returning user's vectors stay archived (immich-devops'
+    // vector-archive.py) until its cron restores them, up to 5 minutes later.
+    // Matched before that, a new face finds none of their people and starts
+    // a new one, a duplicate. So it waits for the restore, an hour at most.
+    if (await this.databaseRepository.isUserVectorArchived(face.asset.ownerId)) {
+      if (archivedWaits >= ARCHIVED_FACE_MAX_WAITS) {
+        this.logger.warn(`Face ${id}: its owner's vectors are still archived after an hour, not recognizing it`);
+        return JobStatus.Skipped;
+      }
+      await this.jobRepository.queue({
+        name: JobName.FacialRecognition,
+        data: { id, deferred, userId: face.asset.ownerId, archivedWaits: archivedWaits + 1, delay: ARCHIVED_FACE_WAIT_MS },
+      });
+      return JobStatus.Skipped;
     }
 
     if (face.personId) {

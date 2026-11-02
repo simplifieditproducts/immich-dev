@@ -42,6 +42,21 @@ const setup = <T extends object>(Service: new (...args: any[]) => T, canReset: b
   return sut as T & typeof sut;
 };
 
+// One Facial Recognition job for a face of user-1, archived or not.
+const recognize = (archived: boolean, archivedWaits?: number) => {
+  const sut = setup(PersonService, false);
+  sut.personRepository.getFaceForFacialRecognitionJob = vitest.fn().mockResolvedValue({
+    id: 'face-1',
+    sourceType: 'machine-learning',
+    personId: null,
+    faceSearch: { embedding: '[1,2,3]' },
+    asset: { ownerId: 'user-1' },
+  });
+  sut.databaseRepository.isUserVectorArchived = vitest.fn().mockResolvedValue(archived);
+  sut.redisRepository = { tryAcquireLock: vitest.fn().mockResolvedValue(false) };
+  return { sut, result: sut.handleRecognizeFaces({ id: 'face-1', archivedWaits }) };
+};
+
 describe('vector reset guard', () => {
   describe('refused on a large server', () => {
     it('Smart Search "All" (job)', async () => {
@@ -272,6 +287,37 @@ describe('vector reset guard', () => {
       sut.canResetVectorsWithin = vitest.fn().mockRejectedValue(new Error('canceling statement due to lock timeout'));
       await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: false });
       expect(sut.logger.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe('Facial Recognition while the owner is archived', () => {
+    it('waits 5 minutes for the restore instead of starting a new person', async () => {
+      const { sut, result } = recognize(true);
+      await expect(result).resolves.toBe(JobStatus.Skipped);
+      expect(sut.databaseRepository.isUserVectorArchived).toHaveBeenCalledWith('user-1');
+      expect(sut.jobRepository.queue).toHaveBeenCalledWith({
+        name: JobName.FacialRecognition,
+        data: { id: 'face-1', deferred: undefined, userId: 'user-1', archivedWaits: 1, delay: 300_000 },
+      });
+      expect(sut.redisRepository.tryAcquireLock).not.toHaveBeenCalled();
+    });
+
+    it('gives up after an hour', async () => {
+      const { sut, result } = recognize(true, 12);
+      await expect(result).resolves.toBe(JobStatus.Skipped);
+      expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+      expect(sut.logger.warn).toHaveBeenCalled();
+    });
+
+    it('goes on as before once restored', async () => {
+      const { sut, result } = recognize(false, 3);
+      await expect(result).resolves.toBe(JobStatus.Skipped);
+      // On to the per-user lock (not taken here, so queued again, without a delay).
+      expect(sut.redisRepository.tryAcquireLock).toHaveBeenCalled();
+      expect(sut.jobRepository.queue).toHaveBeenCalledWith({
+        name: JobName.FacialRecognition,
+        data: { id: 'face-1', deferred: undefined, userId: 'user-1' },
+      });
     });
   });
 });
