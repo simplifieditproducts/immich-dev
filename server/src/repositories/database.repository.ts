@@ -402,10 +402,10 @@ export class DatabaseRepository {
     return rows[0].archived;
   }
 
-  /** Whether vector-archive.py holds this user's vectors (not restored yet). */
-  async isUserVectorArchived(userId: string): Promise<boolean> {
+  /** Whether vector-archive.py holds face vectors of this user (not restored yet). */
+  async hasArchivedFaces(userId: string): Promise<boolean> {
     const { rows } = await sql<{ archived: boolean }>`
-      SELECT exists (SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId}) AS archived
+      SELECT exists (SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId} AND "faceCount" > 0) AS archived
     `.execute(this.db);
     return rows[0].archived;
   }

@@ -523,8 +523,9 @@ export class PersonService extends BaseService {
     // A returning user's vectors stay archived (immich-devops'
     // vector-archive.py) until its cron restores them, up to 5 minutes later.
     // Matched before that, a new face finds none of their people and starts
-    // a new one, a duplicate. So it waits for the restore, an hour at most.
-    if (await this.databaseRepository.isUserVectorArchived(face.asset.ownerId)) {
+    // a new one, a duplicate. So it waits for the restore, an hour at most;
+    // not for a user archived without any face vectors (no people to find).
+    if (await this.databaseRepository.hasArchivedFaces(face.asset.ownerId)) {
       if (archivedWaits >= ARCHIVED_FACE_MAX_WAITS) {
         this.logger.warn(`Face ${id}: its owner's vectors are still archived after an hour, not recognizing it`);
         return JobStatus.Skipped;
