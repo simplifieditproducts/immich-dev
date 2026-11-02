@@ -147,6 +147,7 @@ export class ServerService extends BaseService {
       email: notifications.smtp.enabled,
       smartSearchResetAllowed: resetAllowed.smart_search,
       faceResetAllowed: resetAllowed.face_search,
+      fullRerunAllowed: resetAllowed.asset,
     };
   }
 

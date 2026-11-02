@@ -83,6 +83,7 @@
     "facial_recognition_job_description": "Group detected faces into people. This step runs after Face Detection is complete. \"Reset\" (re-)clusters all faces. \"Missing\" queues faces that don't have a person assigned.",
     "failed_job_command": "Command {command} failed for job: {job}",
     "force_delete_user_warning": "WARNING: This will immediately remove the user and all assets. This cannot be undone and the files cannot be recovered.",
+    "full_rerun_locked": "Turned off on this server: with this many photos and videos, going through all of them again would take days to weeks and hold up new uploads.",
     "image_format": "Format",
     "image_format_description": "WebP produces smaller files than JPEG, but is slower to encode.",
     "image_fullsize_description": "Full-size image with stripped metadata, used when zoomed in",

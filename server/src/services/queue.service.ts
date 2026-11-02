@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ClassConstructor } from 'class-transformer';
 import { SystemConfig } from 'src/config';
-import { VECTOR_RESET_REFUSED } from 'src/constants';
+import { FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnEvent } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
 import {
@@ -47,6 +47,18 @@ const VECTOR_RESET_QUEUES: Partial<Record<QueueName, 'smart_search' | 'face_sear
   [QueueName.FaceDetection]: 'face_search',
   [QueueName.FacialRecognition]: 'face_search',
 };
+
+// Go through every photo and video again (DatabaseRepository.
+// canRerunAllAssets): with "All" ("Sync" for sidecars), or with the only
+// button, "Start", of the two migrations.
+const FULL_RERUN_ON_FORCE = new Set([
+  QueueName.ThumbnailGeneration,
+  QueueName.MetadataExtraction,
+  QueueName.VideoConversion,
+  QueueName.Ocr,
+  QueueName.Sidecar,
+]);
+const FULL_RERUN_ALWAYS = new Set([QueueName.Migration, QueueName.StorageTemplateMigration]);
 
 @Injectable()
 export class QueueService extends BaseService {
@@ -207,6 +219,11 @@ export class QueueService extends BaseService {
     const resetTable = isReset && VECTOR_RESET_QUEUES[name];
     if (resetTable && !(await this.databaseRepository.canResetVectors(resetTable))) {
       throw new BadRequestException(`${force ? '"All"' : '"Refresh"'} is ${VECTOR_RESET_REFUSED}`);
+    }
+    const isFullRerun = FULL_RERUN_ALWAYS.has(name) || (force && FULL_RERUN_ON_FORCE.has(name));
+    if (isFullRerun && !(await this.databaseRepository.canRerunAllAssets())) {
+      const button = FULL_RERUN_ALWAYS.has(name) ? '"Start"' : name === QueueName.Sidecar ? '"Sync"' : '"All"';
+      throw new BadRequestException(`${button} is ${FULL_RERUN_REFUSED}`);
     }
 
     await this.eventRepository.emit('QueueStart', { name });

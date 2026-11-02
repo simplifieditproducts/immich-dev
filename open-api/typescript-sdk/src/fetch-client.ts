@@ -1320,6 +1320,7 @@ export type ServerFeaturesDto = {
     faceResetAllowed: boolean;
     facialRecognition: boolean;
     filterExtraction: boolean;
+    fullRerunAllowed: boolean;
     importFaces: boolean;
     map: boolean;
     oauth: boolean;

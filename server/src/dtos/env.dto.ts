@@ -45,6 +45,9 @@ export class EnvDto {
   IMMICH_ALLOW_VECTOR_RESET?: boolean;
 
   @ValidateBoolean({ optional: true })
+  IMMICH_ALLOW_FULL_RERUN?: boolean;
+
+  @ValidateBoolean({ optional: true })
   IMMICH_IGNORE_MOUNT_CHECK_ERRORS?: boolean;
 
   @IsEnum(LogLevel)

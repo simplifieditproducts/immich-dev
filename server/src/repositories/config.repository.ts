@@ -62,6 +62,9 @@ export interface EnvData {
     // IMMICH_ALLOW_VECTOR_RESET: allows on a large server what
     // DatabaseRepository.canResetVectors turns off there.
     allowVectorReset: boolean;
+    // IMMICH_ALLOW_FULL_RERUN: allows on a large server what
+    // DatabaseRepository.canRerunAllAssets turns off there.
+    allowFullRerun: boolean;
   };
 
   licensePublicKey: {
@@ -281,6 +284,7 @@ const getEnv = (): EnvData => {
       skipMigrations: dto.DB_SKIP_MIGRATIONS ?? false,
       vectorExtension,
       allowVectorReset: !!dto.IMMICH_ALLOW_VECTOR_RESET,
+      allowFullRerun: !!dto.IMMICH_ALLOW_FULL_RERUN,
     },
 
     licensePublicKey: isProd ? productionKeys : stagingKeys,

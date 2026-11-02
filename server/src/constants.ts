@@ -41,6 +41,15 @@ export const VECTOR_RESET_REFUSED =
   'included (hours of work on the database, with search, faces or duplicates broken or slow meanwhile). ' +
   'See docs/vector-index-capacity.md in immich-devops.';
 
+// From this many photos and videos a server counts as large: see
+// DatabaseRepository.canRerunAllAssets for what that turns off.
+export const FULL_RERUN_MAX_ASSETS = 100_000;
+// "<button> is " + this. Shown to admins in the web UI too, like
+// VECTOR_RESET_REFUSED.
+export const FULL_RERUN_REFUSED =
+  'turned off on this server: it would go through every photo and video of every user again (days to weeks ' +
+  'of work, with new uploads waiting behind it). See docs/vector-index-capacity.md in immich-devops.';
+
 // Facial Recognition of a face whose owner's vectors are archived waits this
 // long for the restore cron (every 5 minutes), at most this many times.
 export const ARCHIVED_FACE_WAIT_MS = 5 * 60 * 1000;

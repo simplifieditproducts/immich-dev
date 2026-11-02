@@ -27,8 +27,9 @@
     allText?: string;
     refreshText?: string;
     missingText?: string;
-    // Set when "All" and "Refresh" are turned off on this server: they are
-    // greyed out and a click shows this instead.
+    // Set when "All" and "Refresh" are turned off on this server, or "Start"
+    // on a card that has only that button: they are greyed out and a click
+    // shows this instead.
     lockedText?: string;
     onCommand: (command: QueueCommandDto) => void;
   }
@@ -197,7 +198,7 @@
 
     {#if !disabled && !multipleButtons && isIdle}
       {#if missingText}
-        <QueueCardButton color="light-gray" onClick={() => onCommand({ command: QueueCommand.Start, force: false })}>
+        <QueueCardButton color="light-gray" locked={!!lockedText} onClick={() => startAll(false)}>
           <Icon icon={mdiPlay} size="48" />
           <span class="uppercase">{missingText}</span>
         </QueueCardButton>

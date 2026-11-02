@@ -26,6 +26,9 @@
   // or while users' vectors are archived (immich-devops' vector-archive.py).
   const smartSearchLocked = featureFlags.smartSearchResetAllowed ? undefined : $t('admin.vector_reset_locked');
   const faceLocked = featureFlags.faceResetAllowed ? undefined : $t('admin.vector_reset_locked');
+  // So are the buttons that go through every photo again: "All" ("Sync" for
+  // sidecars), and "Start" of the two migrations.
+  const rerunLocked = featureFlags.fullRerunAllowed ? undefined : $t('admin.full_rerun_locked');
 
   type QueueDetails = {
     description?: Component;
@@ -41,10 +44,12 @@
     [QueueName.MetadataExtraction]: {
       allText: $t('all'),
       missingText: $t('missing'),
+      lockedText: rerunLocked,
     },
     [QueueName.ThumbnailGeneration]: {
       allText: $t('all'),
       missingText: $t('missing'),
+      lockedText: rerunLocked,
     },
     [QueueName.SmartSearch]: {
       allText: $t('all'),
@@ -75,14 +80,17 @@
       allText: $t('all'),
       missingText: $t('missing'),
       disabled: !featureFlags.ocr,
+      lockedText: rerunLocked,
     },
     [QueueName.VideoConversion]: {
       allText: $t('all'),
       missingText: $t('missing'),
+      lockedText: rerunLocked,
     },
     [QueueName.StorageTemplateMigration]: {
       missingText: $t('start'),
       description: QueueStorageMigrationDescription,
+      lockedText: rerunLocked,
     },
     [QueueName.Library]: {
       missingText: $t('rescan'),
@@ -91,9 +99,11 @@
       allText: $t('sync'),
       missingText: $t('discover'),
       disabled: !featureFlags.sidecar,
+      lockedText: rerunLocked,
     },
     [QueueName.Migration]: {
       missingText: $t('start'),
+      lockedText: rerunLocked,
     },
     // No missingText, so the card's button opens the queue's details instead of
     // starting it: the server can't start BackgroundTask, and a manual backup

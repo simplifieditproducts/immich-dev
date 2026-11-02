@@ -208,6 +208,11 @@ export class ServerFeaturesDto {
   // (face_search). False on a large server, where the web UI greys them out.
   smartSearchResetAllowed!: boolean;
   faceResetAllowed!: boolean;
+  // Whether this server lets admins go through every photo again: "All" of
+  // Generate Thumbnails, Extract Metadata, Transcode Videos, OCR, Sidecar
+  // "Sync", and "Start" of the file and storage template migrations. False
+  // on a large server, where the web UI greys them out.
+  fullRerunAllowed!: boolean;
 }
 
 export interface ReleaseNotification {

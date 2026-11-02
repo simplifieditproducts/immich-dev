@@ -3,6 +3,7 @@ import handlebar from 'handlebars';
 import { DateTime } from 'luxon';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
+import { FULL_RERUN_REFUSED } from 'src/constants';
 import { StorageCore } from 'src/cores/storage.core';
 import { OnEvent, OnJob } from 'src/decorators';
 import { SystemConfigTemplateStorageOptionDto } from 'src/dtos/system-config.dto';
@@ -168,6 +169,10 @@ export class StorageTemplateService extends BaseService {
     const { enabled } = storageTemplate;
     if (!enabled) {
       this.logger.log('Storage template migration disabled, skipping');
+      return JobStatus.Skipped;
+    }
+    if (!(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`Storage template migration is ${FULL_RERUN_REFUSED}`);
       return JobStatus.Skipped;
     }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FACE_THUMBNAIL_SIZE, JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { FACE_THUMBNAIL_SIZE, FULL_RERUN_REFUSED, JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { StorageCore, ThumbnailPathEntity } from 'src/cores/storage.core';
 import { Exif } from 'src/database';
 import { OnEvent, OnJob } from 'src/decorators';
@@ -59,6 +59,11 @@ export class MediaService extends BaseService {
 
   @OnJob({ name: JobName.AssetGenerateThumbnailsQueueAll, queue: QueueName.ThumbnailGeneration })
   async handleQueueGenerateThumbnails({ force }: JobOf<JobName.AssetGenerateThumbnailsQueueAll>): Promise<JobStatus> {
+    if (force && !(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`Generate Thumbnails "All" is ${FULL_RERUN_REFUSED}`);
+      return JobStatus.Skipped;
+    }
+
     let jobs: JobItem[] = [];
 
     const queueAll = async () => {
@@ -105,6 +110,10 @@ export class MediaService extends BaseService {
 
   @OnJob({ name: JobName.FileMigrationQueueAll, queue: QueueName.Migration })
   async handleQueueMigration(): Promise<JobStatus> {
+    if (!(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`File migration is ${FULL_RERUN_REFUSED}`);
+      return JobStatus.Skipped;
+    }
     const { active, waiting } = await this.jobRepository.getJobCounts(QueueName.Migration);
     if (active === 1 && waiting === 0) {
       await this.storageCore.removeEmptyDirs(StorageFolder.Thumbnails);
@@ -462,6 +471,10 @@ export class MediaService extends BaseService {
   @OnJob({ name: JobName.AssetEncodeVideoQueueAll, queue: QueueName.VideoConversion })
   async handleQueueVideoConversion(job: JobOf<JobName.AssetEncodeVideoQueueAll>): Promise<JobStatus> {
     const { force } = job;
+    if (force && !(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`Transcode Videos "All" is ${FULL_RERUN_REFUSED}`);
+      return JobStatus.Skipped;
+    }
 
     let queue: { name: JobName.AssetEncodeVideo; data: { id: string } }[] = [];
     for await (const asset of this.assetJobRepository.streamForVideoConversion(force)) {

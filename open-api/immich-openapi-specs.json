@@ -20847,6 +20847,9 @@
           "filterExtraction": {
             "type": "boolean"
           },
+          "fullRerunAllowed": {
+            "type": "boolean"
+          },
           "importFaces": {
             "type": "boolean"
           },
@@ -20891,6 +20894,7 @@
           "faceResetAllowed",
           "facialRecognition",
           "filterExtraction",
+          "fullRerunAllowed",
           "importFaces",
           "map",
           "oauth",

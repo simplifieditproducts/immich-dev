@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import semver from 'semver';
 import {
   EXTENSION_NAMES,
+  FULL_RERUN_MAX_ASSETS,
   POSTGRES_VERSION_RANGE,
   VECTOR_EXTENSIONS,
   VECTOR_INDEX_TABLES,
@@ -50,6 +51,9 @@ export const probes: Record<VectorIndex, number> = {
   [VectorIndex.Clip]: 1,
   [VectorIndex.Face]: 1,
 };
+
+/** What the web UI may offer: a vector table reset each, and a rerun of every asset. */
+type ResetChecks = Record<'smart_search' | 'face_search' | 'asset', boolean>;
 
 @Injectable()
 export class DatabaseRepository {
@@ -337,11 +341,12 @@ export class DatabaseRepository {
     return (await this.countVectorsUpTo(table, VECTOR_RESET_MAX_ROWS, db)) < VECTOR_RESET_MAX_ROWS;
   }
 
-  private vectorResetCache?: { until: number; value: Record<'smart_search' | 'face_search', boolean> };
-  private vectorResetCheck?: Promise<Record<'smart_search' | 'face_search', boolean>>;
+  private vectorResetCache?: { until: number; value: ResetChecks };
+  private vectorResetCheck?: Promise<ResetChecks>;
 
   /**
-   * canResetVectors for both tables, at most 10 minutes old: for the web UI,
+   * canResetVectors for both tables and canRerunAllAssets (asset), at most
+   * 10 minutes old: for the web UI,
    * which greys out what the guards would refuse. The guards themselves
    * always ask afresh. It backs /server/features, which every client loads
    * at start, so it never fails or waits long: on an error, a lock or after
@@ -349,7 +354,7 @@ export class DatabaseRepository {
    * check at a time, and one that never ends (postgres.js reserve(),
    * immich-dev#9) isn't started again.
    */
-  async canResetVectorsCached(): Promise<Record<'smart_search' | 'face_search', boolean>> {
+  async canResetVectorsCached(): Promise<ResetChecks> {
     if (!this.vectorResetCache || Date.now() > this.vectorResetCache.until) {
       this.vectorResetCheck ??= this.canResetVectorsWithin('2s').finally(() => {
         this.vectorResetCheck = undefined;
@@ -365,7 +370,10 @@ export class DatabaseRepository {
         this.vectorResetCache = { until: Date.now() + 10 * 60 * 1000, value };
       } catch (error) {
         this.logger.warn(`Could not check whether the vector tables may be reset, treating them as locked: ${error}`);
-        this.vectorResetCache = { until: Date.now() + 30 * 1000, value: { smart_search: false, face_search: false } };
+        this.vectorResetCache = {
+          until: Date.now() + 30 * 1000,
+          value: { smart_search: false, face_search: false, asset: false },
+        };
       } finally {
         clearTimeout(timer);
       }
@@ -373,8 +381,8 @@ export class DatabaseRepository {
     return this.vectorResetCache.value;
   }
 
-  /** canResetVectors for both tables, each statement and lock wait at most timeout. */
-  async canResetVectorsWithin(timeout: string): Promise<Record<'smart_search' | 'face_search', boolean>> {
+  /** The checks of canResetVectorsCached, each statement and lock wait at most timeout. */
+  async canResetVectorsWithin(timeout: string): Promise<ResetChecks> {
     return this.db.transaction().execute(async (trx) => {
       await sql`SELECT set_config('lock_timeout', ${timeout}, true), set_config('statement_timeout', ${timeout}, true)`.execute(
         trx,
@@ -382,8 +390,25 @@ export class DatabaseRepository {
       return {
         smart_search: await this.canResetVectors('smart_search', trx),
         face_search: await this.canResetVectors('face_search', trx),
+        asset: await this.canRerunAllAssets(trx),
       };
     });
+  }
+
+  /**
+   * Whether Immich may go through every photo and video again (the "All" of
+   * thumbnails, metadata, video, OCR and sidecars, the file and storage
+   * template migrations): with IMMICH_ALLOW_FULL_RERUN, or while the server
+   * has fewer than FULL_RERUN_MAX_ASSETS (counted only that far).
+   */
+  async canRerunAllAssets(db: Kysely<DB> = this.db): Promise<boolean> {
+    if (this.configRepository.getEnv().database.allowFullRerun) {
+      return true;
+    }
+    const { rows } = await sql<{ count: number }>`
+      SELECT count(*)::int AS count FROM (SELECT 1 FROM asset LIMIT ${FULL_RERUN_MAX_ASSETS}) t
+    `.execute(db);
+    return rows[0].count < FULL_RERUN_MAX_ASSETS;
   }
 
   /** Whether immich-devops' vector-archive.py lists any user as archived. */

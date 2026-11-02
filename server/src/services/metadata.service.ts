@@ -6,7 +6,7 @@ import { DateTime, Duration } from 'luxon';
 import { Stats } from 'node:fs';
 import { constants } from 'node:fs/promises';
 import { join, parse } from 'node:path';
-import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { FULL_RERUN_REFUSED, JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { StorageCore } from 'src/cores/storage.core';
 import { Asset, AssetFace, AssetFile } from 'src/database';
 import { OnEvent, OnJob } from 'src/decorators';
@@ -199,6 +199,10 @@ export class MetadataService extends BaseService {
   @OnJob({ name: JobName.AssetExtractMetadataQueueAll, queue: QueueName.MetadataExtraction })
   async handleQueueMetadataExtraction(job: JobOf<JobName.AssetExtractMetadataQueueAll>): Promise<JobStatus> {
     const { force } = job;
+    if (force && !(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`Extract Metadata "All" is ${FULL_RERUN_REFUSED}`);
+      return JobStatus.Skipped;
+    }
 
     let queue: { name: JobName.AssetExtractMetadata; data: { id: string } }[] = [];
     for await (const asset of this.assetJobRepository.streamForMetadataExtraction(force)) {
@@ -327,6 +331,11 @@ export class MetadataService extends BaseService {
 
   @OnJob({ name: JobName.SidecarQueueAll, queue: QueueName.Sidecar })
   async handleQueueSidecar({ force }: JobOf<JobName.SidecarQueueAll>): Promise<JobStatus> {
+    if (force && !(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`Sidecar "Sync" is ${FULL_RERUN_REFUSED}`);
+      return JobStatus.Skipped;
+    }
+
     let jobs: JobItem[] = [];
     const queueAll = async () => {
       await this.jobRepository.queueAll(jobs);

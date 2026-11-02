@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { FULL_RERUN_REFUSED, JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { OnJob } from 'src/decorators';
 import { AssetVisibility, JobName, JobStatus, QueueName } from 'src/enum';
 import { OCR } from 'src/repositories/machine-learning.repository';
@@ -14,6 +14,11 @@ export class OcrService extends BaseService {
   async handleQueueOcr({ force }: JobOf<JobName.OcrQueueAll>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isOcrEnabled(machineLearning)) {
+      return JobStatus.Skipped;
+    }
+
+    if (force && !(await this.databaseRepository.canRerunAllAssets())) {
+      this.logger.error(`OCR "All" is ${FULL_RERUN_REFUSED}`);
       return JobStatus.Skipped;
     }
 

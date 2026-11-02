@@ -1,8 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
-import { VECTOR_RESET_REFUSED } from 'src/constants';
+import { FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
 import { DatabaseExtension, JobName, JobStatus, QueueName } from 'src/enum';
 import { DatabaseRepository } from 'src/repositories/database.repository';
 import { DuplicateService } from 'src/services/duplicate.service';
+import { OcrService } from 'src/services/ocr.service';
 import { PersonService } from 'src/services/person.service';
 import { QueueService } from 'src/services/queue.service';
 import { SmartInfoService } from 'src/services/smart-info.service';
@@ -55,6 +56,13 @@ const recognize = (archived: boolean, archivedWaits?: number) => {
   sut.databaseRepository.hasArchivedFaces = vitest.fn().mockResolvedValue(archived);
   sut.redisRepository = { tryAcquireLock: vitest.fn().mockResolvedValue(false) };
   return { sut, result: sut.handleRecognizeFaces({ id: 'face-1', archivedWaits }) };
+};
+
+// The Jobs page's QueueService, on a server where a full rerun is allowed or not.
+const queue = (allowed: boolean) => {
+  const sut = setup(QueueService, true);
+  sut.databaseRepository.canRerunAllAssets = vitest.fn().mockResolvedValue(allowed);
+  return sut;
 };
 
 describe('vector reset guard', () => {
@@ -270,11 +278,11 @@ describe('vector reset guard', () => {
         sut.canResetVectorsWithin = vitest.fn().mockReturnValue(new Promise(() => {}));
         const first = sut.canResetVectorsCached();
         await vitest.advanceTimersByTimeAsync(3000);
-        await expect(first).resolves.toEqual({ smart_search: false, face_search: false });
+        await expect(first).resolves.toEqual({ smart_search: false, face_search: false, asset: false });
         await vitest.advanceTimersByTimeAsync(31_000);
         const second = sut.canResetVectorsCached();
         await vitest.advanceTimersByTimeAsync(3000);
-        await expect(second).resolves.toEqual({ smart_search: false, face_search: false });
+        await expect(second).resolves.toEqual({ smart_search: false, face_search: false, asset: false });
         expect(sut.canResetVectorsWithin).toHaveBeenCalledTimes(1);
       } finally {
         vitest.useRealTimers();
@@ -285,7 +293,11 @@ describe('vector reset guard', () => {
       const sut = repo(false, false, 0);
       sut.logger = { warn: vitest.fn() };
       sut.canResetVectorsWithin = vitest.fn().mockRejectedValue(new Error('canceling statement due to lock timeout'));
-      await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: false });
+      await expect(sut.canResetVectorsCached()).resolves.toEqual({
+        smart_search: false,
+        face_search: false,
+        asset: false,
+      });
       expect(sut.logger.warn).toHaveBeenCalled();
     });
   });
@@ -318,6 +330,65 @@ describe('vector reset guard', () => {
         name: JobName.FacialRecognition,
         data: { id: 'face-1', deferred: undefined, userId: 'user-1' },
       });
+    });
+  });
+
+  describe('going through every photo again', () => {
+    it.each([
+      QueueName.ThumbnailGeneration,
+      QueueName.MetadataExtraction,
+      QueueName.VideoConversion,
+      QueueName.Ocr,
+      QueueName.Sidecar,
+    ])('"All" from the Jobs page is refused on a large server (%s)', async (name) => {
+      const sut = queue(false);
+      await expect((sut as any).start(name, { force: true })).rejects.toThrow(FULL_RERUN_REFUSED);
+      expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+    });
+
+    it.each([QueueName.Migration, QueueName.StorageTemplateMigration])(
+      '"Start" from the Jobs page is refused on a large server (%s)',
+      async (name) => {
+        const sut = queue(false);
+        await expect((sut as any).start(name, {})).rejects.toThrow(FULL_RERUN_REFUSED);
+        expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+      },
+    );
+
+    it('"Missing" still runs', async () => {
+      const sut = queue(false);
+      await (sut as any).start(QueueName.ThumbnailGeneration, { force: false });
+      expect(sut.databaseRepository.canRerunAllAssets).not.toHaveBeenCalled();
+      expect(sut.jobRepository.queue).toHaveBeenCalledWith({
+        name: JobName.AssetGenerateThumbnailsQueueAll,
+        data: { force: false },
+      });
+    });
+
+    it('"All" runs on a small server or with IMMICH_ALLOW_FULL_RERUN', async () => {
+      const sut = queue(true);
+      await (sut as any).start(QueueName.Ocr, { force: true });
+      expect(sut.jobRepository.queue).toHaveBeenCalledWith({ name: JobName.OcrQueueAll, data: { force: true } });
+    });
+
+    it('OCR "All" (job) keeps the OCR data on a large server', async () => {
+      const sut = setup(OcrService, true);
+      sut.getConfig = vitest
+        .fn()
+        .mockResolvedValue({ machineLearning: { ...machineLearning, ocr: { enabled: true } } });
+      sut.databaseRepository.canRerunAllAssets = vitest.fn().mockResolvedValue(false);
+      sut.ocrRepository = { deleteAll: vitest.fn() };
+      sut.assetJobRepository = { streamForOcrJob: vitest.fn() };
+      await expect(sut.handleQueueOcr({ force: true })).resolves.toBe(JobStatus.Skipped);
+      expect(sut.ocrRepository.deleteAll).not.toHaveBeenCalled();
+      expect(sut.assetJobRepository.streamForOcrJob).not.toHaveBeenCalled();
+      expect(sut.logger.error).toHaveBeenCalledWith(expect.stringContaining(FULL_RERUN_REFUSED));
+    });
+
+    it('IMMICH_ALLOW_FULL_RERUN allows it without counting', async () => {
+      const sut = Object.create(DatabaseRepository.prototype) as any;
+      sut.configRepository = { getEnv: () => ({ database: { allowFullRerun: true } }) };
+      await expect(sut.canRerunAllAssets()).resolves.toBe(true);
     });
   });
 });
