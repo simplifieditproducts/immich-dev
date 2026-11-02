@@ -102,6 +102,12 @@ export class VectorArchiveService extends BaseService {
 
     const started = Date.now();
     const restored = await this.databaseRepository.restoreArchivedVectors(id, vectors);
+    if (restored === 'busy') {
+      // A user logging in again soon after, or the script's cron: whoever
+      // holds the lock restores them (the largest take minutes).
+      this.logger.log(`User ${id} is being restored already`);
+      return JobStatus.Skipped;
+    }
     if (!restored) {
       this.logger.log(`User ${id} was restored meanwhile`);
       return JobStatus.Skipped;

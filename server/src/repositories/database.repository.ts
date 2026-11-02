@@ -460,19 +460,25 @@ export class DatabaseRepository {
 
   /**
    * Puts a user's archived vectors back and takes them off the registry, in
-   * one transaction under vector-archive.py's lock for that user; null when
-   * they were no longer archived (restored meanwhile). A kind given as null
-   * isn't loaded (its model changed); the others are read as they are
-   * written, 500 rows at a time. Rows whose photo or face is gone are
+   * one transaction under vector-archive.py's lock for that user. 'busy'
+   * when someone holds the lock (another login's restore, the script):
+   * they restore the user, or leave them archived for the next try. null
+   * when the user was no longer archived (restored meanwhile). A kind given
+   * as null isn't loaded (its model changed); the others are read as they
+   * are written, 500 rows at a time. Rows whose photo or face is gone are
    * skipped, as are rows already there.
    */
   async restoreArchivedVectors(
     userId: string,
     vectors: Record<'clip' | 'face', AsyncIterable<ArchivedVector> | null>,
-  ): Promise<Record<'clip' | 'face', number> | null> {
+  ): Promise<Record<'clip' | 'face', number> | 'busy' | null> {
     return this.db.transaction().execute(async (trx) => {
-      await sql`SELECT set_config('lock_timeout', '60s', true)`.execute(trx);
-      await sql`SELECT pg_advisory_xact_lock(${VECTOR_ARCHIVE_LOCK_CLASS}, hashtext(${userId}))`.execute(trx);
+      const { rows: lock } = await sql<{ locked: boolean }>`
+        SELECT pg_try_advisory_xact_lock(${VECTOR_ARCHIVE_LOCK_CLASS}, hashtext(${userId})) AS locked
+      `.execute(trx);
+      if (!lock[0].locked) {
+        return 'busy';
+      }
       const { rows } = await sql`SELECT 1 FROM vector_archive.users WHERE "userId" = ${userId}`.execute(trx);
       if (rows.length === 0) {
         return null;

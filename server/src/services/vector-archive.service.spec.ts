@@ -49,7 +49,7 @@ const toArray = async <T>(rows: AsyncIterable<T>) => {
   return all;
 };
 
-const restoreService = (archived?: object, restored: object | null = RESTORED) => {
+const restoreService = (archived?: object, restored: object | string | null = RESTORED) => {
   StorageCore.setMediaLocation('/usr/src/app/upload');
   const sut = Object.create(VectorArchiveService.prototype) as any;
   sut.logger = { log: vitest.fn(), warn: vitest.fn(), error: vitest.fn() };
@@ -149,6 +149,13 @@ describe('vector archive restore', () => {
     const sut = restoreService();
     await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Skipped);
     expect(sut.storageRepository.createReadStream).not.toHaveBeenCalled();
+  });
+
+  it('leaves a user to the restore already running (a second login)', async () => {
+    const sut = restoreService(archivedUser, 'busy');
+    await expect(sut.handleVectorRestore({ id: USER })).resolves.toBe(JobStatus.Skipped);
+    expect(sut.storageRepository.rename).not.toHaveBeenCalled();
+    expect(sut.logger.log).toHaveBeenCalledWith(expect.stringContaining('is being restored already'));
   });
 
   it('keeps the files of a user restored meanwhile (the cron)', async () => {
