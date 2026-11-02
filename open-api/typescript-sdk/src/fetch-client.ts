@@ -1317,6 +1317,7 @@ export type ServerFeaturesDto = {
     configFile: boolean;
     duplicateDetection: boolean;
     email: boolean;
+    faceResetAllowed: boolean;
     facialRecognition: boolean;
     filterExtraction: boolean;
     importFaces: boolean;
@@ -1329,6 +1330,7 @@ export type ServerFeaturesDto = {
     search: boolean;
     sidecar: boolean;
     smartSearch: boolean;
+    smartSearchResetAllowed: boolean;
     trash: boolean;
 };
 export type ServerPingResponse = {};

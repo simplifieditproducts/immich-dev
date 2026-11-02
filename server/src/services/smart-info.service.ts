@@ -30,13 +30,23 @@ export class SmartInfoService extends BaseService {
       );
     }
 
-    // A new model empties smart_search (below, in init).
+    // A new CLIP model empties smart_search (below, in init). A new face
+    // model empties nothing, but its vectors don't fit the stored ones, so
+    // every face would have to be detected again. Either way the archived
+    // users' vectors would no longer fit.
     if (
       oldConfig &&
       oldConfig.machineLearning.clip.modelName !== newConfig.machineLearning.clip.modelName &&
       !(await this.databaseRepository.canResetVectors('smart_search'))
     ) {
       throw new Error(`Changing the CLIP model is ${VECTOR_RESET_REFUSED}`);
+    }
+    if (
+      oldConfig &&
+      oldConfig.machineLearning.facialRecognition.modelName !== newConfig.machineLearning.facialRecognition.modelName &&
+      !(await this.databaseRepository.canResetVectors('face_search'))
+    ) {
+      throw new Error(`Changing the facial recognition model is ${VECTOR_RESET_REFUSED}`);
     }
   }
 
@@ -90,7 +100,7 @@ export class SmartInfoService extends BaseService {
     }
 
     if (force && !(await this.databaseRepository.canResetVectors('smart_search'))) {
-      this.logger.error(`Smart Search "All" ${VECTOR_RESET_REFUSED}`);
+      this.logger.error(`Smart Search "All" is ${VECTOR_RESET_REFUSED}`);
       return JobStatus.Skipped;
     }
 

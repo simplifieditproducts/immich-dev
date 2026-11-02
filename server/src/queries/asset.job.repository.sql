@@ -256,13 +256,11 @@ where
   "asset"."deletedAt" is null
   and "asset"."visibility" in ('archive', 'timeline')
   and "job_status"."duplicatesDetectedAt" is null
-  and not exists (
+  and "asset"."ownerId" not in (
     select
-      1
+      "userId"
     from
       vector_archive.users
-    where
-      "userId" = "asset"."ownerId"
   )
 
 -- AssetJobRepository.streamForEncodeClip
@@ -282,13 +280,11 @@ where
     where
       "assetId" = "asset"."id"
   )
-  and not exists (
+  and "asset"."ownerId" not in (
     select
-      1
+      "userId"
     from
       vector_archive.users
-    where
-      "userId" = "asset"."ownerId"
   )
 
 -- AssetJobRepository.getForClipEncoding

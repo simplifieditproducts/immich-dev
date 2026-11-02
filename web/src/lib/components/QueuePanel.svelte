@@ -22,6 +22,9 @@
 
   let { queues }: Props = $props();
   const featureFlags = featureFlagsManager.value;
+  // "All" and "Refresh" of the vector queues are turned off on a large server.
+  const smartSearchLocked = featureFlags.smartSearchResetAllowed ? undefined : $t('admin.vector_reset_locked');
+  const faceLocked = featureFlags.faceResetAllowed ? undefined : $t('admin.vector_reset_locked');
 
   type QueueDetails = {
     description?: Component;
@@ -29,6 +32,7 @@
     refreshText?: string;
     missingText?: string;
     disabled?: boolean;
+    lockedText?: string;
     handleCommand?: (jobId: QueueName, jobCommand: QueueCommandDto) => Promise<void>;
   };
 
@@ -45,22 +49,26 @@
       allText: $t('all'),
       missingText: $t('missing'),
       disabled: !featureFlags.smartSearch,
+      lockedText: smartSearchLocked,
     },
     [QueueName.DuplicateDetection]: {
       allText: $t('all'),
       missingText: $t('missing'),
       disabled: !featureFlags.duplicateDetection,
+      lockedText: smartSearchLocked,
     },
     [QueueName.FaceDetection]: {
       allText: $t('reset'),
       refreshText: $t('refresh'),
       missingText: $t('missing'),
       disabled: !featureFlags.facialRecognition,
+      lockedText: faceLocked,
     },
     [QueueName.FacialRecognition]: {
       allText: $t('reset'),
       missingText: $t('missing'),
       disabled: !featureFlags.facialRecognition,
+      lockedText: faceLocked,
     },
     [QueueName.Ocr]: {
       allText: $t('all'),

@@ -37,7 +37,7 @@ export class DuplicateService extends BaseService {
     }
 
     if (force && !(await this.databaseRepository.canResetVectors('smart_search'))) {
-      this.logger.error(`Duplicate Detection "All" ${VECTOR_RESET_REFUSED}`);
+      this.logger.error(`Duplicate Detection "All" is ${VECTOR_RESET_REFUSED}`);
       return JobStatus.Skipped;
     }
 

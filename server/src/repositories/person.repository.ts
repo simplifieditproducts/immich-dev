@@ -129,7 +129,7 @@ export class PersonRepository {
       .$if(!!options.assetId, (qb) => qb.where('asset_face.assetId', '=', options.assetId!))
       .$if(!!options.ownerIds && options.ownerIds.length > 0, (qb) => qb.where('asset.ownerId', 'in', options.ownerIds!))
       .$if(!!options.skipArchivedOwners, (qb) =>
-        qb.where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
+        qb.where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
       )
       .where('asset_face.deletedAt', 'is', null)
       .stream();

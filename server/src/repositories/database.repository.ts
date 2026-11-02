@@ -11,6 +11,7 @@ import {
   VECTOR_EXTENSIONS,
   VECTOR_INDEX_TABLES,
   VECTOR_RESET_MAX_ROWS,
+  VECTOR_RESET_REFUSED,
   VECTOR_VERSION_RANGE,
   VECTORCHORD_LIST_SLACK_FACTOR,
   VECTORCHORD_VERSION_RANGE,
@@ -138,6 +139,20 @@ export class DatabaseRepository {
     const diff = semver.diff(installedVersion, targetVersion);
     if (!diff) {
       return { restartRequired: false };
+    }
+
+    // An update drops both vector indexes and rebuilds them, hours of work on
+    // a large table. Refused before anything is dropped: the installed
+    // version keeps working, and the update is done by hand in a maintenance
+    // window.
+    for (const table of ['smart_search', 'face_search'] as const) {
+      if (!(await this.canResetVectors(table))) {
+        this.logger.error(
+          `Not updating ${EXTENSION_NAMES[extension]} from ${installedVersion} to ${targetVersion}: the update ` +
+            `rebuilds the vector indexes, ${VECTOR_RESET_REFUSED}`,
+        );
+        return { restartRequired: false };
+      }
     }
 
     await Promise.all([
@@ -306,17 +321,63 @@ export class DatabaseRepository {
   }
 
   /**
-   * Whether Immich may empty a whole vector table or drop and rebuild its
-   * index: with IMMICH_ALLOW_VECTOR_RESET, or while the table is small.
+   * Whether Immich may empty a whole vector table, drop and rebuild its index
+   * or recompute it with another model: with IMMICH_ALLOW_VECTOR_RESET, or
+   * while the table is small and no user's vectors are archived (a reset
+   * would recompute them, and their archived vectors would no longer fit).
    */
   async canResetVectors(table: 'smart_search' | 'face_search'): Promise<boolean> {
     if (this.configRepository.getEnv().database.allowVectorReset) {
       return true;
     }
-    const { rows } = await sql<{ count: number }>`
-      SELECT count(*)::int AS count FROM (SELECT 1 FROM ${sql.table(table)} LIMIT ${VECTOR_RESET_MAX_ROWS}) t
+    if (await this.hasArchivedVectorUsers()) {
+      return false;
+    }
+    return (await this.countVectorsUpTo(table, VECTOR_RESET_MAX_ROWS)) < VECTOR_RESET_MAX_ROWS;
+  }
+
+  private vectorResetCache?: { at: number; value: Record<'smart_search' | 'face_search', boolean> };
+
+  /**
+   * canResetVectors for both tables, at most 10 minutes old: for the web UI,
+   * which greys out what the guards would refuse. The guards themselves
+   * always ask afresh.
+   */
+  async canResetVectorsCached(): Promise<Record<'smart_search' | 'face_search', boolean>> {
+    if (!this.vectorResetCache || Date.now() - this.vectorResetCache.at > 10 * 60 * 1000) {
+      const value = {
+        smart_search: await this.canResetVectors('smart_search'),
+        face_search: await this.canResetVectors('face_search'),
+      };
+      this.vectorResetCache = { at: Date.now(), value };
+    }
+    return this.vectorResetCache.value;
+  }
+
+  /** Whether immich-devops' vector-archive.py lists any user as archived. */
+  async hasArchivedVectorUsers(): Promise<boolean> {
+    // The table comes from a migration, but this can run before migrations
+    // (the vector index checks at start).
+    const { rows: found } = await sql<{ name: string | null }>`
+      SELECT to_regclass('vector_archive.users')::text AS name
     `.execute(this.db);
-    return rows[0].count < VECTOR_RESET_MAX_ROWS;
+    if (!found[0].name) {
+      return false;
+    }
+    const { rows } = await sql<{ archived: boolean }>`
+      SELECT exists (SELECT 1 FROM vector_archive.users) AS archived
+    `.execute(this.db);
+    return rows[0].archived;
+  }
+
+  /** The table's row count, counted up to max only (cheap on big tables). */
+  async countVectorsUpTo(table: 'smart_search' | 'face_search', max: number): Promise<number> {
+    // Not pg_class.reltuples: CREATE INDEX CONCURRENTLY with vchordrq has
+    // left it at 0 on a table of 39M rows.
+    const { rows } = await sql<{ count: number }>`
+      SELECT count(*)::int AS count FROM (SELECT 1 FROM ${sql.table(table)} LIMIT ${max}) t
+    `.execute(this.db);
+    return rows[0].count;
   }
 
   /** Rebuilds a vector index in place; false when it was left alone. */

@@ -185,7 +185,10 @@
             label={$t('admin.machine_learning_clip_model')}
             bind:value={configToEdit.machineLearning.clip.modelName}
             required={true}
-            disabled={disabled || !configToEdit.machineLearning.enabled || !configToEdit.machineLearning.clip.enabled}
+            disabled={disabled ||
+              !featureFlagsManager.value.smartSearchResetAllowed ||
+              !configToEdit.machineLearning.enabled ||
+              !configToEdit.machineLearning.clip.enabled}
             isEdited={configToEdit.machineLearning.clip.modelName !== config.machineLearning.clip.modelName}
           >
             {#snippet descriptionSnippet()}
@@ -196,6 +199,9 @@
                   {/snippet}
                 </FormatMessage>
               </p>
+              {#if !featureFlagsManager.value.smartSearchResetAllowed}
+                <p class="immich-form-label pb-2 text-sm">{$t('admin.vector_reset_locked_model')}</p>
+              {/if}
             {/snippet}
           </SettingInputField>
         </div>
@@ -248,7 +254,9 @@
 
           <SettingSelect
             label={$t('admin.machine_learning_facial_recognition_model')}
-            desc={$t('admin.machine_learning_facial_recognition_model_description')}
+            desc={featureFlagsManager.value.faceResetAllowed
+              ? $t('admin.machine_learning_facial_recognition_model_description')
+              : `${$t('admin.machine_learning_facial_recognition_model_description')} ${$t('admin.vector_reset_locked_model')}`}
             name="facial-recognition-model"
             bind:value={configToEdit.machineLearning.facialRecognition.modelName}
             options={[
@@ -258,6 +266,7 @@
               { value: 'buffalo_s', text: 'buffalo_s' },
             ]}
             disabled={disabled ||
+              !featureFlagsManager.value.faceResetAllowed ||
               !configToEdit.machineLearning.enabled ||
               !configToEdit.machineLearning.facialRecognition.enabled}
             isEdited={configToEdit.machineLearning.facialRecognition.modelName !==

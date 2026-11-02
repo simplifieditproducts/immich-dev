@@ -277,11 +277,14 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }
 
+    // "All" (force) and "Refresh" (force undefined) both detect again in every
+    // photo of every user; only "Missing" (force false) is left.
+    if (force !== false && !(await this.databaseRepository.canResetVectors('face_search'))) {
+      this.logger.error(`Face Detection ${force ? '"All"' : '"Refresh"'} is ${VECTOR_RESET_REFUSED}`);
+      return JobStatus.Skipped;
+    }
+
     if (force) {
-      if (!(await this.databaseRepository.canResetVectors('face_search'))) {
-        this.logger.error(`Face Detection "All" ${VECTOR_RESET_REFUSED}`);
-        return JobStatus.Skipped;
-      }
       await this.personRepository.deleteFaces({ sourceType: SourceType.MachineLearning });
       await this.handlePersonCleanup();
       await this.personRepository.vacuum();
@@ -421,7 +424,7 @@ export class PersonService extends BaseService {
     // "All" takes every face off its person and deletes the people left
     // empty, names included, for every user.
     if (force && !(await this.databaseRepository.canResetVectors('face_search'))) {
-      this.logger.error(`Facial Recognition "All" ${VECTOR_RESET_REFUSED}`);
+      this.logger.error(`Facial Recognition "All" is ${VECTOR_RESET_REFUSED}`);
       return JobStatus.Skipped;
     }
 

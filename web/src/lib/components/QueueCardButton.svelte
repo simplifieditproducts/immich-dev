@@ -8,11 +8,13 @@
   interface Props {
     color: Colors;
     disabled?: boolean;
+    // Looks disabled but stays clickable, so a click can say why.
+    locked?: boolean;
     children?: Snippet;
     onClick?: () => void;
   }
 
-  let { color, disabled = false, onClick = () => {}, children }: Props = $props();
+  let { color, disabled = false, locked = false, onClick = () => {}, children }: Props = $props();
 
   const colorClasses: Record<Colors, string> = {
     'light-gray': 'bg-gray-300/80 dark:bg-gray-700',
@@ -22,7 +24,9 @@
 
   const hoverClasses = disabled
     ? 'cursor-not-allowed'
-    : 'hover:bg-immich-primary hover:text-white dark:hover:bg-immich-dark-primary dark:hover:text-black';
+    : locked
+      ? 'cursor-not-allowed opacity-40'
+      : 'hover:bg-immich-primary hover:text-white dark:hover:bg-immich-dark-primary dark:hover:text-black';
 </script>
 
 <button

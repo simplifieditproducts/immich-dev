@@ -1,15 +1,16 @@
 import { BadRequestException } from '@nestjs/common';
 import { VECTOR_RESET_REFUSED } from 'src/constants';
-import { JobName, JobStatus, QueueName } from 'src/enum';
+import { DatabaseExtension, JobName, JobStatus, QueueName } from 'src/enum';
+import { DatabaseRepository } from 'src/repositories/database.repository';
 import { DuplicateService } from 'src/services/duplicate.service';
 import { PersonService } from 'src/services/person.service';
 import { QueueService } from 'src/services/queue.service';
 import { SmartInfoService } from 'src/services/smart-info.service';
 import { describe, expect, it, vitest } from 'vitest';
 
-// The jobs and settings that empty a whole vector table are refused unless
-// IMMICH_ALLOW_VECTOR_RESET is set or the table is small
-// (DatabaseRepository.canResetVectors). Built without newTestService, whose
+// The jobs and settings that redo a whole vector table are refused unless
+// IMMICH_ALLOW_VECTOR_RESET is set, or the table is small and no user's
+// vectors are archived (DatabaseRepository.canResetVectors). Built without newTestService, whose
 // repository mocks are out of date on this branch: only what the guards use.
 const machineLearning = {
   enabled: true,
@@ -59,6 +60,20 @@ describe('vector reset guard', () => {
       expect(sut.personRepository.vacuum).not.toHaveBeenCalled();
     });
 
+    it('Face Detection "Refresh" (job, force undefined)', async () => {
+      const sut = setup(PersonService, false);
+      (sut as any).assetJobRepository = { streamForDetectFacesJob: vitest.fn() };
+      await expect(sut.handleQueueDetectFaces({})).resolves.toBe(JobStatus.Skipped);
+      expect(sut.databaseRepository.canResetVectors).toHaveBeenCalledWith('face_search');
+      expect((sut as any).assetJobRepository.streamForDetectFacesJob).not.toHaveBeenCalled();
+    });
+
+    it('Face Detection "Refresh" from the Jobs page', async () => {
+      const sut = setup(QueueService, false);
+      await expect((sut as any).start(QueueName.FaceDetection, {})).rejects.toBeInstanceOf(BadRequestException);
+      expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+    });
+
     it('Facial Recognition "All" (job)', async () => {
       const sut = setup(PersonService, false);
       await expect(sut.handleQueueRecognizeFaces({ force: true })).resolves.toBe(JobStatus.Skipped);
@@ -94,6 +109,35 @@ describe('vector reset guard', () => {
       await expect(sut.onConfigValidate({ oldConfig, newConfig })).rejects.toThrow(VECTOR_RESET_REFUSED);
     });
 
+    it('changing the facial recognition model in the settings', async () => {
+      const sut = setup(SmartInfoService, false);
+      const oldConfig = { machineLearning } as any;
+      const newConfig = {
+        machineLearning: {
+          ...machineLearning,
+          facialRecognition: { ...machineLearning.facialRecognition, modelName: 'buffalo_s' },
+        },
+      } as any;
+      await expect(sut.onConfigValidate({ oldConfig, newConfig })).rejects.toThrow(VECTOR_RESET_REFUSED);
+      expect(sut.databaseRepository.canResetVectors).toHaveBeenCalledWith('face_search');
+    });
+
+    it('a VectorChord update, which would drop both indexes', async () => {
+      const sut = Object.create(DatabaseRepository.prototype) as any;
+      sut.logger = { error: vitest.fn() };
+      sut.getExtensionVersions = vitest
+        .fn()
+        .mockResolvedValue([{ availableVersion: '0.5.0', installedVersion: '0.4.3' }]);
+      sut.canResetVectors = vitest.fn().mockResolvedValue(false);
+      sut.db = { schema: { dropIndex: vitest.fn() }, transaction: vitest.fn() };
+      await expect(sut.updateVectorExtension(DatabaseExtension.VectorChord, '0.5.0')).resolves.toEqual({
+        restartRequired: false,
+      });
+      expect(sut.db.schema.dropIndex).not.toHaveBeenCalled();
+      expect(sut.db.transaction).not.toHaveBeenCalled();
+      expect(sut.logger.error).toHaveBeenCalledWith(expect.stringContaining(VECTOR_RESET_REFUSED));
+    });
+
     it('a model that no longer matches the vectors at start', async () => {
       const sut = setup(SmartInfoService, false);
       sut.databaseRepository.getDimensionSize.mockResolvedValue(768);
@@ -111,6 +155,16 @@ describe('vector reset guard', () => {
       expect(sut.databaseRepository.canResetVectors).not.toHaveBeenCalled();
       expect(sut.jobRepository.queue).toHaveBeenCalledWith({
         name: JobName.SmartSearchQueueAll,
+        data: { force: false },
+      });
+    });
+
+    it('"Missing" (force false) of Face Detection from the Jobs page', async () => {
+      const sut = setup(QueueService, false);
+      await (sut as any).start(QueueName.FaceDetection, { force: false });
+      expect(sut.databaseRepository.canResetVectors).not.toHaveBeenCalled();
+      expect(sut.jobRepository.queue).toHaveBeenCalledWith({
+        name: JobName.AssetDetectFacesQueueAll,
         data: { force: false },
       });
     });
@@ -159,6 +213,36 @@ describe('vector reset guard', () => {
       await sut.handleQueueDetectFaces({ force: true });
       expect(sut.personRepository.deleteFaces).toHaveBeenCalled();
       expect(sut.personRepository.vacuum).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('canResetVectors', () => {
+    const repo = (allowVectorReset: boolean, archived: boolean, rows: number) => {
+      const sut = Object.create(DatabaseRepository.prototype) as any;
+      sut.configRepository = { getEnv: () => ({ database: { allowVectorReset } }) };
+      sut.hasArchivedVectorUsers = vitest.fn().mockResolvedValue(archived);
+      sut.countVectorsUpTo = vitest.fn().mockResolvedValue(rows);
+      return sut as DatabaseRepository & Record<string, any>;
+    };
+
+    it.each([
+      ['IMMICH_ALLOW_VECTOR_RESET', true, true, 100_000, true],
+      ['a small table', false, false, 99_999, true],
+      ['a large table', false, false, 100_000, false],
+      ['a small table with archived users', false, true, 10, false],
+    ])('%s', async (_, allow, archived, rows, expected) => {
+      const sut = repo(allow, archived, rows);
+      await expect(sut.canResetVectors('face_search')).resolves.toBe(expected);
+      if (allow) {
+        expect(sut.hasArchivedVectorUsers).not.toHaveBeenCalled();
+      }
+    });
+
+    it('is cached for the web UI', async () => {
+      const sut = repo(false, false, 100_000);
+      await expect(sut.canResetVectorsCached()).resolves.toEqual({ smart_search: false, face_search: false });
+      await sut.canResetVectorsCached();
+      expect(sut.countVectorsUpTo).toHaveBeenCalledTimes(2);
     });
   });
 });

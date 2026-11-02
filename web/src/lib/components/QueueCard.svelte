@@ -5,7 +5,7 @@
   import { asQueueItem, getQueueDetailUrl, handleViewQueue } from '$lib/services/queue.service';
   import { locale } from '$lib/stores/preferences.store';
   import { QueueCommand, type QueueCommandDto, type QueueResponseDto } from '@immich/sdk';
-  import { Icon, IconButton, Link } from '@immich/ui';
+  import { Icon, IconButton, Link, toastManager } from '@immich/ui';
   import {
     mdiAlertCircle,
     mdiAllInclusive,
@@ -27,10 +27,30 @@
     allText?: string;
     refreshText?: string;
     missingText?: string;
+    // Set when "All" and "Refresh" are turned off on this server: they are
+    // greyed out and a click shows this instead.
+    lockedText?: string;
     onCommand: (command: QueueCommandDto) => void;
   }
 
-  let { queue, description, disabled = false, allText, refreshText, missingText, onCommand }: Props = $props();
+  let {
+    queue,
+    description,
+    disabled = false,
+    allText,
+    refreshText,
+    missingText,
+    lockedText,
+    onCommand,
+  }: Props = $props();
+
+  const startAll = (force: boolean | undefined) => {
+    if (lockedText) {
+      toastManager.warning(lockedText);
+      return;
+    }
+    onCommand({ command: QueueCommand.Start, force });
+  };
 
   const { icon, title, subtitle } = $derived(asQueueItem($t, queue));
   const { statistics } = $derived(queue);
@@ -158,13 +178,13 @@
 
     {#if !disabled && multipleButtons && isIdle}
       {#if allText}
-        <QueueCardButton color="dark-gray" onClick={() => onCommand({ command: QueueCommand.Start, force: true })}>
+        <QueueCardButton color="dark-gray" locked={!!lockedText} onClick={() => startAll(true)}>
           <Icon icon={mdiAllInclusive} size="24" />
           <span class="uppercase">{allText}</span>
         </QueueCardButton>
       {/if}
       {#if refreshText}
-        <QueueCardButton color="gray" onClick={() => onCommand({ command: QueueCommand.Start, force: undefined })}>
+        <QueueCardButton color="gray" locked={!!lockedText} onClick={() => startAll(undefined)}>
           <Icon icon={mdiImageRefreshOutline} size="24" />
           <span class="uppercase">{refreshText}</span>
         </QueueCardButton>

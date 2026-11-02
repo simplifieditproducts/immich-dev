@@ -36,10 +36,12 @@ export const VECTOR_EXTENSIONS = [
 // set (see EnvData.database.allowVectorReset). Below it a rebuild takes
 // seconds to minutes, as on a new server.
 export const VECTOR_RESET_MAX_ROWS = 100_000;
+// Shown to admins in the web UI too, so it doesn't say how to override it;
+// docs/vector-index-capacity.md in immich-devops does.
 export const VECTOR_RESET_REFUSED =
-  'refused on this server: it would redo every vector of a large vector table (hours of work on the database, ' +
-  'search, faces or duplicates broken or slow meanwhile, and archived users recomputed too). ' +
-  'To do it anyway, set IMMICH_ALLOW_VECTOR_RESET=true on the server and restart Immich.';
+  'turned off on this server: it would redo every vector of a large vector table, or of users whose vectors are ' +
+  'archived (hours of work on the database, with search, faces or duplicates broken or slow meanwhile). ' +
+  'See docs/vector-index-capacity.md in immich-devops.';
 
 export const VECTOR_INDEX_TABLES = {
   [VectorIndex.Clip]: 'smart_search',

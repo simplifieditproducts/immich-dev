@@ -201,9 +201,12 @@ export class QueueService extends BaseService {
     }
 
     // Refused here too, so the admin sees why instead of a job that skips.
-    const resetTable = force && VECTOR_RESET_QUEUES[name];
+    // Face Detection has a third button, "Refresh" (force undefined), which
+    // detects again in every photo of every user.
+    const isReset = name === QueueName.FaceDetection ? force !== false : force;
+    const resetTable = isReset && VECTOR_RESET_QUEUES[name];
     if (resetTable && !(await this.databaseRepository.canResetVectors(resetTable))) {
-      throw new BadRequestException(`"All" ${VECTOR_RESET_REFUSED}`);
+      throw new BadRequestException(`${force ? '"All"' : '"Refresh"'} is ${VECTOR_RESET_REFUSED}`);
     }
 
     await this.eventRepository.emit('QueueStart', { name });

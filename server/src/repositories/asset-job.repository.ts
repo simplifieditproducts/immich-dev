@@ -180,7 +180,7 @@ export class AssetJobRepository {
           .where('job_status.duplicatesDetectedAt', 'is', null)
           // Archived users (immich-devops' vector-archive.py) are left out
           // until they return.
-          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
+          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
       )
       .stream();
   }
@@ -195,7 +195,7 @@ export class AssetJobRepository {
           // Archived users' photos have no smart_search rows on purpose
           // (immich-devops' vector-archive.py); they get theirs back when
           // they return.
-          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
+          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
       )
       .stream();
   }
@@ -402,7 +402,7 @@ export class AssetJobRepository {
           .where('job_status.facesRecognizedAt', 'is', null)
           // Archived users (immich-devops' vector-archive.py) are left out
           // until they return.
-          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
+          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
       )
       .select(['asset.id'])
       .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
@@ -469,6 +469,11 @@ export class AssetJobRepository {
         .where((eb: any) =>
           eb.or([eb('asset_job_status.metadataExtractedAt', 'is', null), eb('asset_job_status.assetId', 'is', null)]),
         )
+        // Its jobs end in Smart Search, Face Detection and Duplicate
+        // Detection, which would give archived users vectors again. NOT IN
+        // (a hashed list of their ids), here and above: NOT EXISTS made the
+        // planner expect one row and loop over millions on keepsafe.
+        .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`)
         .stream()
     );
   }

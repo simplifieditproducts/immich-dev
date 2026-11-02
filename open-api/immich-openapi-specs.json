@@ -20838,6 +20838,9 @@
           "email": {
             "type": "boolean"
           },
+          "faceResetAllowed": {
+            "type": "boolean"
+          },
           "facialRecognition": {
             "type": "boolean"
           },
@@ -20874,6 +20877,9 @@
           "smartSearch": {
             "type": "boolean"
           },
+          "smartSearchResetAllowed": {
+            "type": "boolean"
+          },
           "trash": {
             "type": "boolean"
           }
@@ -20882,6 +20888,7 @@
           "configFile",
           "duplicateDetection",
           "email",
+          "faceResetAllowed",
           "facialRecognition",
           "filterExtraction",
           "importFaces",
@@ -20894,6 +20901,7 @@
           "search",
           "sidecar",
           "smartSearch",
+          "smartSearchResetAllowed",
           "trash"
         ],
         "type": "object"
