@@ -4,7 +4,9 @@ import { Kysely, sql } from 'kysely';
 // scripts/vector-archive.py moved out of the database (idle free users), so
 // queries here can leave them out (Smart Search "Missing" would otherwise
 // recompute all their photos). The script creates the same table; IF NOT
-// EXISTS keeps the one on servers it already ran on, with its rows.
+// EXISTS keeps the one on servers it already ran on, with its rows. So a new
+// column takes ALTER TABLE ... ADD COLUMN IF NOT EXISTS in a new migration and
+// in the script's SCHEMA_SQL, not a change here.
 export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE SCHEMA IF NOT EXISTS vector_archive;`.execute(db);
   await sql`CREATE TABLE IF NOT EXISTS vector_archive.users (

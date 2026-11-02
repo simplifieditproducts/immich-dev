@@ -167,7 +167,7 @@ export class AssetJobRepository {
 
   @GenerateSql({ params: [], stream: true })
   streamForSearchDuplicates(force?: boolean) {
-    return this.db
+    const query = this.db
       .selectFrom('asset')
       .select(['asset.id', 'asset.ownerId'])
       .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
@@ -177,12 +177,20 @@ export class AssetJobRepository {
       .$if(!force, (qb) =>
         qb
           .innerJoin('asset_job_status as job_status', 'job_status.assetId', 'asset.id')
-          .where('job_status.duplicatesDetectedAt', 'is', null)
-          // Archived users (immich-devops' vector-archive.py) are left out
-          // until they return. The join on smart_search already does that,
-          // unless an override computed some of their vectors again.
-          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
-      )
+          .where('job_status.duplicatesDetectedAt', 'is', null),
+      );
+    if (force) {
+      return query.stream();
+    }
+    // Archived users (immich-devops' vector-archive.py) are left out until
+    // they return. The join on smart_search already does that, unless an
+    // override computed some of their vectors again. Filtered outside an
+    // OFFSET 0 subquery: inside it, the planner guessed NOT IN drops half the
+    // photos and scanned all of asset instead of the few photos not done.
+    return this.db
+      .selectFrom(query.offset(sql.lit(0)).as('asset'))
+      .select(['asset.id', 'asset.ownerId'])
+      .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`)
       .stream();
   }
 
@@ -397,16 +405,27 @@ export class AssetJobRepository {
 
   @GenerateSql({ params: [], stream: true })
   streamForDetectFacesJob(force?: boolean) {
-    return this.assetsWithPreviews()
-      .$if(force === false, (qb) =>
-        qb
+    if (force !== false) {
+      return this.assetsWithPreviews()
+        .select(['asset.id'])
+        .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
+        .orderBy('asset.fileCreatedAt', 'desc')
+        .stream();
+    }
+    // Archived users (immich-devops' vector-archive.py) are left out until
+    // they return, outside an OFFSET 0 subquery as in
+    // streamForSearchDuplicates.
+    return this.db
+      .selectFrom(
+        this.assetsWithPreviews()
           .where('job_status.facesRecognizedAt', 'is', null)
-          // Archived users (immich-devops' vector-archive.py) are left out
-          // until they return.
-          .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
+          .select(['asset.id', 'asset.ownerId', 'asset.fileCreatedAt'])
+          .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
+          .offset(sql.lit(0))
+          .as('asset'),
       )
       .select(['asset.id'])
-      .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
+      .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`)
       .orderBy('asset.fileCreatedAt', 'desc')
       .stream();
   }

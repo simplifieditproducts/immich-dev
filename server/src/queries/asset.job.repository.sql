@@ -247,16 +247,27 @@ where
 
 -- AssetJobRepository.streamForSearchDuplicates
 select
-  "asset"."id"
+  "asset"."id",
+  "asset"."ownerId"
 from
-  "asset"
-  inner join "smart_search" on "asset"."id" = "smart_search"."assetId"
-  inner join "asset_job_status" as "job_status" on "job_status"."assetId" = "asset"."id"
+  (
+    select
+      "asset"."id",
+      "asset"."ownerId"
+    from
+      "asset"
+      inner join "smart_search" on "asset"."id" = "smart_search"."assetId"
+      inner join "asset_job_status" as "job_status" on "job_status"."assetId" = "asset"."id"
+    where
+      "asset"."status" != 'partial'
+      and "asset"."deletedAt" is null
+      and "asset"."visibility" in ('archive', 'timeline')
+      and "job_status"."duplicatesDetectedAt" is null
+    offset
+      0
+  ) as "asset"
 where
-  "asset"."deletedAt" is null
-  and "asset"."visibility" in ('archive', 'timeline')
-  and "job_status"."duplicatesDetectedAt" is null
-  and "asset"."ownerId" not in (
+  "asset"."ownerId" not in (
     select
       "userId"
     from
