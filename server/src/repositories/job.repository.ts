@@ -175,8 +175,9 @@ export class JobRepository {
         options: this.getJobOptions(item) || undefined,
       } as JobItem & { data: any; options: JobsOptions | undefined };
 
-      if (job.options?.jobId) {
-        // need to use add() instead of addBulk() for jobId deduplication
+      // add() for jobId deduplication and for a delay: addBulk() reads its
+      // options from `opts`, so `options` there are ignored.
+      if (job.options?.jobId || job.options?.delay) {
         promises.push(this.getQueue(queueName).add(item.name, item.data, job.options));
       } else {
         itemsByQueue[queueName] = itemsByQueue[queueName] || [];
