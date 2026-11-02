@@ -59,11 +59,8 @@ export interface EnvData {
     config: DatabaseConnectionParams;
     skipMigrations: boolean;
     vectorExtension?: VectorExtension;
-    // Jobs and settings that delete or rebuild a whole vector table or index
-    // (Smart Search / Face Detection / Facial Recognition "All", changing the
-    // CLIP model, automatic index rebuilds) only run when this is set, or on
-    // a server whose vector tables are still small. On a large server they
-    // mean hours of rewrites and recomputing every user's photos.
+    // IMMICH_ALLOW_VECTOR_RESET: allows on a large server what
+    // DatabaseRepository.canResetVectors turns off there.
     allowVectorReset: boolean;
   };
 

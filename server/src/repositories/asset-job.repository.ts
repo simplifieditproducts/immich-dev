@@ -179,7 +179,8 @@ export class AssetJobRepository {
           .innerJoin('asset_job_status as job_status', 'job_status.assetId', 'asset.id')
           .where('job_status.duplicatesDetectedAt', 'is', null)
           // Archived users (immich-devops' vector-archive.py) are left out
-          // until they return.
+          // until they return. The join on smart_search already does that,
+          // unless an override computed some of their vectors again.
           .where(sql<boolean>`"asset"."ownerId" not in (select "userId" from vector_archive.users)`),
       )
       .stream();

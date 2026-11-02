@@ -135,7 +135,7 @@ describe('vector reset guard', () => {
       });
       expect(sut.db.schema.dropIndex).not.toHaveBeenCalled();
       expect(sut.db.transaction).not.toHaveBeenCalled();
-      expect(sut.logger.error).toHaveBeenCalledWith(expect.stringContaining(VECTOR_RESET_REFUSED));
+      expect(sut.logger.error).toHaveBeenCalledWith(expect.stringContaining('Not updating'));
     });
 
     it('a model that no longer matches the vectors at start', async () => {

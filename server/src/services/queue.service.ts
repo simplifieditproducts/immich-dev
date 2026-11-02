@@ -38,7 +38,6 @@ const asNightlyTasksCron = (config: SystemConfig) => {
   return `${minutes} ${hours} * * *`;
 };
 
-
 // Queues whose "All" (force) redoes a whole vector table, and that table.
 // Duplicate Detection empties nothing but searches the clip index once per
 // photo of every user.
@@ -48,6 +47,7 @@ const VECTOR_RESET_QUEUES: Partial<Record<QueueName, 'smart_search' | 'face_sear
   [QueueName.FaceDetection]: 'face_search',
   [QueueName.FacialRecognition]: 'face_search',
 };
+
 @Injectable()
 export class QueueService extends BaseService {
   private services: ClassConstructor<unknown>[] = [];

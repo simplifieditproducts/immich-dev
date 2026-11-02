@@ -71,7 +71,8 @@ export class SmartInfoService extends BaseService {
       if (!(await this.databaseRepository.canResetVectors('smart_search'))) {
         this.logger.error(
           `CLIP model ${newConfig.machineLearning.clip.modelName} (dimension ${dimSize}) doesn't match the search ` +
-            `vectors in the database (dimension ${dbDimSize}); not emptying smart_search: ${VECTOR_RESET_REFUSED}`,
+            `vectors in the database (dimension ${dbDimSize}). Not emptying smart_search, which would mean ` +
+            `encoding every photo of every user again; see docs/vector-index-capacity.md in immich-devops.`,
         );
         return;
       }

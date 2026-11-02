@@ -11,7 +11,6 @@ import {
   VECTOR_EXTENSIONS,
   VECTOR_INDEX_TABLES,
   VECTOR_RESET_MAX_ROWS,
-  VECTOR_RESET_REFUSED,
   VECTOR_VERSION_RANGE,
   VECTORCHORD_LIST_SLACK_FACTOR,
   VECTORCHORD_VERSION_RANGE,
@@ -150,7 +149,8 @@ export class DatabaseRepository {
       if (!(await this.canResetVectors(table))) {
         this.logger.error(
           `Not updating ${EXTENSION_NAMES[extension]} from ${installedVersion} to ${targetVersion}: the update ` +
-            `rebuilds the vector indexes, ${VECTOR_RESET_REFUSED}`,
+            `drops and rebuilds both vector indexes, hours of work on large vector tables (or with users' vectors ` +
+            `archived). Update it by hand in a maintenance window (immich-devops, docs/vector-index-capacity.md).`,
         );
         return { restartRequired: false };
       }
@@ -373,10 +373,12 @@ export class DatabaseRepository {
     return this.vectorResetCache.value;
   }
 
-  /** canResetVectors for both tables, waiting at most lockTimeout for a lock. */
-  async canResetVectorsWithin(lockTimeout: string): Promise<Record<'smart_search' | 'face_search', boolean>> {
+  /** canResetVectors for both tables, each statement and lock wait at most timeout. */
+  async canResetVectorsWithin(timeout: string): Promise<Record<'smart_search' | 'face_search', boolean>> {
     return this.db.transaction().execute(async (trx) => {
-      await sql`SELECT set_config('lock_timeout', ${lockTimeout}, true)`.execute(trx);
+      await sql`SELECT set_config('lock_timeout', ${timeout}, true), set_config('statement_timeout', ${timeout}, true)`.execute(
+        trx,
+      );
       return {
         smart_search: await this.canResetVectors('smart_search', trx),
         face_search: await this.canResetVectors('face_search', trx),
@@ -433,7 +435,8 @@ export class DatabaseRepository {
     // is rebuilt by hand, concurrently, instead.
     if (!(await this.canResetVectors(table))) {
       this.logger.error(
-        `Not rebuilding ${indexName}: ${table} has ${VECTOR_RESET_MAX_ROWS} rows or more. Rebuild it by hand ` +
+        `Not rebuilding ${indexName}: ${table} is large (100,000 rows or more) or users' vectors are archived. ` +
+          `Rebuild it by hand ` +
           `(immich-devops, docs/vector-index-capacity.md, "Rebuilding the indexes"), ` +
           `or set IMMICH_ALLOW_VECTOR_RESET=true and restart.`,
       );
