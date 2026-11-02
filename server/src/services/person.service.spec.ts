@@ -578,6 +578,7 @@ describe(PersonService.name, () => {
       expect(mocks.person.getAllFaces).toHaveBeenCalledWith({
         personId: null,
         sourceType: SourceType.MachineLearning,
+        skipArchivedOwners: true,
       });
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         {
@@ -606,7 +607,7 @@ describe(PersonService.name, () => {
 
       await sut.handleQueueRecognizeFaces({ force: true });
 
-      expect(mocks.person.getAllFaces).toHaveBeenCalledWith(undefined);
+      expect(mocks.person.getAllFaces).toHaveBeenCalledWith({ skipArchivedOwners: true });
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         {
           name: JobName.FacialRecognition,
@@ -642,6 +643,7 @@ describe(PersonService.name, () => {
       expect(mocks.person.getAllFaces).toHaveBeenCalledWith({
         personId: null,
         sourceType: SourceType.MachineLearning,
+        skipArchivedOwners: true,
       });
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         {

@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { VECTOR_RESET_REFUSED } from 'src/constants';
 import { JobName, JobStatus, QueueName } from 'src/enum';
+import { DuplicateService } from 'src/services/duplicate.service';
 import { PersonService } from 'src/services/person.service';
 import { QueueService } from 'src/services/queue.service';
 import { SmartInfoService } from 'src/services/smart-info.service';
@@ -14,6 +15,7 @@ const machineLearning = {
   enabled: true,
   urls: ['http://ml'],
   clip: { enabled: true, modelName: 'ViT-B-32__openai' },
+  duplicateDetection: { enabled: true, maxDistance: 0.01 },
   facialRecognition: { enabled: true, modelName: 'buffalo_l', minScore: 0.7, maxDistance: 0.5, minFaces: 3 },
 };
 
@@ -64,14 +66,24 @@ describe('vector reset guard', () => {
       expect(sut.personRepository.vacuum).not.toHaveBeenCalled();
     });
 
-    it.each([QueueName.SmartSearch, QueueName.FaceDetection, QueueName.FacialRecognition])(
-      '"All" from the Jobs page (%s)',
-      async (name) => {
-        const sut = setup(QueueService, false);
-        await expect((sut as any).start(name, { force: true })).rejects.toBeInstanceOf(BadRequestException);
-        expect(sut.jobRepository.queue).not.toHaveBeenCalled();
-      },
-    );
+    it('Duplicate Detection "All" (job)', async () => {
+      const sut = setup(DuplicateService, false);
+      (sut as any).assetJobRepository = { streamForSearchDuplicates: vitest.fn() };
+      await expect(sut.handleQueueSearchDuplicates({ force: true })).resolves.toBe(JobStatus.Skipped);
+      expect(sut.databaseRepository.canResetVectors).toHaveBeenCalledWith('smart_search');
+      expect((sut as any).assetJobRepository.streamForSearchDuplicates).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      QueueName.SmartSearch,
+      QueueName.DuplicateDetection,
+      QueueName.FaceDetection,
+      QueueName.FacialRecognition,
+    ])('"All" from the Jobs page (%s)', async (name) => {
+      const sut = setup(QueueService, false);
+      await expect((sut as any).start(name, { force: true })).rejects.toBeInstanceOf(BadRequestException);
+      expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+    });
 
     it('changing the CLIP model in the settings', async () => {
       const sut = setup(SmartInfoService, false);
@@ -117,6 +129,24 @@ describe('vector reset guard', () => {
         name: JobName.AssetDetectFacesQueueAll,
         data: { force: true },
       });
+    });
+
+    it.each([
+      ['"Missing"', {}, { personId: null, sourceType: 'machine-learning', skipArchivedOwners: true }],
+      [
+        'one user',
+        { ownerId: 'u1' },
+        { personId: null, sourceType: 'machine-learning', ownerIds: ['u1'], skipArchivedOwners: true },
+      ],
+      ['"All"', { force: true }, { skipArchivedOwners: true }],
+    ])('Facial Recognition %s leaves out archived users', async (_, data, expected) => {
+      const sut = setup(PersonService, true);
+      (sut as any).handlePersonCleanup = vitest.fn();
+      (sut as any).systemMetadataRepository = { set: vitest.fn() };
+      sut.personRepository.getAllFaces = vitest.fn().mockReturnValue((async function* () {})());
+      sut.jobRepository.queueAll = vitest.fn();
+      await expect(sut.handleQueueRecognizeFaces(data)).resolves.toBe(JobStatus.Success);
+      expect(sut.personRepository.getAllFaces).toHaveBeenCalledWith(expected);
     });
 
     it('Face Detection "All" vacuums without face_search', async () => {

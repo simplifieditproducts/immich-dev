@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
+import { JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnJob } from 'src/decorators';
 import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
 import { mapAsset } from 'src/dtos/asset-response.dto';
@@ -33,6 +33,11 @@ export class DuplicateService extends BaseService {
   async handleQueueSearchDuplicates({ force }: JobOf<JobName.AssetDetectDuplicatesQueueAll>): Promise<JobStatus> {
     const { machineLearning } = await this.getConfig({ withCache: false });
     if (!isDuplicateDetectionEnabled(machineLearning)) {
+      return JobStatus.Skipped;
+    }
+
+    if (force && !(await this.databaseRepository.canResetVectors('smart_search'))) {
+      this.logger.error(`Duplicate Detection "All" ${VECTOR_RESET_REFUSED}`);
       return JobStatus.Skipped;
     }
 

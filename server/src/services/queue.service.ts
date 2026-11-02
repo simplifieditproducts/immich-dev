@@ -39,9 +39,12 @@ const asNightlyTasksCron = (config: SystemConfig) => {
 };
 
 
-// Queues whose "All" (force) empties a vector table, and that table.
+// Queues whose "All" (force) redoes a whole vector table, and that table.
+// Duplicate Detection empties nothing but searches the clip index once per
+// photo of every user.
 const VECTOR_RESET_QUEUES: Partial<Record<QueueName, 'smart_search' | 'face_search'>> = {
   [QueueName.SmartSearch]: 'smart_search',
+  [QueueName.DuplicateDetection]: 'smart_search',
   [QueueName.FaceDetection]: 'face_search',
   [QueueName.FacialRecognition]: 'face_search',
 };

@@ -177,7 +177,10 @@ export class AssetJobRepository {
       .$if(!force, (qb) =>
         qb
           .innerJoin('asset_job_status as job_status', 'job_status.assetId', 'asset.id')
-          .where('job_status.duplicatesDetectedAt', 'is', null),
+          .where('job_status.duplicatesDetectedAt', 'is', null)
+          // Archived users (immich-devops' vector-archive.py) are left out
+          // until they return.
+          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
       )
       .stream();
   }
@@ -394,7 +397,13 @@ export class AssetJobRepository {
   @GenerateSql({ params: [], stream: true })
   streamForDetectFacesJob(force?: boolean) {
     return this.assetsWithPreviews()
-      .$if(force === false, (qb) => qb.where('job_status.facesRecognizedAt', 'is', null))
+      .$if(force === false, (qb) =>
+        qb
+          .where('job_status.facesRecognizedAt', 'is', null)
+          // Archived users (immich-devops' vector-archive.py) are left out
+          // until they return.
+          .where(sql<boolean>`not exists (select 1 from vector_archive.users where "userId" = "asset"."ownerId")`),
+      )
       .select(['asset.id'])
       .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
       .orderBy('asset.fileCreatedAt', 'desc')

@@ -37,8 +37,8 @@ export const VECTOR_EXTENSIONS = [
 // seconds to minutes, as on a new server.
 export const VECTOR_RESET_MAX_ROWS = 100_000;
 export const VECTOR_RESET_REFUSED =
-  'refused on this server: it would delete and recompute every vector of a large vector table (hours of work, ' +
-  'search or face recognition broken meanwhile, and archived users recomputed too). ' +
+  'refused on this server: it would redo every vector of a large vector table (hours of work on the database, ' +
+  'search, faces or duplicates broken or slow meanwhile, and archived users recomputed too). ' +
   'To do it anyway, set IMMICH_ALLOW_VECTOR_RESET=true on the server and restart Immich.';
 
 export const VECTOR_INDEX_TABLES = {
