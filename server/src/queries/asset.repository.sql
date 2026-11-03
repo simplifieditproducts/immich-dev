@@ -76,6 +76,68 @@ where
   "assetId" = $1
   and "key" = $2
 
+-- AssetRepository.getCompletionMetadata
+select
+  "originalPath" as "path",
+  "status",
+  "fileModifiedAt",
+  "createdAt",
+  "checksum",
+  "fileSizeInByte" as "size"
+from
+  "asset"
+  inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
+where
+  "id" = $1
+  and "ownerId" = $2
+
+-- AssetRepository.setComplete
+update "asset" as "complete_asset"
+set
+  "status" = 'active',
+  "visibility" = case
+    when (
+      "complete_asset"."type" = 'VIDEO'
+      and exists (
+        select
+        from
+          "asset"
+        where
+          "complete_asset"."id" = "asset"."livePhotoVideoId"
+      )
+    ) then 'hidden'::asset_visibility_enum
+    else 'timeline'::asset_visibility_enum
+  end
+where
+  "id" = $1
+  and "status" = 'partial'
+
+-- AssetRepository.removeAndDecrementQuota
+with
+  "asset_exif" as (
+    select
+      "fileSizeInByte"
+    from
+      "asset_exif"
+    where
+      "assetId" = $1
+  ),
+  "asset" as (
+    delete from "asset"
+    where
+      "id" = $2
+    returning
+      "ownerId"
+  )
+update "user"
+set
+  "quotaUsageInBytes" = GREATEST("quotaUsageInBytes" - "fileSizeInByte", 0)
+from
+  "asset_exif",
+  "asset"
+where
+  "user"."id" = "asset"."ownerId"
+
 -- AssetRepository.getByDayOfYear
 with
   "res" as (
@@ -98,13 +160,13 @@ with
           ) as "year"
       )
     select
-      "a".*,
-      to_json("asset_exif") as "exifInfo"
+      "a".*
     from
       "today"
       inner join lateral (
         select
-          "asset".*
+          "asset"."id",
+          "asset"."localDateTime"
         from
           "asset"
           inner join "asset_job_status" on "asset"."id" = "asset_job_status"."assetId"
@@ -127,7 +189,6 @@ with
         limit
           $7
       ) as "a" on true
-      inner join "asset_exif" on "a"."id" = "asset_exif"."assetId"
   )
 select
   date_part(
@@ -229,6 +290,35 @@ where
   and "visibility" != $3
   and "deletedAt" is null
 
+-- AssetRepository.getNumberOfAssets
+select
+  coalesce(count(*), 0) as "total"
+from
+  "asset"
+where
+  "ownerId" = $1::uuid
+  and "visibility" != $2
+  and "deletedAt" is null
+
+-- AssetRepository.getAll
+select
+  "deviceAssetId",
+  "deviceFilePath",
+  "deviceId",
+  "checksum",
+  "isOriginalQuality",
+  "id"
+from
+  "asset"
+where
+  "ownerId" = $1::uuid
+  and "visibility" != $2
+  and "deletedAt" is null
+limit
+  $3
+offset
+  $4
+
 -- AssetRepository.getLivePhotoCount
 select
   count(*) as "count"
@@ -316,7 +406,9 @@ where
 
 -- AssetRepository.getUploadAssetIdByChecksum
 select
-  "id"
+  "id",
+  "status",
+  "createdAt"
 from
   "asset"
 where
@@ -325,6 +417,35 @@ where
   and "libraryId" is null
 limit
   $3
+
+-- AssetRepository.getAssetCount
+select
+  count(*) filter (
+    where
+      (
+        "asset"."type" = 'IMAGE'
+        and "asset"."visibility" != 'hidden'
+      )
+  ) as "photos",
+  count(*) filter (
+    where
+      (
+        "asset"."type" = 'VIDEO'
+        and "asset"."visibility" != 'hidden'
+      )
+  ) as "videos"
+from
+  "asset"
+where
+  "asset"."ownerId" in (
+    select
+      "user"."id"
+    from
+      "user"
+    where
+      "user"."sourceApp" = $1
+  )
+  and "asset"."deletedAt" is null
 
 -- AssetRepository.getTimeBuckets
 with
@@ -448,30 +569,40 @@ from
 
 -- AssetRepository.getAssetIdByCity
 with
+  "filtered_assets" as (
+    select
+      "asset"."id",
+      "asset"."fileCreatedAt",
+      "asset_exif"."city"
+    from
+      "asset"
+      inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
+    where
+      "asset"."ownerId" = $1::uuid
+      and "asset"."visibility" = $2
+      and "asset"."type" = $3
+      and "asset"."deletedAt" is null
+      and "asset_exif"."city" is not null
+  ),
   "cities" as (
     select
       "city"
     from
-      "asset_exif"
-    where
-      "city" is not null
+      "filtered_assets"
     group by
       "city"
     having
-      count("assetId") >= $1
+      count(*) >= $4
   )
 select distinct
-  on ("asset_exif"."city") "assetId" as "data",
-  "asset_exif"."city" as "value"
+  on ("filtered_assets"."city") "filtered_assets"."id" as "data",
+  "filtered_assets"."city" as "value"
 from
-  "asset"
-  inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
-  inner join "cities" on "asset_exif"."city" = "cities"."city"
-where
-  "ownerId" = $2::uuid
-  and "visibility" = $3
-  and "type" = $4
-  and "deletedAt" is null
+  "filtered_assets"
+  inner join "cities" on "filtered_assets"."city" = "cities"."city"
+order by
+  "filtered_assets"."city",
+  "filtered_assets"."fileCreatedAt" desc
 limit
   $5
 
@@ -562,3 +693,15 @@ where
       and "libraryId" = $2::uuid
       and "isExternal" = $3
   )
+
+-- AssetRepository.adminGetAll
+select
+  "id",
+  "originalPath",
+  "checksum"
+from
+  "asset"
+limit
+  $1
+offset
+  $2

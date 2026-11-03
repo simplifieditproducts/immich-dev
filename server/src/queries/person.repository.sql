@@ -55,6 +55,17 @@ limit
 offset
   $6
 
+-- PersonRepository.getAllForUserWithNames
+select
+  "person"."id",
+  "person"."name"
+from
+  "person"
+where
+  "person"."name" != $1
+  and "person"."ownerId" = $2
+  and "person"."isHidden" = $3
+
 -- PersonRepository.getAllWithoutFaces
 select
   "person".*
@@ -220,15 +231,16 @@ where
 
 -- PersonRepository.getStatistics
 select
-  count(distinct ("asset"."id")) as "count"
+  count(*) as "count"
 from
   "asset_face"
-  left join "asset" on "asset"."id" = "asset_face"."assetId"
-  and "asset_face"."personId" = $1
-  and "asset"."visibility" = 'timeline'
-  and "asset"."deletedAt" is null
+  inner join "asset" on "asset"."id" = "asset_face"."assetId"
 where
-  "asset_face"."deletedAt" is null
+  "asset_face"."personId" = $1
+  and "asset_face"."deletedAt" is null
+  and "asset"."ownerId" = $2
+  and "asset"."visibility" = $3
+  and "asset"."deletedAt" is null
 
 -- PersonRepository.getNumberOfPeople
 select
@@ -239,7 +251,14 @@ select
         "isHidden" = $1
     ),
     0
-  ) as "hidden"
+  ) as "hidden",
+  coalesce(
+    count(*) filter (
+      where
+        "name" = $2
+    ),
+    0
+  ) as "unnamed"
 from
   "person"
 where
@@ -260,7 +279,7 @@ where
           and "asset"."deletedAt" is null
       )
   )
-  and "person"."ownerId" = $2
+  and "person"."ownerId" = $3
 
 -- PersonRepository.refreshFaces
 with
@@ -327,6 +346,25 @@ select
   max("asset_job_status"."facesRecognizedAt")::text as "latestDate"
 from
   "asset_job_status"
+
+-- PersonRepository.getUsersWithNewPersonsInLastWeek
+select distinct
+  "asset"."ownerId"
+from
+  "asset"
+where
+  "asset"."createdAt" >= $1
+  and "asset"."status" != 'partial'
+  and "asset"."deletedAt" is null
+  and "asset"."ownerId" in (
+    select distinct
+      "person"."ownerId"
+    from
+      "person"
+    where
+      "person"."createdAt" >= $2
+      and "person"."isHidden" = $3
+  )
 
 -- PersonRepository.deleteAssetFace
 delete from "asset_face"

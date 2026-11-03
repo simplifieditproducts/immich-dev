@@ -87,7 +87,7 @@ select
           max(
             ceil(
               substring(
-                pg_get_indexdef (i.indexrelid)
+                pg_get_indexdef(i.indexrelid)
                 from
                   'lists = \[([0-9]+)'
               )::int / 8.0

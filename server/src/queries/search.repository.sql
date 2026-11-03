@@ -109,7 +109,7 @@ select
           max(
             ceil(
               substring(
-                pg_get_indexdef (i.indexrelid)
+                pg_get_indexdef(i.indexrelid)
                 from
                   'lists = \[([0-9]+)'
               )::int / 8.0
@@ -133,7 +133,7 @@ select
 from
   "asset"
   inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
-  inner join "smart_search" on "asset"."id" = "smart_search"."assetId"
+  left join "smart_search" on "asset"."id" = "smart_search"."assetId"
 where
   "asset"."visibility" = $1
   and "asset"."fileCreatedAt" >= $2
@@ -168,7 +168,7 @@ select
           max(
             ceil(
               substring(
-                pg_get_indexdef (i.indexrelid)
+                pg_get_indexdef(i.indexrelid)
                 from
                   'lists = \[([0-9]+)'
               )::int / 8.0
@@ -239,61 +239,21 @@ limit
   $9
 
 -- SearchRepository.getAssetsByCity
-with recursive
-  "cte" as (
-    (
-      select
-        "city",
-        "assetId"
-      from
-        "asset_exif"
-        inner join "asset" on "asset"."id" = "asset_exif"."assetId"
-      where
-        "asset"."ownerId" = any ($1::uuid[])
-        and "asset"."visibility" = $2
-        and "asset"."type" = $3
-        and "asset"."deletedAt" is null
-      order by
-        "city"
-      limit
-        $4
-    )
-    union all
-    (
-      select
-        "l"."city",
-        "l"."assetId"
-      from
-        "cte"
-        inner join lateral (
-          select
-            "city",
-            "assetId"
-          from
-            "asset_exif"
-            inner join "asset" on "asset"."id" = "asset_exif"."assetId"
-          where
-            "asset"."ownerId" = any ($5::uuid[])
-            and "asset"."visibility" = $6
-            and "asset"."type" = $7
-            and "asset"."deletedAt" is null
-            and "asset_exif"."city" > "cte"."city"
-          order by
-            "city"
-          limit
-            $8
-        ) as "l" on true
-    )
-  )
-select
-  "asset".*,
+select distinct
+  on ("asset_exif"."city") "asset".*,
   to_jsonb("asset_exif") as "exifInfo"
 from
   "asset"
   inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
-  inner join "cte" on "asset"."id" = "cte"."assetId"
+where
+  "asset"."ownerId" = any ($1::uuid[])
+  and "asset"."visibility" = $2
+  and "asset"."type" = $3
+  and "asset"."deletedAt" is null
+  and "asset_exif"."city" is not null
 order by
-  "asset_exif"."city"
+  "asset_exif"."city",
+  "asset"."fileCreatedAt" desc
 
 -- SearchRepository.getStates
 select distinct
