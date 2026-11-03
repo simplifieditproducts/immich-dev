@@ -21,7 +21,7 @@ import { LicenseKeyDto, LicenseResponseDto } from 'src/dtos/license.dto';
 import { OnboardingDto, OnboardingResponseDto } from 'src/dtos/onboarding.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto } from 'src/dtos/user-preferences.dto';
 import { CreateProfileImageDto, CreateProfileImageResponseDto } from 'src/dtos/user-profile.dto';
-import { UserAdminResponseDto, UserResponseDto, UserUpdateMeDto } from 'src/dtos/user.dto';
+import { UserAdminResponseDto, UserResponseDto, UserSearchStatusResponseDto, UserUpdateMeDto } from 'src/dtos/user.dto';
 import { ApiTag, Permission, RouteKey } from 'src/enum';
 import { Auth, Authenticated, FileResponse } from 'src/middleware/auth.guard';
 import { FileUploadInterceptor } from 'src/middleware/file-upload.interceptor';
@@ -94,6 +94,18 @@ export class UserController {
     @Body() dto: UserPreferencesUpdateDto,
   ): Promise<UserPreferencesResponseDto> {
     return this.service.updateMyPreferences(auth, dto);
+  }
+
+  @Get('me/search-status')
+  @Authenticated({ permission: Permission.UserRead })
+  @Endpoint({
+    summary: 'Get search status',
+    description:
+      "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while search vectors, metadata or thumbnails are missing for more than 5% (at least 10) of their photos, else ready. Also how many photos each step has left: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
+    history: new HistoryBuilder().added('v2.4.1'),
+  })
+  getMySearchStatus(@Auth() auth: AuthDto): Promise<UserSearchStatusResponseDto> {
+    return this.service.getSearchStatus(auth);
   }
 
   @Get('me/license')

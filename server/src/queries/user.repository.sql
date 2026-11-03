@@ -424,6 +424,55 @@ from
 where
   "user"."deletedAt" is null
 
+-- UserRepository.getSearchProgress
+select
+  count(*) as "assets",
+  count(*) filter (
+    where
+      not exists (
+        select
+          "smart_search"."assetId"
+        from
+          "smart_search"
+        where
+          "smart_search"."assetId" = "asset"."id"
+      )
+  ) as "smartSearch",
+  count(*) filter (
+    where
+      "asset_job_status"."metadataExtractedAt" is null
+  ) as "metadataExtraction",
+  count(*) filter (
+    where
+      "asset_job_status"."thumbnailAt" is null
+  ) as "thumbnailGeneration",
+  count(*) filter (
+    where
+      "asset_job_status"."facesRecognizedAt" is null
+  ) as "faceDetection",
+  count(*) filter (
+    where
+      "asset_job_status"."ocrAt" is null
+  ) as "ocr",
+  count(*) filter (
+    where
+      (
+        "asset"."type" = 'VIDEO'
+        and "asset"."encodedVideoPath" is null
+      )
+  ) as "videoConversion",
+  count(*) filter (
+    where
+      "asset_job_status"."duplicatesDetectedAt" is null
+  ) as "duplicateDetection"
+from
+  "asset"
+  left join "asset_job_status" on "asset_job_status"."assetId" = "asset"."id"
+where
+  "asset"."ownerId" = $1::uuid
+  and "asset"."deletedAt" is null
+  and "asset"."visibility" != 'hidden'
+
 -- UserRepository.updateUsage
 update "user"
 set

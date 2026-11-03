@@ -323,6 +323,75 @@ export class UserRepository {
     return Number(result.count);
   }
 
+  /**
+   * How many of a user's photos and videos (not deleted, not hidden) are
+   * still without each step's result, for GET /users/me/search-status. One
+   * read of the user's assets by ownerId with their job status and search
+   * vectors: 0.5 s for 74,000 on keepsafe (1.5 s cold), milliseconds for
+   * most users. Face detection sets facesRecognizedAt; recognition leaves no
+   * mark per face (many faces never join a person), so it isn't counted.
+   * Videos count as waiting for videoConversion until encodedVideoPath is
+   * set: every video is transcoded on keepsafe's servers.
+   */
+  @GenerateSql({ params: [DummyValue.UUID] })
+  async getSearchProgress(id: string) {
+    const row = await this.db
+      .selectFrom('asset')
+      .leftJoin('asset_job_status', 'asset_job_status.assetId', 'asset.id')
+      .select((eb) => [
+        eb.fn.countAll<number>().as('assets'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom('smart_search')
+                  .select('smart_search.assetId')
+                  .whereRef('smart_search.assetId', '=', 'asset.id'),
+              ),
+            ),
+          )
+          .as('smartSearch'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere('asset_job_status.metadataExtractedAt', 'is', null)
+          .as('metadataExtraction'),
+        eb.fn.countAll<number>().filterWhere('asset_job_status.thumbnailAt', 'is', null).as('thumbnailGeneration'),
+        eb.fn.countAll<number>().filterWhere('asset_job_status.facesRecognizedAt', 'is', null).as('faceDetection'),
+        eb.fn.countAll<number>().filterWhere('asset_job_status.ocrAt', 'is', null).as('ocr'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere((eb) =>
+            eb.and([eb('asset.type', '=', sql.lit(AssetType.Video)), eb('asset.encodedVideoPath', 'is', null)]),
+          )
+          .as('videoConversion'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere('asset_job_status.duplicatesDetectedAt', 'is', null)
+          .as('duplicateDetection'),
+      ])
+      .where('asset.ownerId', '=', asUuid(id))
+      .where('asset.deletedAt', 'is', null)
+      .where('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden))
+      .executeTakeFirstOrThrow();
+    // Keyed by the queue each step runs in (QueueName), as /api/jobs is.
+    return {
+      assets: Number(row.assets),
+      required: {
+        smartSearch: Number(row.smartSearch),
+        metadataExtraction: Number(row.metadataExtraction),
+        thumbnailGeneration: Number(row.thumbnailGeneration),
+      },
+      deferrable: {
+        faceDetection: Number(row.faceDetection),
+        ocr: Number(row.ocr),
+        videoConversion: Number(row.videoConversion),
+        duplicateDetection: Number(row.duplicateDetection),
+      },
+    };
+  }
+
   @GenerateSql({ params: [DummyValue.UUID, DummyValue.NUMBER] })
   async updateUsage(id: string, delta: number): Promise<void> {
     await this.db

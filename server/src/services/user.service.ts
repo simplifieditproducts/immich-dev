@@ -1,7 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Updateable } from 'kysely';
 import { DateTime } from 'luxon';
-import { SALT_ROUNDS } from 'src/constants';
+import {
+  SALT_ROUNDS,
+  SEARCH_READY_MAX_PENDING_SHARE,
+  SEARCH_READY_MIN_PENDING,
+  SEARCH_STATUS_CACHE_MS,
+  SEARCH_STATUS_RESTORE_RETRY_MS,
+} from 'src/constants';
 import { StorageCore } from 'src/cores/storage.core';
 import { OnJob } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
@@ -9,17 +15,29 @@ import { LicenseKeyDto, LicenseResponseDto } from 'src/dtos/license.dto';
 import { OnboardingDto, OnboardingResponseDto } from 'src/dtos/onboarding.dto';
 import { UserPreferencesResponseDto, UserPreferencesUpdateDto, mapPreferences } from 'src/dtos/user-preferences.dto';
 import { CreateProfileImageResponseDto } from 'src/dtos/user-profile.dto';
-import { UserAdminResponseDto, UserResponseDto, UserUpdateMeDto, mapUser, mapUserAdmin } from 'src/dtos/user.dto';
-import { CacheControl, JobName, JobStatus, QueueName, StorageFolder, UserMetadataKey } from 'src/enum';
-import { UserFindOptions } from 'src/repositories/user.repository';
+import {
+  UserAdminResponseDto,
+  UserResponseDto,
+  UserSearchStatusResponseDto,
+  UserUpdateMeDto,
+  mapUser,
+  mapUserAdmin,
+} from 'src/dtos/user.dto';
+import { CacheControl, JobName, JobStatus, QueueName, SearchStatus, StorageFolder, UserMetadataKey } from 'src/enum';
+import { UserFindOptions, UserRepository } from 'src/repositories/user.repository';
 import { UserTable } from 'src/schema/tables/user.table';
 import { BaseService } from 'src/services/base.service';
 import { JobOf, UserMetadataItem } from 'src/types';
 import { ImmichFileResponse } from 'src/utils/file';
 import { getPreferences, getPreferencesPartial, mergePreferences } from 'src/utils/preferences';
 
+type SearchProgress = Awaited<ReturnType<UserRepository['getSearchProgress']>>;
+
 @Injectable()
 export class UserService extends BaseService {
+  private searchProgress = new Map<string, { at: number; archived: boolean; counts: SearchProgress }>();
+  private restoreQueuedAt = new Map<string, number>();
+
   async search(auth: AuthDto): Promise<UserResponseDto[]> {
     const config = await this.getConfig({ withCache: false });
 
@@ -41,6 +59,61 @@ export class UserService extends BaseService {
     }
 
     return mapUserAdmin(user);
+  }
+
+  /**
+   * Whether the user's search finds their photos yet, for the apps to hold or
+   * caveat their search: archived while immich-devops' vector archive still
+   * holds their vectors (restored after login, VectorArchiveService), then
+   * processing while search vectors, metadata or thumbnails (`required`) are
+   * missing for more of their photos than the share allows (SEARCH_READY_*):
+   * search needs all three. Faces, OCR, transcodes and duplicate detection
+   * (`deferrable`) may lag, counts only.
+   */
+  async getSearchStatus(auth: AuthDto): Promise<UserSearchStatusResponseDto> {
+    const id = auth.user.id;
+    const archived = !!(await this.databaseRepository.getArchivedVectorUser(id));
+    if (archived) {
+      await this.retryVectorRestore(id);
+    } else {
+      this.restoreQueuedAt.delete(id);
+    }
+
+    // Counted again when stale, or as soon as the restore is done: the
+    // counts taken while archived miss every search vector.
+    const now = Date.now();
+    let cached = this.searchProgress.get(id);
+    if (!cached || now - cached.at >= SEARCH_STATUS_CACHE_MS || cached.archived !== archived) {
+      cached = { at: now, archived, counts: await this.userRepository.getSearchProgress(id) };
+      this.searchProgress.set(id, cached);
+    }
+
+    const { assets, ...pending } = cached.counts;
+    const allowed = Math.max(assets * SEARCH_READY_MAX_PENDING_SHARE, SEARCH_READY_MIN_PENDING);
+    let status = SearchStatus.Ready;
+    if (archived) {
+      status = SearchStatus.Archived;
+    } else if (Object.values(pending.required).some((left) => left > allowed)) {
+      status = SearchStatus.Processing;
+    }
+    return { status, archived, assets, pending, checkedAt: new Date(cached.at) };
+  }
+
+  /**
+   * Queue the restore while the user is archived: the one their login queued
+   * (AuthService) may have failed, or been lost with a restart. One per user
+   * waits or runs at a time (VectorRestore's jobId), so this adds nothing
+   * while it does; at most every SEARCH_STATUS_RESTORE_RETRY_MS, so a restore
+   * that keeps failing isn't queued on every poll.
+   */
+  private async retryVectorRestore(id: string) {
+    const now = Date.now();
+    const last = this.restoreQueuedAt.get(id);
+    if (last !== undefined && now - last < SEARCH_STATUS_RESTORE_RETRY_MS) {
+      return;
+    }
+    this.restoreQueuedAt.set(id, now);
+    await this.jobRepository.queue({ name: JobName.VectorRestore, data: { id } });
   }
 
   async updateMe({ user }: AuthDto, dto: UserUpdateMeDto): Promise<UserAdminResponseDto> {

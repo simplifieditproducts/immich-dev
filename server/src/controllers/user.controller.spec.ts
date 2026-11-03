@@ -63,6 +63,13 @@ describe(UserController.name, () => {
     });
   });
 
+  describe('GET /users/me/search-status', () => {
+    it('should be an authenticated route', async () => {
+      await request(ctx.getHttpServer()).get('/users/me/search-status');
+      expect(ctx.authenticate).toHaveBeenCalled();
+    });
+  });
+
   describe('PUT /users/me/license', () => {
     it('should be an authenticated route', async () => {
       await request(ctx.getHttpServer()).put('/users/me/license');

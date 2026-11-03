@@ -243,8 +243,11 @@ export class JobRepository {
       }
       case JobName.VectorRestore: {
         // Ahead of what is waiting: the user is back and their searches are
-        // wrong until it runs.
-        return { lifo: true };
+        // wrong until it runs. One per user while it waits or runs (a second
+        // login, GET /users/me/search-status): JobService catches every
+        // job's error, so a job always completes and is removed, and the id
+        // is free again once it has run, failed or not.
+        return { lifo: true, jobId: `${JobName.VectorRestore}/${item.data.id}` };
       }
       default: {
         return null;

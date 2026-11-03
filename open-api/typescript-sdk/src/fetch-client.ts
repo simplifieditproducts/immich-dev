@@ -1844,6 +1844,36 @@ export type OnboardingResponseDto = {
 export type OnboardingDto = {
     isOnboarded: boolean;
 };
+export type UserSearchDeferrablePendingDto = {
+    duplicateDetection: number;
+    /** Faces not looked for yet. */
+    faceDetection: number;
+    ocr: number;
+    /** Videos not transcoded yet. */
+    videoConversion: number;
+};
+export type UserSearchRequiredPendingDto = {
+    /** No metadata yet: date and place filters miss them. */
+    metadataExtraction: number;
+    /** No search vector: text search doesn't find them. */
+    smartSearch: number;
+    /** No thumbnail yet: results can't show them. */
+    thumbnailGeneration: number;
+};
+export type UserSearchPendingDto = {
+    deferrable: UserSearchDeferrablePendingDto;
+    required: UserSearchRequiredPendingDto;
+};
+export type UserSearchStatusResponseDto = {
+    /** Their search and face vectors are in immich-devops' vector archive, restored after login. */
+    archived: boolean;
+    /** Photos and videos, not deleted, not hidden. */
+    assets: number;
+    /** When the counts were taken (kept up to 30 seconds). */
+    checkedAt: string;
+    pending: UserSearchPendingDto;
+    status: SearchStatus;
+};
 export type CreateProfileImageDto = {
     file: Blob;
 };
@@ -5412,6 +5442,17 @@ export function updateMyPreferences({ userPreferencesUpdateDto }: {
     })));
 }
 /**
+ * Get search status
+ */
+export function getMySearchStatus(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: UserSearchStatusResponseDto;
+    }>("/users/me/search-status", {
+        ...opts
+    }));
+}
+/**
  * Delete user profile image
  */
 export function deleteProfileImage(opts?: Oazapfts.RequestOpts) {
@@ -5915,6 +5956,7 @@ export enum JobName {
     UserDeleteCheck = "UserDeleteCheck",
     UserSyncUsage = "UserSyncUsage",
     PersonCleanup = "PersonCleanup",
+    VectorRestore = "VectorRestore",
     PersonFileMigration = "PersonFileMigration",
     PersonGenerateThumbnail = "PersonGenerateThumbnail",
     SessionCleanup = "SessionCleanup",
@@ -6088,6 +6130,11 @@ export enum AssetType {
     Video = "VIDEO",
     Audio = "AUDIO",
     Other = "OTHER"
+}
+export enum SearchStatus {
+    Archived = "archived",
+    Processing = "processing",
+    Ready = "ready"
 }
 export enum TriggerType {
     AssetCreate = "AssetCreate",

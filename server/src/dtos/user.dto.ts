@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import { User, UserAdmin } from 'src/database';
-import { UserAvatarColor, UserMetadataKey, UserStatus } from 'src/enum';
+import { SearchStatus, UserAvatarColor, UserMetadataKey, UserStatus } from 'src/enum';
 import { UserMetadataItem } from 'src/types';
 import {
   Optional,
@@ -187,6 +187,52 @@ export class UserAdminResponseDto extends UserResponseDto {
   @ValidateEnum({ enum: UserStatus, name: 'UserStatus' })
   status!: string;
   license!: UserLicense | null;
+}
+
+/** Steps search needs: until they are done for a photo, search doesn't find it. Keyed by QueueName. */
+export class UserSearchRequiredPendingDto {
+  /** No search vector: text search doesn't find them. */
+  @ApiProperty({ type: 'integer' })
+  smartSearch!: number;
+  /** No metadata yet: date and place filters miss them. */
+  @ApiProperty({ type: 'integer' })
+  metadataExtraction!: number;
+  /** No thumbnail yet: results can't show them. */
+  @ApiProperty({ type: 'integer' })
+  thumbnailGeneration!: number;
+}
+
+/** Steps that may lag: search works without them. Keyed by QueueName. */
+export class UserSearchDeferrablePendingDto {
+  /** Faces not looked for yet. */
+  @ApiProperty({ type: 'integer' })
+  faceDetection!: number;
+  @ApiProperty({ type: 'integer' })
+  ocr!: number;
+  /** Videos not transcoded yet. */
+  @ApiProperty({ type: 'integer' })
+  videoConversion!: number;
+  @ApiProperty({ type: 'integer' })
+  duplicateDetection!: number;
+}
+
+/** The user's photos and videos (not deleted, not hidden) still without each step's result. */
+export class UserSearchPendingDto {
+  required!: UserSearchRequiredPendingDto;
+  deferrable!: UserSearchDeferrablePendingDto;
+}
+
+export class UserSearchStatusResponseDto {
+  @ValidateEnum({ enum: SearchStatus, name: 'SearchStatus' })
+  status!: SearchStatus;
+  /** Their search and face vectors are in immich-devops' vector archive, restored after login. */
+  archived!: boolean;
+  /** Photos and videos, not deleted, not hidden. */
+  @ApiProperty({ type: 'integer' })
+  assets!: number;
+  pending!: UserSearchPendingDto;
+  /** When the counts were taken (kept up to 30 seconds). */
+  checkedAt!: Date;
 }
 
 export function mapUserAdmin(entity: UserAdmin): UserAdminResponseDto {

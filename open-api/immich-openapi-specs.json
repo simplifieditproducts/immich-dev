@@ -14862,6 +14862,47 @@
         "x-immich-state": "Stable"
       }
     },
+    "/users/me/search-status": {
+      "get": {
+        "description": "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while search vectors, metadata or thumbnails are missing for more than 5% (at least 10) of their photos, else ready. Also how many photos each step has left: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
+        "operationId": "getMySearchStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSearchStatusResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get search status",
+        "tags": [
+          "Users"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v2.4.1",
+            "state": "Added"
+          }
+        ],
+        "x-immich-permission": "user.read"
+      }
+    },
     "/users/profile-image": {
       "delete": {
         "description": "Delete the profile image of the current user.",
@@ -18221,6 +18262,7 @@
           "UserDeleteCheck",
           "UserSyncUsage",
           "PersonCleanup",
+          "VectorRestore",
           "PersonFileMigration",
           "PersonGenerateThumbnail",
           "SessionCleanup",
@@ -20668,6 +20710,14 @@
           "total"
         ],
         "type": "object"
+      },
+      "SearchStatus": {
+        "enum": [
+          "archived",
+          "processing",
+          "ready"
+        ],
+        "type": "string"
       },
       "SearchSuggestionType": {
         "enum": [
@@ -24745,6 +24795,103 @@
           "name",
           "profileChangedAt",
           "profileImagePath"
+        ],
+        "type": "object"
+      },
+      "UserSearchDeferrablePendingDto": {
+        "properties": {
+          "duplicateDetection": {
+            "type": "integer"
+          },
+          "faceDetection": {
+            "description": "Faces not looked for yet.",
+            "type": "integer"
+          },
+          "ocr": {
+            "type": "integer"
+          },
+          "videoConversion": {
+            "description": "Videos not transcoded yet.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "duplicateDetection",
+          "faceDetection",
+          "ocr",
+          "videoConversion"
+        ],
+        "type": "object"
+      },
+      "UserSearchPendingDto": {
+        "properties": {
+          "deferrable": {
+            "$ref": "#/components/schemas/UserSearchDeferrablePendingDto"
+          },
+          "required": {
+            "$ref": "#/components/schemas/UserSearchRequiredPendingDto"
+          }
+        },
+        "required": [
+          "deferrable",
+          "required"
+        ],
+        "type": "object"
+      },
+      "UserSearchRequiredPendingDto": {
+        "properties": {
+          "metadataExtraction": {
+            "description": "No metadata yet: date and place filters miss them.",
+            "type": "integer"
+          },
+          "smartSearch": {
+            "description": "No search vector: text search doesn't find them.",
+            "type": "integer"
+          },
+          "thumbnailGeneration": {
+            "description": "No thumbnail yet: results can't show them.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "metadataExtraction",
+          "smartSearch",
+          "thumbnailGeneration"
+        ],
+        "type": "object"
+      },
+      "UserSearchStatusResponseDto": {
+        "properties": {
+          "archived": {
+            "description": "Their search and face vectors are in immich-devops' vector archive, restored after login.",
+            "type": "boolean"
+          },
+          "assets": {
+            "description": "Photos and videos, not deleted, not hidden.",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "description": "When the counts were taken (kept up to 30 seconds).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "pending": {
+            "$ref": "#/components/schemas/UserSearchPendingDto"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchStatus"
+              }
+            ]
+          }
+        },
+        "required": [
+          "archived",
+          "assets",
+          "checkedAt",
+          "pending",
+          "status"
         ],
         "type": "object"
       },

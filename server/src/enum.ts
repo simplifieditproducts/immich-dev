@@ -338,6 +338,15 @@ export enum UserStatus {
   Deleted = 'deleted',
 }
 
+/** GET /users/me/search-status: whether the user's search finds their photos yet. */
+export enum SearchStatus {
+  /** Their search vectors are still in immich-devops' vector archive (restored after login). */
+  Archived = 'archived',
+  /** Search vectors, metadata or thumbnails are still missing for more of their photos than SEARCH_READY_MAX_PENDING_SHARE (or SEARCH_READY_MIN_PENDING). */
+  Processing = 'processing',
+  Ready = 'ready',
+}
+
 export enum AssetStatus {
   Active = 'active',
   Trashed = 'trashed',
