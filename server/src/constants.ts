@@ -57,13 +57,13 @@ export const ARCHIVED_WAIT_MS = 60 * 1000;
 export const ARCHIVED_MAX_WAITS = 60;
 
 // GET /users/me/search-status (UserService.getSearchStatus). Search counts as
-// ready while each of search vectors, metadata and thumbnails is missing for
-// at most this share of the user's photos, or this many, whichever is more (a
-// photo whose job failed never gets one; a user with a handful of photos
-// isn't held up by one of them).
-export const SEARCH_READY_MAX_PENDING_SHARE = 0.05;
-export const SEARCH_READY_MIN_PENDING = 10;
-// The photo counts are kept this long per user (1.5 s for 74,000 photos).
+// ready while the user's photos still without a search vector, metadata or a
+// thumbnail (each counted once) are at most this share of them, or this many,
+// whichever is more (a photo whose job failed never gets one; a user with a
+// handful of photos isn't held up by one of them).
+export const SEARCH_READY_MAX_REMAINING_SHARE = 0.05;
+export const SEARCH_READY_MIN_REMAINING = 10;
+// The photo counts are kept this long per user (0.25 s for 74,000 photos).
 export const SEARCH_STATUS_CACHE_MS = 30 * 1000;
 // While a user stays archived, their restore is queued again at most this
 // often (the login's may have failed; one already waiting or running makes

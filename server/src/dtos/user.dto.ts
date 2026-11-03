@@ -190,7 +190,10 @@ export class UserAdminResponseDto extends UserResponseDto {
 }
 
 /** Steps search needs: until they are done for a photo, search doesn't find it. Keyed by QueueName. */
-export class UserSearchRequiredPendingDto {
+export class UserSearchRequiredRemainingDto {
+  /** Photos and videos still without one or more of these steps, each counted once. */
+  @ApiProperty({ type: 'integer' })
+  assets!: number;
   /** No search vector: text search doesn't find them. */
   @ApiProperty({ type: 'integer' })
   smartSearch!: number;
@@ -203,7 +206,10 @@ export class UserSearchRequiredPendingDto {
 }
 
 /** Steps that may lag: search works without them. Keyed by QueueName. */
-export class UserSearchDeferrablePendingDto {
+export class UserSearchDeferrableRemainingDto {
+  /** Photos and videos still without one or more of these steps, each counted once. */
+  @ApiProperty({ type: 'integer' })
+  assets!: number;
   /** Faces not looked for yet. */
   @ApiProperty({ type: 'integer' })
   faceDetection!: number;
@@ -217,22 +223,20 @@ export class UserSearchDeferrablePendingDto {
 }
 
 /** The user's photos and videos (not deleted, not hidden) still without each step's result. */
-export class UserSearchPendingDto {
-  required!: UserSearchRequiredPendingDto;
-  deferrable!: UserSearchDeferrablePendingDto;
+export class UserSearchRemainingDto {
+  required!: UserSearchRequiredRemainingDto;
+  deferrable!: UserSearchDeferrableRemainingDto;
 }
 
 export class UserSearchStatusResponseDto {
   @ValidateEnum({ enum: SearchStatus, name: 'SearchStatus' })
   status!: SearchStatus;
-  /** Their search and face vectors are in immich-devops' vector archive, restored after login. */
-  archived!: boolean;
   /** Photos and videos, not deleted, not hidden. */
   @ApiProperty({ type: 'integer' })
   assets!: number;
-  pending!: UserSearchPendingDto;
-  /** When the counts were taken (kept up to 30 seconds). */
-  checkedAt!: Date;
+  remaining!: UserSearchRemainingDto;
+  /** When the remaining counts were taken: they are kept up to 30 seconds. */
+  countedAt!: Date;
 }
 
 export function mapUserAdmin(entity: UserAdmin): UserAdminResponseDto {

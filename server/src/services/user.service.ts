@@ -3,8 +3,8 @@ import { Updateable } from 'kysely';
 import { DateTime } from 'luxon';
 import {
   SALT_ROUNDS,
-  SEARCH_READY_MAX_PENDING_SHARE,
-  SEARCH_READY_MIN_PENDING,
+  SEARCH_READY_MAX_REMAINING_SHARE,
+  SEARCH_READY_MIN_REMAINING,
   SEARCH_STATUS_CACHE_MS,
   SEARCH_STATUS_RESTORE_RETRY_MS,
 } from 'src/constants';
@@ -65,10 +65,11 @@ export class UserService extends BaseService {
    * Whether the user's search finds their photos yet, for the apps to hold or
    * caveat their search: archived while immich-devops' vector archive still
    * holds their vectors (restored after login, VectorArchiveService), then
-   * processing while search vectors, metadata or thumbnails (`required`) are
-   * missing for more of their photos than the share allows (SEARCH_READY_*):
-   * search needs all three. Faces, OCR, transcodes and duplicate detection
-   * (`deferrable`) may lag, counts only.
+   * processing while more of their photos than the share allows
+   * (SEARCH_READY_*) are still without a search vector, metadata or a
+   * thumbnail (`required`, each photo counted once): search needs all three.
+   * Faces, OCR, transcodes and duplicate detection (`deferrable`) may lag,
+   * counts only.
    */
   async getSearchStatus(auth: AuthDto): Promise<UserSearchStatusResponseDto> {
     const id = auth.user.id;
@@ -88,15 +89,15 @@ export class UserService extends BaseService {
       this.searchProgress.set(id, cached);
     }
 
-    const { assets, ...pending } = cached.counts;
-    const allowed = Math.max(assets * SEARCH_READY_MAX_PENDING_SHARE, SEARCH_READY_MIN_PENDING);
+    const { assets, ...remaining } = cached.counts;
+    const allowed = Math.max(assets * SEARCH_READY_MAX_REMAINING_SHARE, SEARCH_READY_MIN_REMAINING);
     let status = SearchStatus.Ready;
     if (archived) {
       status = SearchStatus.Archived;
-    } else if (Object.values(pending.required).some((left) => left > allowed)) {
+    } else if (remaining.required.assets > allowed) {
       status = SearchStatus.Processing;
     }
-    return { status, archived, assets, pending, checkedAt: new Date(cached.at) };
+    return { status, assets, remaining, countedAt: new Date(cached.at) };
   }
 
   /**

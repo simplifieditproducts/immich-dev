@@ -342,7 +342,7 @@ export enum UserStatus {
 export enum SearchStatus {
   /** Their search vectors are still in immich-devops' vector archive (restored after login). */
   Archived = 'archived',
-  /** Search vectors, metadata or thumbnails are still missing for more of their photos than SEARCH_READY_MAX_PENDING_SHARE (or SEARCH_READY_MIN_PENDING). */
+  /** Search vectors, metadata or thumbnails are still missing for more of their photos than SEARCH_READY_MAX_REMAINING_SHARE (or SEARCH_READY_MIN_REMAINING). */
   Processing = 'processing',
   Ready = 'ready',
 }

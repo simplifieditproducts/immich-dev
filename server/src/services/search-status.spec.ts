@@ -9,11 +9,21 @@ import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
 
 const USER = 'b19c841b-34e5-46d3-9534-4847b69e8123';
 const auth = { user: { id: USER } } as any;
-const counts = (assets: number, search: number, required: object = {}, deferrable: object = {}) => ({
-  assets,
-  required: { smartSearch: search, metadataExtraction: 0, thumbnailGeneration: 0, ...required },
-  deferrable: { faceDetection: 7, ocr: 3, videoConversion: 1, duplicateDetection: 2, ...deferrable },
-});
+// Each group's assets is as if its steps had left the same photos, unless given.
+const counts = (
+  assets: number,
+  search: number,
+  required: Record<string, number> = {},
+  deferrable: Record<string, number> = {},
+) => {
+  const requiredSteps = { smartSearch: search, metadataExtraction: 0, thumbnailGeneration: 0, ...required };
+  const deferrableSteps = { faceDetection: 7, ocr: 3, videoConversion: 1, duplicateDetection: 2, ...deferrable };
+  return {
+    assets,
+    required: { assets: Math.max(...Object.values(requiredSteps)), ...requiredSteps },
+    deferrable: { assets: Math.max(...Object.values(deferrableSteps)), ...deferrableSteps },
+  };
+};
 
 const service = (archived: () => boolean, progress: () => ReturnType<typeof counts>) => {
   const sut = Object.create(UserService.prototype) as any;
@@ -45,13 +55,12 @@ describe('search status', () => {
     );
     await expect(sut.getSearchStatus(auth)).resolves.toEqual({
       status: SearchStatus.Ready,
-      archived: false,
       assets: 200,
-      pending: {
-        required: { smartSearch: 10, metadataExtraction: 0, thumbnailGeneration: 0 },
-        deferrable: { faceDetection: 7, ocr: 3, videoConversion: 1, duplicateDetection: 2 },
+      remaining: {
+        required: { assets: 10, smartSearch: 10, metadataExtraction: 0, thumbnailGeneration: 0 },
+        deferrable: { assets: 7, faceDetection: 7, ocr: 3, videoConversion: 1, duplicateDetection: 2 },
       },
-      checkedAt: new Date('2026-11-03T02:00:00Z'),
+      countedAt: new Date('2026-11-03T02:00:00Z'),
     });
   });
 
@@ -72,6 +81,19 @@ describe('search status', () => {
       const sut = service(
         () => false,
         () => counts(200, 0, required, deferrable),
+      );
+      await expect(sut.getSearchStatus(auth)).resolves.toMatchObject({ status });
+    }
+  });
+
+  it('goes by the photos left in all, each counted once, not by the step with the most', async () => {
+    for (const [left, status] of [
+      [10, SearchStatus.Ready],
+      [11, SearchStatus.Processing],
+    ] as const) {
+      const sut = service(
+        () => false,
+        () => counts(200, 6, { assets: left, metadataExtraction: 5, thumbnailGeneration: 4 }),
       );
       await expect(sut.getSearchStatus(auth)).resolves.toMatchObject({ status });
     }
@@ -104,7 +126,7 @@ describe('search status', () => {
       () => counts(200, 200),
     );
     const restore = { name: JobName.VectorRestore, data: { id: USER } };
-    await expect(sut.getSearchStatus(auth)).resolves.toMatchObject({ status: SearchStatus.Archived, archived: true });
+    await expect(sut.getSearchStatus(auth)).resolves.toMatchObject({ status: SearchStatus.Archived });
     // Right away: the login's may have failed (one still waiting makes this a no-op).
     expect(sut.jobRepository.queue).toHaveBeenCalledExactlyOnceWith(restore);
 
@@ -133,8 +155,8 @@ describe('search status', () => {
     vitest.advanceTimersByTime(5000);
     await expect(sut.getSearchStatus(auth)).resolves.toMatchObject({
       status: SearchStatus.Ready,
-      pending: { required: { smartSearch: 0 } },
-      checkedAt: new Date('2026-11-03T02:00:05Z'),
+      remaining: { required: { assets: 0, smartSearch: 0 } },
+      countedAt: new Date('2026-11-03T02:00:05Z'),
     });
     expect(sut.userRepository.getSearchProgress).toHaveBeenCalledTimes(2);
 

@@ -429,14 +429,15 @@ select
   count(*) as "assets",
   count(*) filter (
     where
-      not exists (
-        select
-          "smart_search"."assetId"
-        from
-          "smart_search"
-        where
-          "smart_search"."assetId" = "asset"."id"
+      (
+        "smart_search"."assetId" is null
+        or "asset_job_status"."metadataExtractedAt" is null
+        or "asset_job_status"."thumbnailAt" is null
       )
+  ) as "requiredAssets",
+  count(*) filter (
+    where
+      "smart_search"."assetId" is null
   ) as "smartSearch",
   count(*) filter (
     where
@@ -446,6 +447,18 @@ select
     where
       "asset_job_status"."thumbnailAt" is null
   ) as "thumbnailGeneration",
+  count(*) filter (
+    where
+      (
+        "asset_job_status"."facesRecognizedAt" is null
+        or "asset_job_status"."ocrAt" is null
+        or (
+          "asset"."type" = 'VIDEO'
+          and "asset"."encodedVideoPath" is null
+        )
+        or "asset_job_status"."duplicatesDetectedAt" is null
+      )
+  ) as "deferrableAssets",
   count(*) filter (
     where
       "asset_job_status"."facesRecognizedAt" is null
@@ -468,6 +481,7 @@ select
 from
   "asset"
   left join "asset_job_status" on "asset_job_status"."assetId" = "asset"."id"
+  left join "smart_search" on "smart_search"."assetId" = "asset"."id"
 where
   "asset"."ownerId" = $1::uuid
   and "asset"."deletedAt" is null

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ExpressionBuilder, Insertable, Kysely, sql, Updateable } from 'kysely';
+import { Expression, ExpressionBuilder, Insertable, Kysely, sql, SqlBool, Updateable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { DateTime } from 'luxon';
 import { InjectKysely } from 'nestjs-kysely';
@@ -325,65 +325,67 @@ export class UserRepository {
 
   /**
    * How many of a user's photos and videos (not deleted, not hidden) are
-   * still without each step's result, for GET /users/me/search-status. One
-   * read of the user's assets by ownerId with their job status and search
-   * vectors: 0.5 s for 74,000 on keepsafe (1.5 s cold), milliseconds for
-   * most users. Face detection sets facesRecognizedAt; recognition leaves no
-   * mark per face (many faces never join a person), so it isn't counted.
-   * Videos count as waiting for videoConversion until encodedVideoPath is
-   * set: every video is transcoded on keepsafe's servers.
+   * still without each step's result, and how many without one or more of
+   * each group's steps, for GET /users/me/search-status. One read of the
+   * user's assets by ownerId with their job status and search vectors: 0.25 s
+   * for 74,000 on keepsafe (more when cold), milliseconds for most users.
+   * Face detection sets facesRecognizedAt; recognition leaves no mark per
+   * face (many faces never join a person), so it isn't counted. Videos count
+   * as waiting for videoConversion until encodedVideoPath is set: every video
+   * is transcoded on keepsafe's servers.
    */
   @GenerateSql({ params: [DummyValue.UUID] })
   async getSearchProgress(id: string) {
     const row = await this.db
       .selectFrom('asset')
       .leftJoin('asset_job_status', 'asset_job_status.assetId', 'asset.id')
-      .select((eb) => [
-        eb.fn.countAll<number>().as('assets'),
-        eb.fn
-          .countAll<number>()
-          .filterWhere((eb) =>
-            eb.not(
-              eb.exists(
-                eb
-                  .selectFrom('smart_search')
-                  .select('smart_search.assetId')
-                  .whereRef('smart_search.assetId', '=', 'asset.id'),
-              ),
-            ),
-          )
-          .as('smartSearch'),
-        eb.fn
-          .countAll<number>()
-          .filterWhere('asset_job_status.metadataExtractedAt', 'is', null)
-          .as('metadataExtraction'),
-        eb.fn.countAll<number>().filterWhere('asset_job_status.thumbnailAt', 'is', null).as('thumbnailGeneration'),
-        eb.fn.countAll<number>().filterWhere('asset_job_status.facesRecognizedAt', 'is', null).as('faceDetection'),
-        eb.fn.countAll<number>().filterWhere('asset_job_status.ocrAt', 'is', null).as('ocr'),
-        eb.fn
-          .countAll<number>()
-          .filterWhere((eb) =>
-            eb.and([eb('asset.type', '=', sql.lit(AssetType.Video)), eb('asset.encodedVideoPath', 'is', null)]),
-          )
-          .as('videoConversion'),
-        eb.fn
-          .countAll<number>()
-          .filterWhere('asset_job_status.duplicatesDetectedAt', 'is', null)
-          .as('duplicateDetection'),
-      ])
+      // A join, not `not exists`: read once for both counts that need it, it
+      // is an index-only probe per asset (0.25 s for 74,000, 0.4 s before).
+      .leftJoin('smart_search', 'smart_search.assetId', 'asset.id')
+      .select((eb) => {
+        // Keyed by the queue each step runs in (QueueName), as /api/jobs is.
+        const required = {
+          smartSearch: eb('smart_search.assetId', 'is', null),
+          metadataExtraction: eb('asset_job_status.metadataExtractedAt', 'is', null),
+          thumbnailGeneration: eb('asset_job_status.thumbnailAt', 'is', null),
+        };
+        const deferrable = {
+          faceDetection: eb('asset_job_status.facesRecognizedAt', 'is', null),
+          ocr: eb('asset_job_status.ocrAt', 'is', null),
+          videoConversion: eb.and([
+            eb('asset.type', '=', sql.lit(AssetType.Video)),
+            eb('asset.encodedVideoPath', 'is', null),
+          ]),
+          duplicateDetection: eb('asset_job_status.duplicatesDetectedAt', 'is', null),
+        };
+        const count = (where: Expression<SqlBool>) => eb.fn.countAll<number>().filterWhere(where);
+        return [
+          eb.fn.countAll<number>().as('assets'),
+          count(eb.or(Object.values(required))).as('requiredAssets'),
+          count(required.smartSearch).as('smartSearch'),
+          count(required.metadataExtraction).as('metadataExtraction'),
+          count(required.thumbnailGeneration).as('thumbnailGeneration'),
+          count(eb.or(Object.values(deferrable))).as('deferrableAssets'),
+          count(deferrable.faceDetection).as('faceDetection'),
+          count(deferrable.ocr).as('ocr'),
+          count(deferrable.videoConversion).as('videoConversion'),
+          count(deferrable.duplicateDetection).as('duplicateDetection'),
+        ];
+      })
       .where('asset.ownerId', '=', asUuid(id))
       .where('asset.deletedAt', 'is', null)
       .where('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden))
       .executeTakeFirstOrThrow();
-    // Keyed by the queue each step runs in (QueueName), as /api/jobs is.
     return {
       assets: Number(row.assets),
       required: {
+        assets: Number(row.requiredAssets),
         smartSearch: Number(row.smartSearch),
         metadataExtraction: Number(row.metadataExtraction),
         thumbnailGeneration: Number(row.thumbnailGeneration),
       },
       deferrable: {
+        assets: Number(row.deferrableAssets),
         faceDetection: Number(row.faceDetection),
         ocr: Number(row.ocr),
         videoConversion: Number(row.videoConversion),

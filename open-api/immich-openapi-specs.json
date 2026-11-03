@@ -14864,7 +14864,7 @@
     },
     "/users/me/search-status": {
       "get": {
-        "description": "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while search vectors, metadata or thumbnails are missing for more than 5% (at least 10) of their photos, else ready. Also how many photos each step has left: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
+        "description": "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while more than 5% (at least 10) of their photos are still without a search vector, metadata or a thumbnail, else ready. Also how many photos are left, in all (assets, each photo counted once) and for each step: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
         "operationId": "getMySearchStatus",
         "parameters": [],
         "responses": {
@@ -24798,8 +24798,12 @@
         ],
         "type": "object"
       },
-      "UserSearchDeferrablePendingDto": {
+      "UserSearchDeferrableRemainingDto": {
         "properties": {
+          "assets": {
+            "description": "Photos and videos still without one or more of these steps, each counted once.",
+            "type": "integer"
+          },
           "duplicateDetection": {
             "type": "integer"
           },
@@ -24816,6 +24820,7 @@
           }
         },
         "required": [
+          "assets",
           "duplicateDetection",
           "faceDetection",
           "ocr",
@@ -24823,13 +24828,13 @@
         ],
         "type": "object"
       },
-      "UserSearchPendingDto": {
+      "UserSearchRemainingDto": {
         "properties": {
           "deferrable": {
-            "$ref": "#/components/schemas/UserSearchDeferrablePendingDto"
+            "$ref": "#/components/schemas/UserSearchDeferrableRemainingDto"
           },
           "required": {
-            "$ref": "#/components/schemas/UserSearchRequiredPendingDto"
+            "$ref": "#/components/schemas/UserSearchRequiredRemainingDto"
           }
         },
         "required": [
@@ -24838,8 +24843,12 @@
         ],
         "type": "object"
       },
-      "UserSearchRequiredPendingDto": {
+      "UserSearchRequiredRemainingDto": {
         "properties": {
+          "assets": {
+            "description": "Photos and videos still without one or more of these steps, each counted once.",
+            "type": "integer"
+          },
           "metadataExtraction": {
             "description": "No metadata yet: date and place filters miss them.",
             "type": "integer"
@@ -24854,6 +24863,7 @@
           }
         },
         "required": [
+          "assets",
           "metadataExtraction",
           "smartSearch",
           "thumbnailGeneration"
@@ -24862,21 +24872,17 @@
       },
       "UserSearchStatusResponseDto": {
         "properties": {
-          "archived": {
-            "description": "Their search and face vectors are in immich-devops' vector archive, restored after login.",
-            "type": "boolean"
-          },
           "assets": {
             "description": "Photos and videos, not deleted, not hidden.",
             "type": "integer"
           },
-          "checkedAt": {
-            "description": "When the counts were taken (kept up to 30 seconds).",
+          "countedAt": {
+            "description": "When the remaining counts were taken: they are kept up to 30 seconds.",
             "format": "date-time",
             "type": "string"
           },
-          "pending": {
-            "$ref": "#/components/schemas/UserSearchPendingDto"
+          "remaining": {
+            "$ref": "#/components/schemas/UserSearchRemainingDto"
           },
           "status": {
             "allOf": [
@@ -24887,10 +24893,9 @@
           }
         },
         "required": [
-          "archived",
           "assets",
-          "checkedAt",
-          "pending",
+          "countedAt",
+          "remaining",
           "status"
         ],
         "type": "object"

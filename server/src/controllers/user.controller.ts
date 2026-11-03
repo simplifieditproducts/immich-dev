@@ -101,7 +101,7 @@ export class UserController {
   @Endpoint({
     summary: 'Get search status',
     description:
-      "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while search vectors, metadata or thumbnails are missing for more than 5% (at least 10) of their photos, else ready. Also how many photos each step has left: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
+      "Whether the current user's search finds their photos yet: archived while their search vectors are being restored after a long absence, processing while more than 5% (at least 10) of their photos are still without a search vector, metadata or a thumbnail, else ready. Also how many photos are left, in all (assets, each photo counted once) and for each step: required (smartSearch, metadataExtraction, thumbnailGeneration) and deferrable (faceDetection, ocr, videoConversion, duplicateDetection), which search doesn't wait for, keyed by queue name as in the jobs API.",
     history: new HistoryBuilder().added('v2.4.1'),
   })
   getMySearchStatus(@Auth() auth: AuthDto): Promise<UserSearchStatusResponseDto> {

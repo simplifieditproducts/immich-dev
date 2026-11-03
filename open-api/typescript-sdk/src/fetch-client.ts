@@ -1844,7 +1844,9 @@ export type OnboardingResponseDto = {
 export type OnboardingDto = {
     isOnboarded: boolean;
 };
-export type UserSearchDeferrablePendingDto = {
+export type UserSearchDeferrableRemainingDto = {
+    /** Photos and videos still without one or more of these steps, each counted once. */
+    assets: number;
     duplicateDetection: number;
     /** Faces not looked for yet. */
     faceDetection: number;
@@ -1852,7 +1854,9 @@ export type UserSearchDeferrablePendingDto = {
     /** Videos not transcoded yet. */
     videoConversion: number;
 };
-export type UserSearchRequiredPendingDto = {
+export type UserSearchRequiredRemainingDto = {
+    /** Photos and videos still without one or more of these steps, each counted once. */
+    assets: number;
     /** No metadata yet: date and place filters miss them. */
     metadataExtraction: number;
     /** No search vector: text search doesn't find them. */
@@ -1860,18 +1864,16 @@ export type UserSearchRequiredPendingDto = {
     /** No thumbnail yet: results can't show them. */
     thumbnailGeneration: number;
 };
-export type UserSearchPendingDto = {
-    deferrable: UserSearchDeferrablePendingDto;
-    required: UserSearchRequiredPendingDto;
+export type UserSearchRemainingDto = {
+    deferrable: UserSearchDeferrableRemainingDto;
+    required: UserSearchRequiredRemainingDto;
 };
 export type UserSearchStatusResponseDto = {
-    /** Their search and face vectors are in immich-devops' vector archive, restored after login. */
-    archived: boolean;
     /** Photos and videos, not deleted, not hidden. */
     assets: number;
-    /** When the counts were taken (kept up to 30 seconds). */
-    checkedAt: string;
-    pending: UserSearchPendingDto;
+    /** When the remaining counts were taken: they are kept up to 30 seconds. */
+    countedAt: string;
+    remaining: UserSearchRemainingDto;
     status: SearchStatus;
 };
 export type CreateProfileImageDto = {
