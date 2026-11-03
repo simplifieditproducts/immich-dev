@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [custom-patch-v2]
+    # A push of only Markdown builds nothing, and must not start a run either:
+    # cancel-in-progress would stop a code build still running for the push before.
+    paths-ignore: ['**.md']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
