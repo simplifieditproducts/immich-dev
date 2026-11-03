@@ -32,6 +32,7 @@ const envData: EnvData = {
 
     skipMigrations: false,
     allowVectorReset: false,
+    allowFullRerun: false,
     vectorExtension: DatabaseExtension.Vectors,
   },
 

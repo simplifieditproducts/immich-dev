@@ -78,8 +78,34 @@ where
 
 -- DuplicateRepository.search
 begin
-set
-  local vchordrq.probes = 1
+select
+  set_config(
+    'vchordrq.probes',
+    coalesce(
+      (
+        select
+          max(
+            ceil(
+              substring(
+                pg_get_indexdef (i.indexrelid)
+                from
+                  'lists = \[([0-9]+)'
+              )::int / 8.0
+            )
+          )
+        from
+          pg_index i
+          join pg_class c on c.oid = i.indexrelid
+          join pg_am am on am.oid = c.relam
+        where
+          i.indrelid = 'smart_search'::regclass
+          and i.indisvalid
+          and am.amname = 'vchordrq'
+      ),
+      1
+    )::int::text,
+    true
+  )
 with
   "cte" as (
     select

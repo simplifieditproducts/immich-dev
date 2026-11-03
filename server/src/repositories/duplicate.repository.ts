@@ -4,7 +4,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { Chunked, DummyValue, GenerateSql } from 'src/decorators';
 import { MapAsset } from 'src/dtos/asset-response.dto';
 import { AssetType, VectorIndex } from 'src/enum';
-import { probes } from 'src/repositories/database.repository';
+import { setVectorProbes } from 'src/repositories/database.repository';
 import { DB } from 'src/schema';
 import { anyUuid, asUuid, withDefaultVisibility } from 'src/utils/database';
 
@@ -116,7 +116,7 @@ export class DuplicateRepository {
   })
   search({ assetId, embedding, maxDistance, type, userIds }: DuplicateSearch) {
     return this.db.transaction().execute(async (trx) => {
-      await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.Clip])}`.execute(trx);
+      await setVectorProbes(trx, VectorIndex.Clip);
       return await trx
         .with('cte', (qb) =>
           qb

@@ -53,6 +53,23 @@ export const probes: Record<VectorIndex, number> = {
   [VectorIndex.Face]: 1,
 };
 
+/**
+ * Sets vchordrq.probes for the transaction to lists / 8 of the table's index,
+ * as read from the catalog now, so search follows a rebuilt index without a
+ * restart (probes above: from the start, used while there is none). While a
+ * new index is built next to the old one (docs/vector-index-capacity.md in
+ * immich-devops) the planner may pick either: the larger lists count, so
+ * neither gets fewer probes than its own.
+ */
+export const setVectorProbes = (trx: Kysely<DB>, index: VectorIndex) =>
+  sql`
+    select set_config('vchordrq.probes', coalesce((
+      select max(ceil(substring(pg_get_indexdef(i.indexrelid) from 'lists = \\[([0-9]+)')::int / 8.0))
+      from pg_index i join pg_class c on c.oid = i.indexrelid join pg_am am on am.oid = c.relam
+      where i.indrelid = ${sql.lit(VECTOR_INDEX_TABLES[index])}::regclass and i.indisvalid and am.amname = 'vchordrq'
+    ), ${sql.lit(probes[index])})::int::text, true)
+  `.execute(trx);
+
 /** A vector-archive.py registry row. */
 export type ArchivedVectorUser = { clipCount: number; faceCount: number; clipModel: string; faceModel: string };
 /** One archived vector: its photo's or face's id, and the vector as text ('[1,2,3]'). */

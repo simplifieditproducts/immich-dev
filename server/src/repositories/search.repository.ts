@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { DummyValue, GenerateSql } from 'src/decorators';
 import { MapAsset } from 'src/dtos/asset-response.dto';
 import { AssetStatus, AssetType, AssetVisibility, VectorIndex } from 'src/enum';
-import { probes } from 'src/repositories/database.repository';
+import { setVectorProbes } from 'src/repositories/database.repository';
 import { DB } from 'src/schema';
 import { AssetExifTable } from 'src/schema/tables/asset-exif.table';
 import { anyUuid, searchAssetBuilder, tokenizeForSearch, withExif } from 'src/utils/database';
@@ -298,7 +298,7 @@ export class SearchRepository {
     }
 
     return this.db.transaction().execute(async (trx) => {
-      await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.Clip])}`.execute(trx);
+      await setVectorProbes(trx, VectorIndex.Clip);
       const items = await searchAssetBuilder(trx, options)
         .selectAll('asset')
         .leftJoin('smart_search', 'asset.id', 'smart_search.assetId')
@@ -341,7 +341,7 @@ export class SearchRepository {
     }
 
     return this.db.transaction().execute(async (trx) => {
-      await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.Face])}`.execute(trx);
+      await setVectorProbes(trx, VectorIndex.Face);
       return await trx
         .with('cte', (qb) =>
           qb
