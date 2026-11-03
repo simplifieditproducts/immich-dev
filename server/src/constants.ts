@@ -63,8 +63,10 @@ export const ARCHIVED_MAX_WAITS = 60;
 // handful of photos isn't held up by one of them).
 export const SEARCH_READY_MAX_REMAINING_SHARE = 0.05;
 export const SEARCH_READY_MIN_REMAINING = 10;
-// The photo counts are kept this long per user (0.25 s for 74,000 photos).
-export const SEARCH_STATUS_CACHE_MS = 30 * 1000;
+// The photo counts are kept this long per user (0.25 s for 74,000 photos): a
+// poll every few seconds still counts at most this often, and a finished
+// processing shows as ready within this long.
+export const SEARCH_STATUS_CACHE_MS = 10 * 1000;
 // While a user stays archived, their restore is queued again at most this
 // often (the login's may have failed; one already waiting or running makes
 // it a no-op).

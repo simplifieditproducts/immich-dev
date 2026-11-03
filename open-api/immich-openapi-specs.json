@@ -24877,7 +24877,7 @@
             "type": "integer"
           },
           "countedAt": {
-            "description": "When the remaining counts were taken: they are kept up to 30 seconds.",
+            "description": "When the remaining counts were taken: they are kept up to 10 seconds.",
             "format": "date-time",
             "type": "string"
           },

@@ -235,7 +235,7 @@ export class UserSearchStatusResponseDto {
   @ApiProperty({ type: 'integer' })
   assets!: number;
   remaining!: UserSearchRemainingDto;
-  /** When the remaining counts were taken: they are kept up to 30 seconds. */
+  /** When the remaining counts were taken: they are kept up to 10 seconds. */
   countedAt!: Date;
 }
 

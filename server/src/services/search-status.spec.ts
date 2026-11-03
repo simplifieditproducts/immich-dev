@@ -139,7 +139,7 @@ describe('search status', () => {
     expect(sut.jobRepository.queue).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps the counts for 30 seconds, but counts again as soon as the restore is done', async () => {
+  it('keeps the counts for 10 seconds, but counts again as soon as the restore is done', async () => {
     let archived = true;
     let progress = counts(200, 200);
     const sut = service(

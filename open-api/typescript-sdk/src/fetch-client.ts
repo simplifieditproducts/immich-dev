@@ -1871,7 +1871,7 @@ export type UserSearchRemainingDto = {
 export type UserSearchStatusResponseDto = {
     /** Photos and videos, not deleted, not hidden. */
     assets: number;
-    /** When the remaining counts were taken: they are kept up to 30 seconds. */
+    /** When the remaining counts were taken: they are kept up to 10 seconds. */
     countedAt: string;
     remaining: UserSearchRemainingDto;
     status: SearchStatus;
