@@ -68,7 +68,7 @@ export class QueueService extends BaseService {
   @OnEvent({ name: 'ConfigInit' })
   async onConfigInit({ newConfig: config }: ArgOf<'ConfigInit'>) {
     if (this.worker === ImmichWorker.Microservices) {
-      this.updateConcurrency(config);
+      // The workers start after this (onBootstrapWorkers), with it.
       return;
     }
 
@@ -102,8 +102,17 @@ export class QueueService extends BaseService {
   @OnEvent({ name: 'AppBootstrap', priority: BootstrapEventPriority.JobService })
   onBootstrap() {
     this.jobRepository.setup(this.services);
+  }
+
+  // Only once every service has its config (ConfigInit, from SystemConfig's
+  // bootstrap): jobs taken earlier failed with "Machine learning repository
+  // not been setup", 14 uploads' search, face and OCR jobs on keepsafe at a
+  // restart on 2026-11-03.
+  @OnEvent({ name: 'AppBootstrap', priority: BootstrapEventPriority.JobWorkers })
+  async onBootstrapWorkers() {
     if (this.worker === ImmichWorker.Microservices) {
       this.jobRepository.startWorkers();
+      this.updateConcurrency(await this.getConfig({ withCache: true }));
     }
   }
 

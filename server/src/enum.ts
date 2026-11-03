@@ -544,6 +544,8 @@ export enum BootstrapEventPriority {
   // Initialise config after other bootstrap services, stop other services from using config on bootstrap
   SystemConfig = 100,
   UploadService = 200,
+  // Process jobs only once the services above have their config (machine learning, storage template)
+  JobWorkers = 300,
 }
 
 export enum QueueName {
