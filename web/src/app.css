@@ -140,6 +140,8 @@
     --navbar-height-md: calc(4.5rem + 4px - 14px);
     --navbar-height-embedded: calc(4.5rem);
     --navbar-height-embedded-md: calc(3rem);
+    /* The height of the iPhone home indicator when the app's web view reaches the bottom of the screen, otherwise 0. */
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   :root.dark {

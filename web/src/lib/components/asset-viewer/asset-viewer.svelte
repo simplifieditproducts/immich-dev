@@ -750,7 +750,7 @@
 
         {#if $slideshowState === SlideshowState.None && asset.type === AssetTypeEnum.Image && !isShowEditor && ocrManager.hasOcrData && !isFaceEditMode.value}
           <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-          <div class="absolute bottom-0 end-0 mb-6 me-6 transition-opacity duration-300 rounded-full bg-black/50"
+          <div class="absolute bottom-0 end-0 mb-[calc(1.5rem+var(--safe-area-bottom))] me-6 transition-opacity duration-300 rounded-full bg-black/50"
             class:opacity-0={!controlsVisible}
             class:pointer-events-none={!controlsVisible}
             class:opacity-100={controlsVisible}
@@ -778,7 +778,7 @@
     <div
       transition:fly={{ duration: 150 }}
       id="detail-panel"
-      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-90 overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
+      class="absolute inset-0 z-10 sm:relative sm:inset-auto sm:z-0 row-start-1 row-span-4 w-full sm:w-90 pb-(--safe-area-bottom) overflow-y-auto transition-all dark:border-l dark:border-s-immich-dark-gray bg-light"
       translate="yes"
     >
       <DetailPanel {asset} currentAlbum={album} albums={appearsInAlbums} onClose={() => ($isShowDetail = false)} />
@@ -798,7 +798,7 @@
 
   {#if stack && withStacked}
     {@const stackedAssets = stack.assets}
-    <div id="stack-slideshow" class="absolute bottom-0 w-full col-span-4 col-start-1">
+    <div id="stack-slideshow" class="absolute bottom-0 w-full col-span-4 col-start-1 pb-(--safe-area-bottom)">
       <div class="relative flex flex-row no-wrap overflow-x-auto overflow-y-hidden horizontal-scrollbar">
         {#each stackedAssets as stackedAsset (stackedAsset.id)}
           <div

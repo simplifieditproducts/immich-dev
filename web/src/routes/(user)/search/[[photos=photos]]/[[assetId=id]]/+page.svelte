@@ -410,7 +410,7 @@
 -->
 <div
   id="asset-grid"
-  class="mt-14 sm:mt-20 overflow-y-auto w-full"
+  class="mt-14 sm:mt-20 overflow-y-auto w-full pb-(--safe-area-bottom)"
   style="height: {height};"
   bind:this={scrollingElement}
   bind:clientHeight={viewport.height}

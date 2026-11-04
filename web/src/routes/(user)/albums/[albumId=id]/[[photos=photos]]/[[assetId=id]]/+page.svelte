@@ -530,7 +530,7 @@
       </Timeline>
 
       {#if showActivityStatus && !activityManager.isLoading}
-        <div class="absolute z-2 bottom-0 end-0 mb-6 me-6 justify-self-end">
+        <div class="absolute z-2 bottom-0 end-0 mb-[calc(1.5rem+var(--safe-area-bottom))] me-6 justify-self-end">
           <ActivityStatus
             disabled={!album.isActivityEnabled}
             isLiked={activityManager.isLiked}

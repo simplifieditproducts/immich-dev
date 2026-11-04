@@ -875,7 +875,7 @@
      mounted underneath, so closing this snaps back to the exact same scroll
      position with no remount and no jump. -->
 {#if activeContactId}
-  <div class="fixed inset-0 z-50 overflow-y-auto bg-white dark:bg-immich-dark-bg">
+  <div class="fixed inset-0 z-50 overflow-y-auto bg-white pb-(--safe-area-bottom) dark:bg-immich-dark-bg">
     {#if activeContact}
       <ContactDetail contact={activeContact} onClose={closeContactOverlay} />
     {:else if activeContactLoading}

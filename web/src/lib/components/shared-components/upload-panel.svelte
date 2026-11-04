@@ -37,7 +37,7 @@
       }
       uploadAssetsStore.reset();
     }}
-    class="fixed bottom-6 end-16"
+    class="fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] end-16"
   >
     {#if showDetail}
       <div

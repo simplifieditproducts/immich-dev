@@ -188,7 +188,7 @@
 <!-- svelte-ignore a11y_interactive_supports_focus, a11y_click_events_have_key_events -->
 <div
   role="toolbar"
-  class="absolute bottom-0 left-0 right-0 z-50 transition-opacity duration-300"
+  class="absolute bottom-0 left-0 right-0 z-50 pb-(--safe-area-bottom) transition-opacity duration-300"
   class:opacity-0={!controlsVisible}
   class:pointer-events-none={!controlsVisible}
   class:opacity-100={controlsVisible}

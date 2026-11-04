@@ -90,7 +90,7 @@
   {/if}
 
   <main class="relative">
-    <div id="main-content" class="{scrollbarClass} absolute {hasTitleClass} w-full overflow-y-auto p-2" use:useActions={use}>
+    <div id="main-content" class="{scrollbarClass} absolute {hasTitleClass} w-full overflow-y-auto p-2 pb-[calc(0.5rem+var(--safe-area-bottom))]" use:useActions={use}>
       {@render children?.()}
     </div>
 

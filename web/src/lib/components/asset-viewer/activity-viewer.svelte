@@ -238,7 +238,7 @@
   </div>
 
   <div class="absolute w-full bottom-0">
-    <div class="flex items-center justify-center p-2" bind:clientHeight={chatHeight}>
+    <div class="flex items-center justify-center p-2 pb-[calc(0.5rem+var(--safe-area-bottom))]" bind:clientHeight={chatHeight}>
       <div class="flex p-2 gap-4 h-fit bg-gray-200 text-immich-dark-gray rounded-3xl w-full">
         <div>
           <UserAvatar {user} size="md" noTitle />

@@ -300,7 +300,7 @@
 </div>
 
 {#if showCopied}
-  <div class="pointer-events-none fixed bottom-8 left-0 right-0 z-10000 flex justify-center">
+  <div class="pointer-events-none fixed bottom-[calc(2rem+var(--safe-area-bottom))] left-0 right-0 z-10000 flex justify-center">
     <div class="rounded-full bg-gray-800 px-4 py-2 text-sm text-white shadow-lg dark:bg-gray-200 dark:text-gray-800">
       Copied to clipboard
     </div>
