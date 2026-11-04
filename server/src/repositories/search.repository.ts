@@ -86,6 +86,13 @@ export interface SearchEmbeddingOptions {
   userIds: string[];
 }
 
+// Rank photos with this text in them first. With a limit, only that many of the best matches
+// do, and the rest stay where Smart Search puts them.
+export interface OcrRanking {
+  query: string;
+  limit?: number;
+}
+
 export interface SearchOcrOptions {
   ocr?: string;
 }
@@ -135,7 +142,7 @@ export type SmartSearchOptions = SearchDateOptions &
   SearchUserIdOptions &
   SearchPeopleOptions &
   SearchTagOptions &
-  SearchOcrOptions;
+  SearchOcrOptions & { ocrRanking?: OcrRanking };
 
 export type OcrSearchOptions = SearchDateOptions & SearchOcrOptions;
 
@@ -299,17 +306,37 @@ export class SearchRepository {
 
     return this.db.transaction().execute(async (trx) => {
       await setVectorProbes(trx, VectorIndex.Clip);
+      const { ocrRanking } = options;
+      const ocrText = sql`f_unaccent(ocr_search.text)`;
+      const ocrQuery = ocrRanking && sql`f_unaccent(${tokenizeForSearch(ocrRanking.query).join(' ')})`;
       const items = await searchAssetBuilder(trx, options)
         .selectAll('asset')
         .leftJoin('smart_search', 'asset.id', 'smart_search.assetId')
-        .$if(!!options.query, (qb) =>
+        .$if(!!ocrRanking && !ocrRanking.limit, (qb) =>
           qb
             .leftJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
             .orderBy(
               // currently use the same logic as OCR search, but this can be tweaked using the <->>> operator with a weight if needed.
-              sql`CASE WHEN ocr_search.text IS NULL THEN 0 ELSE (f_unaccent(ocr_search.text) %>> f_unaccent(${tokenizeForSearch(options.query!).join(' ')}))::integer END DESC`,
+              sql`CASE WHEN ocr_search.text IS NULL THEN 0 ELSE (${ocrText} %>> ${ocrQuery})::integer END DESC`,
             ),
         )
+        .$if(!!ocrRanking?.limit, (qb) => {
+          // wrapped because searchAssetBuilder can select more than the id, for example with personIds.
+          const bestMatches = trx
+            .selectFrom(
+              searchAssetBuilder(trx, options)
+                .select('asset.id')
+                .innerJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
+                .innerJoin('smart_search', 'asset.id', 'smart_search.assetId')
+                .where(() => sql<boolean>`${ocrText} %>> ${ocrQuery}`)
+                .orderBy(sql`strict_word_similarity(${ocrQuery}, ${ocrText}) DESC`)
+                .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
+                .limit(ocrRanking!.limit!)
+                .as('best_matches'),
+            )
+            .select('best_matches.id');
+          return qb.orderBy(sql`asset.id IN (${bestMatches}) DESC`);
+        })
         .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
         .limit(pagination.size + 1)
         .offset((pagination.page - 1) * pagination.size)

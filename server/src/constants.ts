@@ -99,6 +99,9 @@ export const serverVersion = new SemVer(version);
 export const AUDIT_LOG_MAX_DURATION = Duration.fromObject({ days: 100 });
 export const ONE_HOUR = Duration.fromObject({ hours: 1 });
 export const FILTER_EXTRACTION_CACHE_TTL = Duration.fromObject({ days: 14 });
+// How many text matches rank above Smart Search when the model isn't sure the user wants text:
+// half of the 16 results the web search page shows before "Show More" (INITIAL_ASSET_LIMIT).
+export const OCR_POSSIBLE_RANKED_LIMIT = 8;
 
 export const citiesFile = 'cities500.txt';
 export const reverseGeocodeMaxDistance = 25_000;

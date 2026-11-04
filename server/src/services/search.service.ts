@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { LRUMap } from 'mnemonist';
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
-import { FILTER_EXTRACTION_CACHE_TTL } from "src/constants";
+import { FILTER_EXTRACTION_CACHE_TTL, OCR_POSSIBLE_RANKED_LIMIT } from "src/constants";
 import { AssetMapOptions, AssetResponseDto, MapAsset, mapAsset } from 'src/dtos/asset-response.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
 import { mapPerson, PersonResponseDto } from 'src/dtos/person.dto';
@@ -22,10 +22,12 @@ import {
   StatisticsSearchDto,
 } from 'src/dtos/search.dto';
 import { AssetOrder, AssetVisibility, Permission } from 'src/enum';
+import { OcrRanking } from 'src/repositories/search.repository';
 import { BaseService } from 'src/services/base.service';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getMyPartnerIds } from 'src/utils/asset.util';
 import { isFilterExtractionEnabled, isSmartSearchEnabled } from 'src/utils/misc';
+import type { ReasoningEffort } from "openai/resources/shared";
 import { z } from "zod";
 
 // Define the JSON schema of OpenAI's structured outputs. All fields must be required, see:
@@ -41,7 +43,20 @@ const FilterExtractionResponse = z.object({
   people: z.array(z.string()).nullable(),
 
   refinedQuery: z.string(),
+
+  // how sure the model is that the user wants words readable in the picture, and the words to look for.
+  textIntent: z.enum(['clear', 'possible', 'none']),
+  ocrQuery: z.string(),
 });
+
+type FilterExtractionResult = { dto: SmartSearchDto; ocrRanking?: OcrRanking };
+
+// "gpt-6.1-terra:none" sends the model "gpt-6.1-terra" with reasoning effort "none". Only a known
+// effort is split off, since other model names can have colons, like "ft:gpt-4o:my-org:custom:id".
+const parseModelName = (modelName: string) => {
+  const match = /^(.+):(none|minimal|low|medium|high|xhigh|max)$/.exec(modelName);
+  return match ? { model: match[1], reasoning: { effort: match[2] as ReasoningEffort } } : { model: modelName };
+};
 
 @Injectable()
 export class SearchService extends BaseService {
@@ -121,7 +136,13 @@ export class SearchService extends BaseService {
     return items.map((item) => mapAsset(item, { auth }));
   }
 
-  async extractFilters(auth: AuthDto, dto: SmartSearchDto, filterExtraction: {modelName: string, prompt: string, cacheEnabled: boolean}): Promise<SmartSearchDto> {
+  async extractFilters(
+    auth: AuthDto,
+    dto: SmartSearchDto,
+    filterExtraction: { modelName: string; prompt: string; cacheEnabled: boolean },
+  ): Promise<FilterExtractionResult> {
+    let ocrRanking: OcrRanking | undefined;
+
     this.logger.log(
       "Extracting filters for search:",
       Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
@@ -130,13 +151,13 @@ export class SearchService extends BaseService {
     // check if user has already specified all of the related filters.
     if (dto.personIds?.length && dto.country && dto.state && dto.city && dto.takenBefore && dto.takenAfter) {
       this.logger.log("User has specified all of the related filters. There is no need to extract them from the query.");
-      return dto;
+      return { dto };
     }
 
     // if the query is empty, we cannot extract filters.
     if (!dto.query || dto.query.trim() === "") {
       this.logger.log("Query is empty, cannot extract filters.");
-      return dto;
+      return { dto };
     }
 
     // get all named people in current user account.
@@ -177,7 +198,7 @@ export class SearchService extends BaseService {
       else {
         const startTime = Date.now();
         const response = await openai.responses.parse({
-          model: filterExtraction.modelName,
+          ...parseModelName(filterExtraction.modelName),
           input: [
             { role: "system", content: prompt },
             { role: "user", content: dto.query },
@@ -192,7 +213,7 @@ export class SearchService extends BaseService {
         data = response.output_parsed;
         if (!data) {
           this.logger.error("No data returned from filter extraction:", response);
-          return dto;
+          return { dto };
         }
 
         // cache the response
@@ -234,9 +255,16 @@ export class SearchService extends BaseService {
         city: dto.city || data.city 
       };
 
+      // text in the pictures only counts when the model says the user may be after it.
+      if (data.ocrQuery && data.textIntent === 'clear') {
+        ocrRanking = { query: data.ocrQuery };
+      } else if (data.ocrQuery && data.textIntent === 'possible') {
+        ocrRanking = { query: data.ocrQuery, limit: OCR_POSSIBLE_RANKED_LIMIT };
+      }
+
       this.logger.log(
         "Updated search filters:",
-        Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined))
+        Object.fromEntries(Object.entries({ ...dto, ocrRanking }).filter(([_, v]) => v !== undefined))
       );
     } catch (error) {
       this.logger.error("Error extracting filters from query:", {
@@ -247,7 +275,7 @@ export class SearchService extends BaseService {
       });
     }
 
-    return dto;
+    return { dto, ocrRanking };
  }
 
   async searchSmart(auth: AuthDto, dto: SmartSearchDto): Promise<SearchResponseDto> {
@@ -260,8 +288,9 @@ export class SearchService extends BaseService {
       throw new BadRequestException('Smart search is not enabled');
     }
 
+    let ocrRanking: OcrRanking | undefined;
     if (isFilterExtractionEnabled(machineLearning) && dto.withFilterExtraction !== false) {
-      dto = await this.extractFilters(auth, dto, machineLearning.filterExtraction);
+      ({ dto, ocrRanking } = await this.extractFilters(auth, dto, machineLearning.filterExtraction));
     }
 
     const userIds = this.getUserIdsToSearch(auth);
@@ -291,7 +320,7 @@ export class SearchService extends BaseService {
     const size = dto.size || 100;
     const { hasNextPage, items } = await this.searchRepository.searchSmart(
       { page, size },
-      { ...dto, userIds: await userIds, embedding },
+      { ...dto, userIds: await userIds, embedding, ocrRanking },
     );
 
     const response = this.mapResponse(items, hasNextPage ? (page + 1).toString() : null, { auth });

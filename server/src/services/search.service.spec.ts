@@ -8,6 +8,14 @@ import { personStub } from 'test/fixtures/person.stub';
 import { newTestService, ServiceMocks } from 'test/utils';
 import { beforeEach, vitest } from 'vitest';
 
+const parseResponse = vitest.hoisted(() => vitest.fn());
+
+vitest.mock('openai', () => ({
+  default: class {
+    responses = { parse: parseResponse };
+  },
+}));
+
 vitest.useFakeTimers();
 
 describe(SearchService.name, () => {
@@ -22,6 +30,20 @@ describe(SearchService.name, () => {
   it('should work', () => {
     expect(sut).toBeDefined();
   });
+
+  const extractWith = (modelName = 'test-model') => {
+    mocks.systemMetadata.get.mockResolvedValue({
+      machineLearning: {
+        filterExtraction: { enabled: true, modelName, prompt: 'test' },
+      },
+    });
+    mocks.person.getAllForUserWithNames.mockResolvedValue([]);
+    mocks.search.getCountries.mockResolvedValue([]);
+    mocks.search.getStates.mockResolvedValue([]);
+    mocks.search.getCities.mockResolvedValue([]);
+  };
+
+  const ocrRankingOfSearch = () => mocks.search.searchSmart.mock.calls.at(-1)?.[1].ocrRanking;
 
   describe('searchPerson', () => {
     it('should pass options to search', async () => {
@@ -205,6 +227,95 @@ describe(SearchService.name, () => {
     beforeEach(() => {
       mocks.search.searchSmart.mockResolvedValue({ hasNextPage: false, items: [] });
       mocks.machineLearning.encodeText.mockResolvedValue('[1, 2, 3]');
+    });
+
+    describe('with filter extraction', () => {
+      const answer = {
+        takenBefore: '',
+        takenAfter: '',
+        country: '',
+        state: '',
+        city: '',
+        people: [],
+        refinedQuery: 'receipt',
+      };
+
+      beforeEach(() => {
+        parseResponse.mockReset();
+        extractWith();
+      });
+
+      it('should rank every text match when the intent is clear', async () => {
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'clear', ocrQuery: 'costco' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'all my costco receipts' });
+
+        expect(ocrRankingOfSearch()).toEqual({ query: 'costco' });
+      });
+
+      it('should rank only the best text matches when the intent is possible', async () => {
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'possible', ocrQuery: 'costco' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'costco' });
+
+        expect(ocrRankingOfSearch()).toEqual({ query: 'costco', limit: 8 });
+      });
+
+      it('should not rank text matches when the intent is none', async () => {
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'none', ocrQuery: '' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'dog at the beach' });
+
+        expect(ocrRankingOfSearch()).toBeUndefined();
+      });
+
+      it('should not rank text matches when there are no words to search for', async () => {
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'clear', ocrQuery: '' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'receipt' });
+
+        expect(ocrRankingOfSearch()).toBeUndefined();
+      });
+
+      it('should not rank text matches when the model call fails', async () => {
+        parseResponse.mockRejectedValue(new Error('timeout'));
+
+        await sut.searchSmart(authStub.user1, { query: 'costco' });
+
+        expect(ocrRankingOfSearch()).toBeUndefined();
+        expect(mocks.search.searchSmart).toHaveBeenCalled();
+      });
+
+      it('should not call the model or rank text matches when extraction is off for the search', async () => {
+        await sut.searchSmart(authStub.user1, { query: 'costco', withFilterExtraction: false });
+
+        expect(parseResponse).not.toHaveBeenCalled();
+        expect(ocrRankingOfSearch()).toBeUndefined();
+      });
+
+      it('should split a reasoning effort off the model name', async () => {
+        extractWith('gpt-6.1-terra:none');
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'none', ocrQuery: '' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'dog' });
+
+        expect(parseResponse).toHaveBeenCalledWith(
+          expect.objectContaining({ model: 'gpt-6.1-terra', reasoning: { effort: 'none' } }),
+        );
+      });
+
+      it.each(['gpt-5.4', 'ft:gpt-4o:my-org:custom:abc123'])(
+        'should leave reasoning out and keep the model name for %s',
+        async (modelName) => {
+          extractWith(modelName);
+          parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'none', ocrQuery: '' } });
+
+          await sut.searchSmart(authStub.user1, { query: 'dog' });
+
+          expect(parseResponse.mock.calls[0][0]).toMatchObject({ model: modelName });
+          expect(parseResponse.mock.calls[0][0]).not.toHaveProperty('reasoning');
+        },
+      );
     });
 
     it('should raise a BadRequestException if machine learning is disabled', async () => {
