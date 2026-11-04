@@ -547,12 +547,16 @@
     {:else}
       <p class="text-sm text-gray-700 dark:text-gray-300 font-semibold mt-6 mb-1">Related Photos</p>
     {/if}
+    <!-- This list scrolls with the page's own scroller, and keeps the rows above the screen: it is one short page, and
+         its position changes whenever Show More grows the results above it. -->
     <GalleryViewer
       assets={relatedPhotos}
       {assetInteraction}
+      {scrollingElement}
       showArchiveIcon={true}
       {viewport}
       pageHeaderOffset={mobileDevice.pointerCoarse ? 86 : 54}
+      slidingWindowOffset={Number.MAX_SAFE_INTEGER}
       name="related-photos"
     />
   </section>
