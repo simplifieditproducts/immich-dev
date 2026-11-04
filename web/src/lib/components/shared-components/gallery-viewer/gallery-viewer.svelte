@@ -89,7 +89,8 @@
     const geo = geometry;
     const window = slidingWindow;
     const top = geo.getTop(i);
-    return top + pageHeaderOffset < window.bottom && top + geo.getHeight(i) > window.top;
+    // Render one screen ahead, so a row has its photos before it scrolls into view instead of showing up empty.
+    return top + pageHeaderOffset < window.bottom + viewport.height && top + geo.getHeight(i) > window.top;
   };
 
   let currentIndex = 0;
