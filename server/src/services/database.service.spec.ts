@@ -22,6 +22,9 @@ describe(DatabaseService.name, () => {
     mocks.database.getVectorExtension.mockResolvedValue(DatabaseExtension.VectorChord);
     mocks.database.getExtensionVersionRange.mockReturnValue(extensionRange);
 
+    // Postgres has been up too long for a prewarm to be of use, so onBootstrap skips it.
+    mocks.database.getPrewarmStats.mockResolvedValue({ uptime: Number.MAX_SAFE_INTEGER, sharedBuffers: 0, sizes: {} });
+
     versionBelowRange = '0.1.0';
     minVersionInRange = '0.2.0';
     updateInRange = '0.2.1';

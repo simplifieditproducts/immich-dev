@@ -4,6 +4,7 @@ import { ImmichWorker, JobName, QueueCommand, QueueName } from 'src/enum';
 import { QueueService } from 'src/services/queue.service';
 import { factory } from 'test/small.factory';
 import { newTestService, ServiceMocks } from 'test/utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe(QueueService.name, () => {
   let sut: QueueService;
@@ -24,29 +25,53 @@ describe(QueueService.name, () => {
       sut.onConfigUpdate({ newConfig: defaults, oldConfig: {} as SystemConfig });
 
       expect(mocks.job.setConcurrency).toHaveBeenCalledTimes(17);
-      expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(5, QueueName.FacialRecognition, 1);
-      expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(7, QueueName.DuplicateDetection, 1);
+      expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(5, QueueName.FacialRecognition, 5);
+      expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(7, QueueName.DuplicateDetection, 5);
       expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(8, QueueName.BackgroundTask, 5);
       expect(mocks.job.setConcurrency).toHaveBeenNthCalledWith(9, QueueName.StorageTemplateMigration, 1);
     });
   });
 
   describe('handleNightlyJobs', () => {
+    const scheduled = [
+      { name: JobName.AssetMissingCheckQueueAll },
+      { name: JobName.AssetDeleteCheck },
+      { name: JobName.UserDeleteCheck },
+      { name: JobName.PersonCleanup },
+      { name: JobName.MemoryCleanup },
+      { name: JobName.SessionCleanup },
+      { name: JobName.AuditTableCleanup },
+      { name: JobName.AuditLogCleanup },
+      { name: JobName.MemoryGenerate },
+      { name: JobName.UserSyncUsage },
+      { name: JobName.AssetGenerateThumbnailsQueueAll, data: { force: false } },
+    ];
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should run the scheduled jobs', async () => {
+      vi.setSystemTime(new Date(2026, 10, 4)); // a Wednesday
+
+      await sut.handleNightlyJobs();
+
+      expect(mocks.job.queueAll).toHaveBeenCalledWith([...scheduled, { name: JobName.PartialAssetCleanupQueueAll }]);
+    });
+
+    it('should cluster new faces on Tuesdays only', async () => {
+      vi.setSystemTime(new Date(2026, 10, 3)); // a Tuesday
+
       await sut.handleNightlyJobs();
 
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
-        { name: JobName.AssetDeleteCheck },
-        { name: JobName.UserDeleteCheck },
-        { name: JobName.PersonCleanup },
-        { name: JobName.MemoryCleanup },
-        { name: JobName.SessionCleanup },
-        { name: JobName.AuditTableCleanup },
-        { name: JobName.AuditLogCleanup },
-        { name: JobName.MemoryGenerate },
-        { name: JobName.UserSyncUsage },
-        { name: JobName.AssetGenerateThumbnailsQueueAll, data: { force: false } },
+        ...scheduled,
         { name: JobName.FacialRecognitionQueueAll, data: { force: false, nightly: true } },
+        { name: JobName.PartialAssetCleanupQueueAll },
       ]);
     });
   });

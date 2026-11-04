@@ -1,4 +1,4 @@
-import { SystemConfig } from 'src/config';
+import { defaults, SystemConfig } from 'src/config';
 import { ImmichWorker, JobName, JobStatus } from 'src/enum';
 import { SmartInfoService } from 'src/services/smart-info.service';
 import { getCLIPModelInfo } from 'src/utils/misc';
@@ -22,31 +22,41 @@ describe(SmartInfoService.name, () => {
   });
 
   describe('onConfigValidateEvent', () => {
-    it('should allow a valid model', () => {
-      expect(() =>
+    it('should allow a valid model', async () => {
+      await expect(
         sut.onConfigValidate({
-          newConfig: { machineLearning: { clip: { modelName: 'ViT-B-16__openai' } } } as SystemConfig,
-          oldConfig: {} as SystemConfig,
+          newConfig: {
+            machineLearning: {
+              ...defaults.machineLearning,
+              clip: { ...defaults.machineLearning.clip, modelName: 'ViT-B-16__openai' },
+            },
+          } as SystemConfig,
+          oldConfig: defaults,
         }),
-      ).not.toThrow();
+      ).resolves.toBeUndefined();
     });
 
-    it('should allow including organization', () => {
-      expect(() =>
+    it('should allow including organization', async () => {
+      await expect(
         sut.onConfigValidate({
-          newConfig: { machineLearning: { clip: { modelName: 'immich-app/ViT-B-16__openai' } } } as SystemConfig,
-          oldConfig: {} as SystemConfig,
+          newConfig: {
+            machineLearning: {
+              ...defaults.machineLearning,
+              clip: { ...defaults.machineLearning.clip, modelName: 'immich-app/ViT-B-16__openai' },
+            },
+          } as SystemConfig,
+          oldConfig: defaults,
         }),
-      ).not.toThrow();
+      ).resolves.toBeUndefined();
     });
 
-    it('should fail for an unsupported model', () => {
-      expect(() =>
+    it('should fail for an unsupported model', async () => {
+      await expect(
         sut.onConfigValidate({
           newConfig: { machineLearning: { clip: { modelName: 'test-model' } } } as SystemConfig,
           oldConfig: {} as SystemConfig,
         }),
-      ).toThrow('Unknown CLIP model: test-model');
+      ).rejects.toThrow('Unknown CLIP model: test-model');
     });
   });
 

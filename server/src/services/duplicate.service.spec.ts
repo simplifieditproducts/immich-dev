@@ -109,7 +109,7 @@ describe(SearchService.name, () => {
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         {
           name: JobName.AssetDetectDuplicates,
-          data: { id: assetStub.image.id },
+          data: { id: assetStub.image.id, userId: assetStub.image.ownerId },
         },
       ]);
     });
@@ -123,7 +123,7 @@ describe(SearchService.name, () => {
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         {
           name: JobName.AssetDetectDuplicates,
-          data: { id: assetStub.image.id },
+          data: { id: assetStub.image.id, userId: assetStub.image.ownerId },
         },
       ]);
     });

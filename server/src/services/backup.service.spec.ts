@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { Stats } from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { defaults, SystemConfig } from 'src/config';
 import { StorageCore } from 'src/cores/storage.core';
@@ -7,6 +8,9 @@ import { BackupService } from 'src/services/backup.service';
 import { systemConfigStub } from 'test/fixtures/system-config.stub';
 import { mockSpawn, newTestService, ServiceMocks } from 'test/utils';
 import { describe } from 'vitest';
+
+const folder = (date: string) =>
+  `immich-db-backup-${DateTime.fromISO(date).toFormat("yyyyLLdd'T'HHmmss")}-v1.234.0-pg14.5`;
 
 describe(BackupService.name, () => {
   let sut: BackupService;
@@ -89,56 +93,53 @@ describe(BackupService.name, () => {
       expect(mocks.storage.unlink).not.toHaveBeenCalled();
     });
 
+    let backups: string;
+
+    beforeEach(() => {
+      backups = StorageCore.getBaseFolder(StorageFolder.Backups);
+      mocks.storage.stat.mockImplementation((path) =>
+        Promise.resolve({ isDirectory: () => !path.toString().endsWith('.tmp') } as Stats),
+      );
+    });
+
     it('should remove failed backup files', async () => {
       mocks.systemMetadata.get.mockResolvedValue(systemConfigStub.backupEnabled);
-      //`immich-db-backup-${DateTime.now().toFormat("yyyyLLdd'T'HHmmss")}-v${serverVersion.toString()}-pg${databaseVersion.split(' ')[0]}.sql.gz.tmp`,
       mocks.storage.readdir.mockResolvedValue([
         'immich-db-backup-123.sql.gz.tmp',
-        `immich-db-backup-${DateTime.fromISO('2025-07-25T11:02:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz.tmp`,
-        `immich-db-backup-${DateTime.fromISO('2025-07-27T11:01:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz`,
-        `immich-db-backup-${DateTime.fromISO('2025-07-29T11:01:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz.tmp`,
+        folder('2025-07-25T11:02:16Z'),
+        folder('2025-07-27T11:01:16Z'),
+        folder('2025-07-29T11:01:16Z'),
       ]);
       await sut.cleanupDatabaseBackups();
-      expect(mocks.storage.unlink).toHaveBeenCalledTimes(3);
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-123.sql.gz.tmp`,
-      );
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-20250725T110216-v1.234.5-pg14.5.sql.gz.tmp`,
-      );
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-20250729T110116-v1.234.5-pg14.5.sql.gz.tmp`,
-      );
+      expect(mocks.storage.unlink).toHaveBeenCalledExactlyOnceWith(`${backups}/immich-db-backup-123.sql.gz.tmp`);
     });
 
-    it('should remove old backup files over keepLastAmount', async () => {
+    it('should remove old backup folders over keepLastAmount', async () => {
       mocks.systemMetadata.get.mockResolvedValue(systemConfigStub.backupEnabled);
-      mocks.storage.readdir.mockResolvedValue(['immich-db-backup-1.sql.gz', 'immich-db-backup-2.sql.gz']);
+      mocks.storage.readdir.mockResolvedValue([folder('2025-07-25T11:02:16Z'), folder('2025-07-29T11:01:16Z')]);
       await sut.cleanupDatabaseBackups();
-      expect(mocks.storage.unlink).toHaveBeenCalledTimes(1);
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-1.sql.gz`,
-      );
+      expect(mocks.storage.unlinkDir).toHaveBeenCalledExactlyOnceWith(`${backups}/${folder('2025-07-25T11:02:16Z')}`, {
+        recursive: true,
+        force: true,
+      });
     });
 
-    it('should remove old backup files over keepLastAmount and failed backups', async () => {
+    it('should keep the newest backups when it removes old ones and failed ones', async () => {
       mocks.systemMetadata.get.mockResolvedValue(systemConfigStub.backupEnabled);
       mocks.storage.readdir.mockResolvedValue([
-        `immich-db-backup-${DateTime.fromISO('2025-07-25T11:02:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz.tmp`,
-        `immich-db-backup-${DateTime.fromISO('2025-07-27T11:01:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz`,
-        'immich-db-backup-1753789649000.sql.gz',
-        `immich-db-backup-${DateTime.fromISO('2025-07-29T11:01:16Z').toFormat("yyyyLLdd'T'HHmmss")}-v1.234.5-pg14.5.sql.gz`,
+        folder('2025-07-25T11:02:16Z'),
+        folder('2025-07-27T11:01:16Z'),
+        'immich-db-backup-1753789649000.sql.gz.tmp',
+        folder('2025-07-29T11:01:16Z'),
       ]);
       await sut.cleanupDatabaseBackups();
-      expect(mocks.storage.unlink).toHaveBeenCalledTimes(3);
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-1753789649000.sql.gz`,
+      expect(mocks.storage.unlink).toHaveBeenCalledExactlyOnceWith(
+        `${backups}/immich-db-backup-1753789649000.sql.gz.tmp`,
       );
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-20250725T110216-v1.234.5-pg14.5.sql.gz.tmp`,
-      );
-      expect(mocks.storage.unlink).toHaveBeenCalledWith(
-        `${StorageCore.getBaseFolder(StorageFolder.Backups)}/immich-db-backup-20250727T110116-v1.234.5-pg14.5.sql.gz`,
+      expect(mocks.storage.unlinkDir).toHaveBeenCalledTimes(2);
+      expect(mocks.storage.unlinkDir).not.toHaveBeenCalledWith(
+        `${backups}/${folder('2025-07-29T11:01:16Z')}`,
+        expect.anything(),
       );
     });
   });
@@ -198,19 +199,19 @@ describe(BackupService.name, () => {
 
     it('should fail if pg_dumpall fails', async () => {
       mocks.process.spawn.mockReturnValueOnce(mockSpawn(1, '', 'error'));
-      await expect(sut.handleBackupDatabase()).rejects.toThrow('Backup failed with code 1');
+      await expect(sut.handleBackupDatabase()).rejects.toThrow('Globals backup failed with code 1');
     });
 
-    it('should not rename file if pgdump fails and gzip succeeds', async () => {
+    it('should not rename the folder if pg_dumpall fails', async () => {
       mocks.process.spawn.mockReturnValueOnce(mockSpawn(1, '', 'error'));
-      await expect(sut.handleBackupDatabase()).rejects.toThrow('Backup failed with code 1');
+      await expect(sut.handleBackupDatabase()).rejects.toThrow('Globals backup failed with code 1');
       expect(mocks.storage.rename).not.toHaveBeenCalled();
     });
 
-    it('should fail if gzip fails', async () => {
+    it('should fail if pg_dump fails', async () => {
       mocks.process.spawn.mockReturnValueOnce(mockSpawn(0, 'data', ''));
       mocks.process.spawn.mockReturnValueOnce(mockSpawn(1, '', 'error'));
-      await expect(sut.handleBackupDatabase()).rejects.toThrow('Gzip failed with code 1');
+      await expect(sut.handleBackupDatabase()).rejects.toThrow('Database backup failed with code 1');
     });
 
     it('should fail if write stream fails', async () => {
@@ -227,9 +228,9 @@ describe(BackupService.name, () => {
 
     it('should ignore unlink failing and still return failed job status', async () => {
       mocks.process.spawn.mockReturnValueOnce(mockSpawn(1, '', 'error'));
-      mocks.storage.unlink.mockRejectedValue(new Error('error'));
-      await expect(sut.handleBackupDatabase()).rejects.toThrow('Backup failed with code 1');
-      expect(mocks.storage.unlink).toHaveBeenCalled();
+      mocks.storage.unlinkDir.mockRejectedValue(new Error('error'));
+      await expect(sut.handleBackupDatabase()).rejects.toThrow('Globals backup failed with code 1');
+      expect(mocks.storage.unlinkDir).toHaveBeenCalled();
     });
 
     it.each`

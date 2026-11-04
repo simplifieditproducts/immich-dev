@@ -133,6 +133,10 @@ describe(ServerService.name, () => {
   describe('getFeatures', () => {
     it('should respond the server features', async () => {
       await expect(sut.getFeatures()).resolves.toEqual({
+        filterExtraction: false,
+        smartSearchResetAllowed: true,
+        faceResetAllowed: true,
+        fullRerunAllowed: undefined,
         smartSearch: true,
         duplicateDetection: true,
         facialRecognition: true,

@@ -546,21 +546,6 @@ describe(PersonService.name, () => {
       expect(mocks.systemMetadata.set).not.toHaveBeenCalled();
     });
 
-    it('should skip if recognition jobs are already queued', async () => {
-      mocks.job.getJobCounts.mockResolvedValue({
-        active: 1,
-        waiting: 1,
-        paused: 0,
-        completed: 0,
-        failed: 0,
-        delayed: 0,
-      });
-
-      await expect(sut.handleQueueRecognizeFaces({})).resolves.toBe(JobStatus.Skipped);
-      expect(mocks.job.queueAll).not.toHaveBeenCalled();
-      expect(mocks.systemMetadata.set).not.toHaveBeenCalled();
-    });
-
     it('should queue missing assets', async () => {
       mocks.job.getJobCounts.mockResolvedValue({
         active: 1,
@@ -620,29 +605,17 @@ describe(PersonService.name, () => {
       expect(mocks.person.vacuum).toHaveBeenCalledWith();
     });
 
-    it('should run nightly if new face has been added since last run', async () => {
-      mocks.person.getLatestFaceDate.mockResolvedValue(new Date().toISOString());
+    it('should queue the unassigned faces of the users with new people when nightly', async () => {
+      const ownerIds = ['user-id'];
+      mocks.person.getUsersWithNewPersonsInLastWeek.mockResolvedValue(ownerIds);
       mocks.person.getAllFaces.mockReturnValue(makeStream([faceStub.face1]));
-      mocks.job.getJobCounts.mockResolvedValue({
-        active: 1,
-        waiting: 0,
-        paused: 0,
-        completed: 0,
-        failed: 0,
-        delayed: 0,
-      });
-      mocks.person.getAll.mockReturnValue(makeStream());
-      mocks.person.getAllFaces.mockReturnValue(makeStream([faceStub.face1]));
-      mocks.person.getAllWithoutFaces.mockResolvedValue([]);
-      mocks.person.unassignFaces.mockResolvedValue();
 
       await sut.handleQueueRecognizeFaces({ force: false, nightly: true });
 
-      expect(mocks.systemMetadata.get).toHaveBeenCalledWith(SystemMetadataKey.FacialRecognitionState);
-      expect(mocks.person.getLatestFaceDate).toHaveBeenCalledOnce();
       expect(mocks.person.getAllFaces).toHaveBeenCalledWith({
         personId: null,
         sourceType: SourceType.MachineLearning,
+        ownerIds,
         recognizable: true,
       });
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
@@ -657,22 +630,14 @@ describe(PersonService.name, () => {
       expect(mocks.person.vacuum).not.toHaveBeenCalled();
     });
 
-    it('should skip nightly if no new face has been added since last run', async () => {
-      const lastRun = new Date();
+    it('should skip nightly if no user has new people', async () => {
+      mocks.person.getUsersWithNewPersonsInLastWeek.mockResolvedValue([]);
 
-      mocks.systemMetadata.get.mockResolvedValue({ lastRun: lastRun.toISOString() });
-      mocks.person.getLatestFaceDate.mockResolvedValue(new Date(lastRun.getTime() - 1).toISOString());
-      mocks.person.getAllFaces.mockReturnValue(makeStream([faceStub.face1]));
-      mocks.person.getAllWithoutFaces.mockResolvedValue([]);
+      await expect(sut.handleQueueRecognizeFaces({ force: false, nightly: true })).resolves.toBe(JobStatus.Skipped);
 
-      await sut.handleQueueRecognizeFaces({ force: true, nightly: true });
-
-      expect(mocks.systemMetadata.get).toHaveBeenCalledWith(SystemMetadataKey.FacialRecognitionState);
-      expect(mocks.person.getLatestFaceDate).toHaveBeenCalledOnce();
       expect(mocks.person.getAllFaces).not.toHaveBeenCalled();
       expect(mocks.job.queueAll).not.toHaveBeenCalled();
       expect(mocks.systemMetadata.set).not.toHaveBeenCalled();
-      expect(mocks.person.vacuum).not.toHaveBeenCalled();
     });
 
     it('should delete existing people if forced', async () => {
@@ -755,8 +720,7 @@ describe(PersonService.name, () => {
 
       expect(mocks.person.refreshFaces).toHaveBeenCalledWith([face], [], [faceSearch]);
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
-        { name: JobName.FacialRecognitionQueueAll, data: { force: false } },
-        { name: JobName.FacialRecognition, data: { id: faceId } },
+        { name: JobName.FacialRecognition, data: { id: faceId, userId: assetStub.image.ownerId } },
       ]);
       expect(mocks.person.reassignFace).not.toHaveBeenCalled();
       expect(mocks.person.reassignFaces).not.toHaveBeenCalled();
@@ -791,8 +755,7 @@ describe(PersonService.name, () => {
 
       expect(mocks.person.refreshFaces).toHaveBeenCalledWith([face], [faceStub.primaryFace1.id], [faceSearch]);
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
-        { name: JobName.FacialRecognitionQueueAll, data: { force: false } },
-        { name: JobName.FacialRecognition, data: { id: faceId } },
+        { name: JobName.FacialRecognition, data: { id: faceId, userId: assetStub.image.ownerId } },
       ]);
       expect(mocks.person.reassignFace).not.toHaveBeenCalled();
       expect(mocks.person.reassignFaces).not.toHaveBeenCalled();
@@ -831,8 +794,7 @@ describe(PersonService.name, () => {
 
       expect(mocks.person.refreshFaces).toHaveBeenCalledWith([face], [], [faceSearch]);
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
-        { name: JobName.FacialRecognitionQueueAll, data: { force: false } },
-        { name: JobName.FacialRecognition, data: { id: faceId } },
+        { name: JobName.FacialRecognition, data: { id: faceId, userId: assetStub.image.ownerId } },
       ]);
       expect(mocks.person.reassignFace).not.toHaveBeenCalled();
       expect(mocks.person.reassignFaces).not.toHaveBeenCalled();
@@ -1010,7 +972,7 @@ describe(PersonService.name, () => {
 
       expect(mocks.job.queue).toHaveBeenCalledWith({
         name: JobName.FacialRecognition,
-        data: { id: faceStub.noPerson1.id, deferred: true },
+        data: { id: faceStub.noPerson1.id, deferred: true, userId: faceStub.noPerson1.asset.ownerId },
       });
       expect(mocks.search.searchFaces).toHaveBeenCalledTimes(1);
       expect(mocks.person.create).not.toHaveBeenCalled();

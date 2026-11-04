@@ -95,9 +95,12 @@ describe('getEnv', () => {
           database: 'immich',
           username: 'postgres',
           password: 'postgres',
+          ssl: undefined,
         },
         skipMigrations: false,
         vectorExtension: undefined,
+        allowFullRerun: false,
+        allowVectorReset: false,
       });
     });
 

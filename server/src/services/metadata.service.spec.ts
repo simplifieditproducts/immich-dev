@@ -589,7 +589,19 @@ describe(MetadataService.name, () => {
       );
     });
 
-    it('should extract the MotionPhotoVideo tag from Samsung HEIC motion photos', async () => {
+    // Motion photos are turned off in isMotionPhoto(). The tests of the extraction
+    // are skipped, not removed, for the day they're turned back on.
+    it('should not extract the video of a motion photo', async () => {
+      mocks.assetJob.getForMetadataExtraction.mockResolvedValue(assetStub.livePhotoWithOriginalFileName);
+      mockReadTags({ MotionPhoto: 1, MotionPhotoVideo: new BinaryField(0, '') });
+
+      await sut.handleMetadataExtraction({ id: assetStub.livePhotoWithOriginalFileName.id });
+
+      expect(mocks.metadata.extractBinaryTag).not.toHaveBeenCalled();
+      expect(mocks.asset.create).not.toHaveBeenCalled();
+    });
+
+    it.skip('should extract the MotionPhotoVideo tag from Samsung HEIC motion photos', async () => {
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue({
         ...assetStub.livePhotoWithOriginalFileName,
         livePhotoVideoId: null,
@@ -610,7 +622,7 @@ describe(MetadataService.name, () => {
         EmbeddedVideoFile: new BinaryField(0, ''),
         EmbeddedVideoType: 'MotionPhoto_Data',
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.create.mockResolvedValue(assetStub.livePhotoMotionAsset);
       mocks.crypto.randomUUID.mockReturnValue(fileStub.livePhotoMotion.uuid);
       const video = randomBytes(512);
@@ -650,7 +662,7 @@ describe(MetadataService.name, () => {
       });
     });
 
-    it('should extract the EmbeddedVideo tag from Samsung JPEG motion photos', async () => {
+    it.skip('should extract the EmbeddedVideo tag from Samsung JPEG motion photos', async () => {
       mocks.storage.stat.mockResolvedValue({
         size: 123_456,
         mtime: assetStub.livePhotoWithOriginalFileName.fileModifiedAt,
@@ -668,7 +680,7 @@ describe(MetadataService.name, () => {
         EmbeddedVideoType: 'MotionPhoto_Data',
         MotionPhoto: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.create.mockResolvedValue(assetStub.livePhotoMotionAsset);
       mocks.crypto.randomUUID.mockReturnValue(fileStub.livePhotoMotion.uuid);
       const video = randomBytes(512);
@@ -708,7 +720,7 @@ describe(MetadataService.name, () => {
       });
     });
 
-    it('should extract the motion photo video from the XMP directory entry ', async () => {
+    it.skip('should extract the motion photo video from the XMP directory entry ', async () => {
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue({
         ...assetStub.livePhotoWithOriginalFileName,
         livePhotoVideoId: null,
@@ -726,7 +738,7 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.create.mockResolvedValue(assetStub.livePhotoMotionAsset);
       mocks.crypto.randomUUID.mockReturnValue(fileStub.livePhotoMotion.uuid);
       const video = randomBytes(512);
@@ -766,7 +778,7 @@ describe(MetadataService.name, () => {
       });
     });
 
-    it('should delete old motion photo video assets if they do not match what is extracted', async () => {
+    it.skip('should delete old motion photo video assets if they do not match what is extracted', async () => {
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue(assetStub.livePhotoWithOriginalFileName);
       mockReadTags({
         Directory: 'foo/bar/',
@@ -774,7 +786,7 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.create.mockImplementation(
         (asset) => Promise.resolve({ ...assetStub.livePhotoMotionAsset, ...asset }) as Promise<MapAsset>,
       );
@@ -796,7 +808,7 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.getByChecksum.mockResolvedValue(assetStub.livePhotoMotionAsset);
       const video = randomBytes(512);
       mocks.storage.readFile.mockResolvedValue(video);
@@ -810,7 +822,7 @@ describe(MetadataService.name, () => {
       expect(mocks.job.queue).not.toHaveBeenCalled();
     });
 
-    it('should link and hide motion video asset to still asset if the hash of the extracted video matches an existing asset', async () => {
+    it.skip('should link and hide motion video asset to still asset if the hash of the extracted video matches an existing asset', async () => {
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue({
         ...assetStub.livePhotoStillAsset,
         livePhotoVideoId: null,
@@ -821,7 +833,7 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.getByChecksum.mockResolvedValue({
         ...assetStub.livePhotoMotionAsset,
         visibility: AssetVisibility.Timeline,
@@ -853,7 +865,7 @@ describe(MetadataService.name, () => {
         MicroVideo: 1,
         MicroVideoOffset: 1,
       });
-      mocks.crypto.hashSha1.mockReturnValue(randomBytes(512));
+      mocks.crypto.hashXxHash64.mockReturnValue(randomBytes(512));
       mocks.asset.create.mockResolvedValue(assetStub.livePhotoMotionAsset);
       const video = randomBytes(512);
       mocks.storage.readFile.mockResolvedValue(video);

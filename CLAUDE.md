@@ -11,11 +11,19 @@ Standard Immich monorepo layout: `server/` (NestJS API + job workers), `web/`
 
 ## Testing
 
-The `server/` unit tests have NOT been updated for our customizations (e.g. the
-repositories we added to the `BaseService` constructor broke the mock wiring in
-`server/test/utils.ts`), so most of them fail for reasons unrelated to any
-change under review. Do not run or rely on the unit tests for now. Verify
-changes with `npx tsc --noEmit` and `npx eslint` on the touched files instead.
+Run the `server/` unit tests with `pnpm exec vitest run --config
+test/vitest.config.mjs` in `server/`, and verify changes with `npx eslint` on
+the touched files too. `.github/workflows/server-tests.yml` runs them on every
+push to `custom-patch-v2`; it reports only, the Docker workflow deploys either
+way.
+
+They mock the repositories, so they check the services' logic and nothing
+about Postgres, sharp, ffmpeg or exiftool. They pass the same on Node 22 and
+24, so they say nothing about a Node or base image upgrade.
+
+A repository added to the `BaseService` constructor has to be added to
+`newTestService` in `server/test/utils.ts` too, at the same position: its
+arguments are positional, and one missing shifts every mock after it.
 
 ## Merging upstream
 

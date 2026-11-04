@@ -21,7 +21,9 @@ import { fileStub } from 'test/fixtures/file.stub';
 import { userStub } from 'test/fixtures/user.stub';
 import { newTestService, ServiceMocks } from 'test/utils';
 
-const file1 = Buffer.from('d2947b871a706081be194569951b7db246907957', 'hex');
+const file1 = Buffer.from('d2947b871a706081', 'hex');
+
+const uploadedAsset = (id: string) => ({ id, status: AssetStatus.Active, createdAt: new Date() });
 
 const uploadFile = {
   nullAuth: {
@@ -214,19 +216,21 @@ describe(AssetMediaService.name, () => {
     });
 
     it('should find an existing asset', async () => {
-      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue('asset-id');
+      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(uploadedAsset('asset-id'));
       await expect(sut.getUploadAssetIdByChecksum(authStub.admin, file1.toString('hex'))).resolves.toEqual({
         id: 'asset-id',
         status: AssetMediaStatus.DUPLICATE,
+        checksum: file1.toString('hex'),
       });
       expect(mocks.asset.getUploadAssetIdByChecksum).toHaveBeenCalledWith(authStub.admin.user.id, file1);
     });
 
     it('should find an existing asset by base64', async () => {
-      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue('asset-id');
+      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(uploadedAsset('asset-id'));
       await expect(sut.getUploadAssetIdByChecksum(authStub.admin, file1.toString('base64'))).resolves.toEqual({
         id: 'asset-id',
         status: AssetMediaStatus.DUPLICATE,
+        checksum: file1.toString('base64'),
       });
       expect(mocks.asset.getUploadAssetIdByChecksum).toHaveBeenCalledWith(authStub.admin.user.id, file1);
     });
@@ -362,6 +366,7 @@ describe(AssetMediaService.name, () => {
       await expect(sut.uploadAsset(authStub.user1, createDto, file)).resolves.toEqual({
         id: 'id_1',
         status: AssetMediaStatus.CREATED,
+        checksum: file.checksum.toString('base64'),
       });
 
       expect(mocks.asset.create).toHaveBeenCalled();
@@ -386,11 +391,12 @@ describe(AssetMediaService.name, () => {
       (error as any).constraint_name = ASSET_CHECKSUM_CONSTRAINT;
 
       mocks.asset.create.mockRejectedValue(error);
-      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(assetEntity.id);
+      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(uploadedAsset(assetEntity.id));
 
       await expect(sut.uploadAsset(authStub.user1, createDto, file)).resolves.toEqual({
         id: 'id_1',
         status: AssetMediaStatus.DUPLICATE,
+        checksum: file.checksum.toString('base64'),
       });
 
       expect(mocks.job.queue).toHaveBeenCalledWith({
@@ -438,6 +444,7 @@ describe(AssetMediaService.name, () => {
       ).resolves.toEqual({
         status: AssetMediaStatus.CREATED,
         id: 'live-photo-still-asset',
+        checksum: fileStub.livePhotoStill.checksum.toString('base64'),
       });
 
       expect(mocks.asset.getById).toHaveBeenCalledWith('live-photo-motion-asset');
@@ -460,6 +467,7 @@ describe(AssetMediaService.name, () => {
       ).resolves.toEqual({
         status: AssetMediaStatus.CREATED,
         id: 'live-photo-still-asset',
+        checksum: fileStub.livePhotoStill.checksum.toString('base64'),
       });
 
       expect(mocks.asset.getById).toHaveBeenCalledWith('live-photo-motion-asset');
@@ -475,6 +483,7 @@ describe(AssetMediaService.name, () => {
 
       await expect(sut.uploadAsset(authStub.user1, createDto, fileStub.photo, fileStub.photoSidecar)).resolves.toEqual({
         status: AssetMediaStatus.CREATED,
+        checksum: fileStub.photo.checksum.toString('base64'),
         id: assetStub.image.id,
       });
 
@@ -673,12 +682,12 @@ describe(AssetMediaService.name, () => {
 
   describe('checkExistingAssets', () => {
     it('should get existing asset ids', async () => {
-      mocks.asset.getByDeviceIds.mockResolvedValue(['42']);
+      mocks.asset.checkExistingAssets.mockResolvedValue(['42']);
       await expect(
         sut.checkExistingAssets(authStub.admin, { deviceId: '420', deviceAssetIds: ['69'] }),
       ).resolves.toEqual({ existingIds: ['42'] });
 
-      expect(mocks.asset.getByDeviceIds).toHaveBeenCalledWith(userStub.admin.id, '420', ['69']);
+      expect(mocks.asset.checkExistingAssets).toHaveBeenCalledWith(userStub.admin.id, ['69'], '420');
     });
   });
 
@@ -714,6 +723,7 @@ describe(AssetMediaService.name, () => {
       await expect(sut.replaceAsset(authStub.user1, existingAsset.id, replaceDto, updatedFile)).resolves.toEqual({
         status: AssetMediaStatus.REPLACED,
         id: 'copied-asset',
+        checksum: updatedFile.checksum.toString('base64'),
       });
 
       expect(mocks.asset.update).toHaveBeenCalledWith(
@@ -765,6 +775,7 @@ describe(AssetMediaService.name, () => {
       ).resolves.toEqual({
         status: AssetMediaStatus.REPLACED,
         id: 'copied-asset',
+        checksum: updatedFile.checksum.toString('base64'),
       });
 
       expect(mocks.asset.updateAll).toHaveBeenCalledWith([copiedAsset.id], {
@@ -801,6 +812,7 @@ describe(AssetMediaService.name, () => {
       await expect(sut.replaceAsset(authStub.user1, existingAsset.id, replaceDto, updatedFile)).resolves.toEqual({
         status: AssetMediaStatus.REPLACED,
         id: 'copied-asset',
+        checksum: updatedFile.checksum.toString('base64'),
       });
 
       expect(mocks.asset.updateAll).toHaveBeenCalledWith([copiedAsset.id], {
@@ -828,7 +840,7 @@ describe(AssetMediaService.name, () => {
 
       mocks.asset.update.mockRejectedValue(error);
       mocks.asset.getById.mockResolvedValueOnce(sidecarAsset);
-      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(sidecarAsset.id);
+      mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(uploadedAsset(sidecarAsset.id));
       mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([sidecarAsset.id]));
       // this is the original file size
       mocks.storage.stat.mockResolvedValue({ size: 0 } as Stats);
@@ -838,6 +850,7 @@ describe(AssetMediaService.name, () => {
       await expect(sut.replaceAsset(authStub.user1, sidecarAsset.id, replaceDto, updatedFile)).resolves.toEqual({
         status: AssetMediaStatus.DUPLICATE,
         id: sidecarAsset.id,
+        checksum: updatedFile.checksum.toString('base64'),
       });
 
       expect(mocks.asset.create).not.toHaveBeenCalled();
@@ -855,8 +868,8 @@ describe(AssetMediaService.name, () => {
 
   describe('bulkUploadCheck', () => {
     it('should accept hex and base64 checksums', async () => {
-      const file1 = Buffer.from('d2947b871a706081be194569951b7db246907957', 'hex');
-      const file2 = Buffer.from('53be335e99f18a66ff12e9a901c7a6171dd76573', 'hex');
+      const file1 = Buffer.from('d2947b871a706081', 'hex');
+      const file2 = Buffer.from('53be335e99f18a66', 'hex');
 
       mocks.asset.getByChecksums.mockResolvedValue([
         { id: 'asset-1', checksum: file1, deletedAt: null },
@@ -893,8 +906,8 @@ describe(AssetMediaService.name, () => {
     });
 
     it('should return non-duplicates as well', async () => {
-      const file1 = Buffer.from('d2947b871a706081be194569951b7db246907957', 'hex');
-      const file2 = Buffer.from('53be335e99f18a66ff12e9a901c7a6171dd76573', 'hex');
+      const file1 = Buffer.from('d2947b871a706081', 'hex');
+      const file2 = Buffer.from('53be335e99f18a66', 'hex');
 
       mocks.asset.getByChecksums.mockResolvedValue([{ id: 'asset-1', checksum: file1, deletedAt: null }]);
 

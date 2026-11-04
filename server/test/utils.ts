@@ -24,6 +24,7 @@ import { AssetJobRepository } from 'src/repositories/asset-job.repository';
 import { AssetRepository } from 'src/repositories/asset.repository';
 import { AuditRepository } from 'src/repositories/audit.repository';
 import { ConfigRepository } from 'src/repositories/config.repository';
+import { ContactRepository } from 'src/repositories/contact.repository';
 import { CronRepository } from 'src/repositories/cron.repository';
 import { CryptoRepository } from 'src/repositories/crypto.repository';
 import { DatabaseRepository } from 'src/repositories/database.repository';
@@ -47,6 +48,7 @@ import { PartnerRepository } from 'src/repositories/partner.repository';
 import { PersonRepository } from 'src/repositories/person.repository';
 import { PluginRepository } from 'src/repositories/plugin.repository';
 import { ProcessRepository } from 'src/repositories/process.repository';
+import { RedisRepository } from 'src/repositories/redis.repository';
 import { SearchRepository } from 'src/repositories/search.repository';
 import { ServerInfoRepository } from 'src/repositories/server-info.repository';
 import { SessionRepository } from 'src/repositories/session.repository';
@@ -218,6 +220,7 @@ export type ServiceOverrides = {
   asset: AssetRepository;
   assetJob: AssetJobRepository;
   config: ConfigRepository;
+  contact: ContactRepository;
   cron: CronRepository;
   crypto: CryptoRepository;
   database: DatabaseRepository;
@@ -241,6 +244,7 @@ export type ServiceOverrides = {
   person: PersonRepository;
   plugin: PluginRepository;
   process: ProcessRepository;
+  redis: RedisRepository;
   search: SearchRepository;
   serverInfo: ServerInfoRepository;
   session: SessionRepository;
@@ -288,6 +292,7 @@ export const getMocks = () => {
     audit: automock(AuditRepository),
     album: automock(AlbumRepository, { strict: false }),
     albumUser: automock(AlbumUserRepository),
+    contact: automock(ContactRepository, { strict: false }),
     asset: newAssetRepositoryMock(),
     assetJob: automock(AssetJobRepository),
     app: automock(AppRepository, { strict: false }),
@@ -314,6 +319,7 @@ export const getMocks = () => {
     person: automock(PersonRepository, { strict: false }),
     plugin: automock(PluginRepository, { strict: true }),
     process: automock(ProcessRepository),
+    redis: automock(RedisRepository, { strict: false }),
     search: automock(SearchRepository, { strict: false }),
     // eslint-disable-next-line no-sparse-arrays
     serverInfo: automock(ServerInfoRepository, { args: [, loggerMock], strict: false }),
@@ -338,6 +344,9 @@ export const getMocks = () => {
     workflow: automock(WorkflowRepository, { strict: true }),
   };
 
+  // The services that take this lock go on to their work only when they get it.
+  mocks.redis.tryAcquireLock.mockResolvedValue(true);
+
   return mocks;
 };
 
@@ -359,8 +368,10 @@ export const newTestService = <T extends BaseService>(
     overrides.assetJob || (mocks.assetJob as As<AssetJobRepository>),
     overrides.audit || (mocks.audit as As<AuditRepository>),
     overrides.config || (mocks.config as As<ConfigRepository> as ConfigRepository),
+    overrides.contact || (mocks.contact as As<ContactRepository>),
     overrides.cron || (mocks.cron as As<CronRepository>),
     overrides.crypto || (mocks.crypto as As<CryptoRepository>),
+    overrides.redis || (mocks.redis as As<RedisRepository>),
     overrides.database || (mocks.database as As<DatabaseRepository>),
     overrides.downloadRepository || (mocks.downloadRepository as As<DownloadRepository>),
     overrides.duplicateRepository || (mocks.duplicateRepository as As<DuplicateRepository>),

@@ -586,7 +586,7 @@ describe(AssetService.name, () => {
         ],
       ]);
 
-      expect(mocks.asset.remove).toHaveBeenCalledWith(assetWithFace);
+      expect(mocks.asset.removeAndDecrementQuota).toHaveBeenCalledWith(assetWithFace.id);
     });
 
     it('should update stack primary asset if deleted asset was primary asset in a stack', async () => {
@@ -674,10 +674,18 @@ describe(AssetService.name, () => {
       ]);
     });
 
-    it('should update usage', async () => {
+    it("should take the file off the owner's usage as it deletes the asset", async () => {
       mocks.assetJob.getForAssetDeletion.mockResolvedValue(assetStub.image);
       await sut.handleAssetDeletion({ id: assetStub.image.id, deleteOnDisk: true });
-      expect(mocks.user.updateUsage).toHaveBeenCalledWith(assetStub.image.ownerId, -5000);
+      expect(mocks.asset.removeAndDecrementQuota).toHaveBeenCalledExactlyOnceWith(assetStub.image.id);
+      expect(mocks.asset.remove).not.toHaveBeenCalled();
+    });
+
+    it('should leave the usage alone for an external asset', async () => {
+      mocks.assetJob.getForAssetDeletion.mockResolvedValue(assetStub.external);
+      await sut.handleAssetDeletion({ id: assetStub.external.id, deleteOnDisk: true });
+      expect(mocks.asset.remove).toHaveBeenCalledWith(assetStub.external);
+      expect(mocks.asset.removeAndDecrementQuota).not.toHaveBeenCalled();
     });
 
     it('should fail if asset could not be found', async () => {

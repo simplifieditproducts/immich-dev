@@ -32,6 +32,8 @@ const updatedConfig = Object.freeze<SystemConfig>({
     [QueueName.SmartSearch]: { concurrency: 2 },
     [QueueName.MetadataExtraction]: { concurrency: 5 },
     [QueueName.FaceDetection]: { concurrency: 2 },
+    [QueueName.FacialRecognition]: { concurrency: 5 },
+    [QueueName.DuplicateDetection]: { concurrency: 5 },
     [QueueName.Search]: { concurrency: 5 },
     [QueueName.Sidecar]: { concurrency: 5 },
     [QueueName.Library]: { concurrency: 5 },
@@ -47,6 +49,9 @@ const updatedConfig = Object.freeze<SystemConfig>({
       enabled: true,
       cronExpression: '0 02 * * *',
       keepLastAmount: 14,
+    },
+    upload: {
+      maxAgeHours: 72,
     },
   },
   ffmpeg: {
@@ -92,7 +97,7 @@ const updatedConfig = Object.freeze<SystemConfig>({
     filterExtraction: {
       enabled: false,
       modelName: 'gpt-4.1-2025-04-14',
-      prompt: '',
+      prompt: defaults.machineLearning.filterExtraction.prompt,
       cacheEnabled: true,
       showExtractedFilters: false,
     },
@@ -131,6 +136,7 @@ const updatedConfig = Object.freeze<SystemConfig>({
     missingThumbnails: true,
     generateMemories: true,
     syncQuotaUsage: true,
+    removeStaleUploads: true,
   },
   reverseGeocoding: {
     enabled: true,
@@ -315,9 +321,7 @@ describe(SystemConfigService.name, () => {
       mocks.config.getEnv.mockReturnValue(mockEnvData({ configFile: 'immich-config.json' }));
       mocks.systemMetadata.readFile.mockResolvedValue(JSON.stringify({ library: { scan: { cronExpression: 'foo' } } }));
 
-      await expect(sut.getSystemConfig()).rejects.toThrow(
-        'library.scan.cronExpression has failed the following constraints: cronValidator',
-      );
+      await expect(sut.getSystemConfig()).rejects.toThrow('Unable to load system configuration');
     });
 
     it('should log errors with the config file', async () => {
@@ -328,7 +332,7 @@ describe(SystemConfigService.name, () => {
       await expect(sut.getSystemConfig()).rejects.toBeInstanceOf(Error);
 
       expect(mocks.systemMetadata.readFile).toHaveBeenCalledWith('immich-config.json');
-      expect(mocks.logger.error).toHaveBeenCalledTimes(2);
+      expect(mocks.logger.error).toHaveBeenCalledTimes(3);
       expect(mocks.logger.error.mock.calls[0][0]).toEqual('Unable to load configuration file: immich-config.json');
       expect(mocks.logger.error.mock.calls[1][0].toString()).toEqual(
         expect.stringContaining('YAMLException: duplicated mapping key (1:20)'),
