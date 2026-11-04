@@ -328,7 +328,9 @@ export class SearchRepository {
                 .select('asset.id')
                 .innerJoin('ocr_search', 'asset.id', 'ocr_search.assetId')
                 .innerJoin('smart_search', 'asset.id', 'smart_search.assetId')
-                .where(() => sql<boolean>`${ocrText} %>> ${ocrQuery}`)
+                // IS TRUE keeps this off the trigram index: that index covers every user, so a common
+                // word would be checked on all their text, whatever the size of this user's library.
+                .where(() => sql<boolean>`(${ocrText} %>> ${ocrQuery}) IS TRUE`)
                 .orderBy(sql`strict_word_similarity(${ocrQuery}, ${ocrText}) DESC`)
                 .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
                 .limit(ocrRanking!.limit!)
