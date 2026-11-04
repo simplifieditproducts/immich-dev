@@ -272,11 +272,16 @@
     <div use:focusOutside={{ onFocusOut: closeDropdown }} tabindex="-1">
       <label for="main-search-bar" class="sr-only">{$t('search_your_photos')}</label>
       <!-- Kevin has increased the right padding of the input field on desktop. -->
+      <!-- A query is not prose: no spell check underlines or auto capitals, as in the app's own search box. A long
+           query ends in an ellipsis when the field isn't focused. -->
       <input
         type="text"
         name="q"
         id="main-search-bar"
-        class="w-full transition-all border-2 px-12 sm:pr-28 pt-4 pb-3 max-md:pt-2 max-md:pb-1 text-immich-fg/75 dark:text-immich-dark-fg text-base
+        spellcheck="false"
+        autocorrect="off"
+        autocapitalize="off"
+        class="w-full truncate transition-all border-2 px-12 sm:pr-28 pt-4 pb-3 max-md:pt-2 max-md:pb-1 text-immich-fg/75 dark:text-immich-dark-fg text-base
         {showClearIcon ? 'pe-22.5' : 'pe-14'}
         {grayTheme ? 'dark:bg-immich-dark-gray' : 'dark:bg-immich-dark-bg'}
         {showSuggestions && isSearchSuggestions ? 'rounded-t-lg sm:rounded-t-3xl' : 'rounded-lg sm:rounded-3xl bg-gray-200'}
