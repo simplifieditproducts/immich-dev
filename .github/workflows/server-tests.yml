@@ -1,0 +1,42 @@
+name: Server tests
+
+# test.yml runs on upstream's PRs and main only, so nothing tested this branch.
+# This reports and blocks nothing: the Docker workflow builds and deploys the
+# same push whether or not it passes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [custom-patch-v2]
+    paths:
+      - 'server/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/server-tests.yml'
+
+permissions: {}
+
+jobs:
+  unit-tests:
+    name: Server unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - name: Setup Node
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version-file: './server/.nvmrc'
+          cache: 'pnpm'
+          cache-dependency-path: '**/pnpm-lock.yaml'
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        run: pnpm exec vitest run --config test/vitest.config.mjs
