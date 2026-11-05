@@ -1,4 +1,4 @@
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { AccessRepository } from 'src/repositories/access.repository';
 import { DatabaseRepository } from 'src/repositories/database.repository';
 import { LoggingRepository } from 'src/repositories/logging.repository';
@@ -20,11 +20,76 @@ const setup = (db?: Kysely<DB>) => {
   });
 };
 
+const collect = async <T>(stream: AsyncIterable<T>) => {
+  const items: T[] = [];
+  for await (const item of stream) {
+    items.push(item);
+  }
+  return items;
+};
+
 beforeAll(async () => {
   defaultDatabase = await getKyselyDB();
 });
 
 describe(PersonService.name, () => {
+  describe('getAllFaces', () => {
+    const embedding = `[${[1, ...Array.from({ length: 511 }, () => 0)].join(',')}]`;
+
+    const setupFaces = async () => {
+      const { ctx } = setup();
+      const newFace = async (ownerId: string, withVector: boolean) => {
+        const { asset } = await ctx.newAsset({ ownerId });
+        const { assetFace } = await ctx.newAssetFace({ assetId: asset.id });
+        if (withVector) {
+          await ctx.database.insertInto('face_search').values({ faceId: assetFace.id!, embedding }).execute();
+        }
+        return assetFace.id!;
+      };
+
+      const { user } = await ctx.newUser();
+      const { user: archived } = await ctx.newUser();
+      await sql`
+        INSERT INTO vector_archive.users ("userId", "lastActive", "clipCount", "faceCount", "clipModel", "faceModel", files)
+        VALUES (${archived.id}, now(), 0, 1, 'default', 'default', '')
+      `.execute(ctx.database);
+
+      const recognizable = await newFace(user.id, true);
+      const withoutVector = await newFace(user.id, false);
+      const ofArchivedUser = await newFace(archived.id, true);
+      const ownerIds = [user.id, archived.id];
+      return { ctx, user, ownerIds, recognizable, withoutVector, ofArchivedUser };
+    };
+
+    it('should leave out archived users and faces without a vector when recognizable', async () => {
+      const { ctx, user, ownerIds, recognizable } = await setupFaces();
+
+      const faces = await collect(ctx.get(PersonRepository).getAllFaces({ ownerIds, recognizable: true }));
+
+      expect(faces).toEqual([expect.objectContaining({ id: recognizable, ownerId: user.id })]);
+    });
+
+    it('should apply the other filters when recognizable', async () => {
+      const { ctx, ownerIds, recognizable } = await setupFaces();
+      const faceRepo = ctx.get(PersonRepository);
+
+      await expect(collect(faceRepo.getAllFaces({ ownerIds, recognizable: true, personId: null }))).resolves.toEqual([
+        expect.objectContaining({ id: recognizable }),
+      ]);
+      await expect(
+        collect(faceRepo.getAllFaces({ ownerIds, recognizable: true, personId: factory.uuid() })),
+      ).resolves.toEqual([]);
+    });
+
+    it('should return every face otherwise', async () => {
+      const { ctx, ownerIds, recognizable, withoutVector, ofArchivedUser } = await setupFaces();
+
+      const faces = await collect(ctx.get(PersonRepository).getAllFaces({ ownerIds }));
+
+      expect(faces.map(({ id }) => id).toSorted()).toEqual([recognizable, withoutVector, ofArchivedUser].toSorted());
+    });
+  });
+
   describe('delete', () => {
     it('should throw an error when there is no access', async () => {
       const { sut } = setup();
