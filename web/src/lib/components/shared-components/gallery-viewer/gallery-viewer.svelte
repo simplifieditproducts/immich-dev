@@ -462,7 +462,7 @@
   />
 {/if}
 
-{#if assets.length > 0 && !$isViewerOpen}
+{#if assets.length > 0}
   <div
     style:position="relative"
     style:height={geometry.containerHeight + 'px'}
