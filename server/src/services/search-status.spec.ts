@@ -1,4 +1,5 @@
-import { SEARCH_STATUS_CACHE_MS, SEARCH_STATUS_RESTORE_RETRY_MS } from 'src/constants';
+import { LRUMap, LRUMapWithDelete } from 'mnemonist';
+import { SEARCH_STATUS_CACHE_MS, SEARCH_STATUS_MAX_USERS, SEARCH_STATUS_RESTORE_RETRY_MS } from 'src/constants';
 import { JobName, SearchStatus } from 'src/enum';
 import { JobRepository } from 'src/repositories/job.repository';
 import { UserService } from 'src/services/user.service';
@@ -25,10 +26,14 @@ const counts = (
   };
 };
 
-const service = (archived: () => boolean, progress: () => ReturnType<typeof counts>) => {
+const service = (
+  archived: () => boolean,
+  progress: () => ReturnType<typeof counts>,
+  maxUsers = SEARCH_STATUS_MAX_USERS,
+) => {
   const sut = Object.create(UserService.prototype) as any;
-  sut.searchProgress = new Map();
-  sut.restoreQueuedAt = new Map();
+  sut.searchProgress = new LRUMap(maxUsers);
+  sut.restoreQueuedAt = new LRUMapWithDelete(maxUsers);
   sut.databaseRepository = {
     getArchivedVectorUser: vitest
       .fn()
@@ -202,5 +207,22 @@ describe('vector restore jobs', () => {
         jobId: `VectorRestore/${USER}`,
       },
     );
+  });
+
+  it('keeps the counts of the most recent users only', async () => {
+    const sut = service(
+      () => false,
+      () => counts(200, 0),
+      1,
+    );
+    const other = { user: { id: 'a3a8e6b5-5f0b-4f4e-9c55-7d0a4f4a1b11' } } as any;
+
+    await sut.getSearchStatus(auth);
+    await sut.getSearchStatus(auth);
+    expect(sut.userRepository.getSearchProgress).toHaveBeenCalledTimes(1);
+
+    await sut.getSearchStatus(other);
+    await sut.getSearchStatus(auth);
+    expect(sut.userRepository.getSearchProgress).toHaveBeenCalledTimes(3);
   });
 });

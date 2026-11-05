@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Updateable } from 'kysely';
 import { DateTime } from 'luxon';
+import { LRUMap, LRUMapWithDelete } from 'mnemonist';
 import {
   SALT_ROUNDS,
   SEARCH_READY_MAX_REMAINING_SHARE,
   SEARCH_READY_MIN_REMAINING,
   SEARCH_STATUS_CACHE_MS,
+  SEARCH_STATUS_MAX_USERS,
   SEARCH_STATUS_RESTORE_RETRY_MS,
 } from 'src/constants';
 import { StorageCore } from 'src/cores/storage.core';
@@ -35,8 +37,10 @@ type SearchProgress = Awaited<ReturnType<UserRepository['getSearchProgress']>>;
 
 @Injectable()
 export class UserService extends BaseService {
-  private searchProgress = new Map<string, { at: number; archived: boolean; counts: SearchProgress }>();
-  private restoreQueuedAt = new Map<string, number>();
+  private searchProgress = new LRUMap<string, { at: number; archived: boolean; counts: SearchProgress }>(
+    SEARCH_STATUS_MAX_USERS,
+  );
+  private restoreQueuedAt = new LRUMapWithDelete<string, number>(SEARCH_STATUS_MAX_USERS);
 
   async search(auth: AuthDto): Promise<UserResponseDto[]> {
     const config = await this.getConfig({ withCache: false });

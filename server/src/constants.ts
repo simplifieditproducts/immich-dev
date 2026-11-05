@@ -71,6 +71,10 @@ export const SEARCH_STATUS_CACHE_MS = 10 * 1000;
 // often (the login's may have failed; one already waiting or running makes
 // it a no-op).
 export const SEARCH_STATUS_RESTORE_RETRY_MS = 60 * 1000;
+// Users kept for those two, the least recently polled going first: an entry
+// lives for seconds, so this is how many users poll at once, and one pushed
+// out only costs a count or a queue call that does nothing.
+export const SEARCH_STATUS_MAX_USERS = 1000;
 
 // The advisory lock class immich-devops' vector-archive.py takes per user
 // (pg_advisory_xact_lock(4180, hashtext(userId))) to archive or restore.
