@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
+import { FACE_MISSING_REFUSED, FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
 import { DatabaseExtension, JobName, JobStatus, QueueName } from 'src/enum';
 import { DatabaseRepository } from 'src/repositories/database.repository';
 import { DuplicateService } from 'src/services/duplicate.service';
@@ -123,6 +123,22 @@ describe('vector reset guard', () => {
       expect(sut.jobRepository.queue).not.toHaveBeenCalled();
     });
 
+    it('Facial Recognition "Missing" from the Jobs page', async () => {
+      const sut = setup(QueueService, false);
+      await expect((sut as any).start(QueueName.FacialRecognition, { force: false })).rejects.toThrow(
+        FACE_MISSING_REFUSED,
+      );
+      expect(sut.databaseRepository.canResetVectors).toHaveBeenCalledWith('face_search');
+      expect(sut.jobRepository.queue).not.toHaveBeenCalled();
+    });
+
+    it('Facial Recognition "Missing" in its job, as a manual job without an owner', async () => {
+      const sut = setup(PersonService, false);
+      sut.personRepository.getAllFaces = vitest.fn();
+      await expect(sut.handleQueueRecognizeFaces({})).resolves.toBe(JobStatus.Skipped);
+      expect(sut.personRepository.getAllFaces).not.toHaveBeenCalled();
+    });
+
     it('changing the CLIP model in the settings', async () => {
       const sut = setup(SmartInfoService, false);
       const oldConfig = { machineLearning } as any;
@@ -224,6 +240,21 @@ describe('vector reset guard', () => {
       sut.jobRepository.queueAll = vitest.fn();
       await expect(sut.handleQueueRecognizeFaces(data)).resolves.toBe(JobStatus.Success);
       expect(sut.personRepository.getAllFaces).toHaveBeenCalledWith(expected);
+    });
+
+    it.each([
+      ['one user', { ownerId: 'u1' }],
+      ['the nightly run', { force: false, nightly: true }],
+    ])('Facial Recognition still runs on a large server for %s', async (_, data) => {
+      const sut = setup(PersonService, false);
+      (sut as any).systemMetadataRepository = { set: vitest.fn() };
+      sut.personRepository.getUsersWithNewPersonsInLastWeek = vitest.fn().mockResolvedValue(['u1']);
+      sut.personRepository.getAllFaces = vitest.fn().mockReturnValue((async function* () {})());
+      sut.jobRepository.queueAll = vitest.fn();
+      await expect(sut.handleQueueRecognizeFaces(data)).resolves.toBe(JobStatus.Success);
+      expect(sut.personRepository.getAllFaces).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerIds: ['u1'], recognizable: true }),
+      );
     });
 
     it('Face Detection "All" vacuums without face_search', async () => {

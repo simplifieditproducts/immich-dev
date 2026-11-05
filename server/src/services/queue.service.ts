@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ClassConstructor } from 'class-transformer';
 import { SystemConfig } from 'src/config';
-import { FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
+import { FACE_MISSING_REFUSED, FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
 import { OnEvent } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
 import {
@@ -223,11 +223,17 @@ export class QueueService extends BaseService {
 
     // Refused here too, so the admin sees why instead of a job that skips.
     // Face Detection has a third button, "Refresh" (force undefined), which
-    // detects again in every photo of every user.
-    const isReset = name === QueueName.FaceDetection ? force !== false : force;
+    // detects again in every photo of every user. Facial Recognition's
+    // "Missing" queues every unassigned face of every user.
+    const isFaceMissing = name === QueueName.FacialRecognition && !force;
+    const isReset = name === QueueName.FaceDetection ? force !== false : force || isFaceMissing;
     const resetTable = isReset && VECTOR_RESET_QUEUES[name];
     if (resetTable && !(await this.databaseRepository.canResetVectors(resetTable))) {
-      throw new BadRequestException(`${force ? '"All"' : '"Refresh"'} is ${VECTOR_RESET_REFUSED}`);
+      throw new BadRequestException(
+        isFaceMissing
+          ? `"Missing" is ${FACE_MISSING_REFUSED}`
+          : `${force ? '"All"' : '"Refresh"'} is ${VECTOR_RESET_REFUSED}`,
+      );
     }
     const isFullRerun = FULL_RERUN_ALWAYS.has(name) || (force && FULL_RERUN_ON_FORCE.has(name));
     if (isFullRerun && !(await this.databaseRepository.canRerunAllAssets())) {

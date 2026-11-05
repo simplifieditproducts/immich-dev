@@ -41,6 +41,12 @@ export const VECTOR_RESET_REFUSED =
   'included (hours of work on the database, with search, faces or duplicates broken or slow meanwhile). ' +
   'See docs/vector-index-capacity.md in immich-devops.';
 
+// Facial Recognition "Missing" is " + this: refused like a reset, though it
+// redoes nothing (PersonService.handleQueueRecognizeFaces).
+export const FACE_MISSING_REFUSED =
+  'turned off on this server: it would queue every unassigned face of every user (millions of jobs, with new ' +
+  "uploads' faces waiting behind them). To recognize one user's faces, use their page in the admin panel.";
+
 // From this many photos and videos a server counts as large: see
 // DatabaseRepository.canRerunAllAssets for what that turns off.
 export const FULL_RERUN_MAX_ASSETS = 100_000;

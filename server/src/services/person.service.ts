@@ -1,6 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Insertable, Updateable } from 'kysely';
-import { ARCHIVED_MAX_WAITS, ARCHIVED_WAIT_MS, JOBS_ASSET_PAGINATION_SIZE, VECTOR_RESET_REFUSED } from 'src/constants';
+import {
+  ARCHIVED_MAX_WAITS,
+  ARCHIVED_WAIT_MS,
+  FACE_MISSING_REFUSED,
+  JOBS_ASSET_PAGINATION_SIZE,
+  VECTOR_RESET_REFUSED,
+} from 'src/constants';
 import { Person } from 'src/database';
 import { Chunked, OnJob } from 'src/decorators';
 import { BulkIdErrorReason, BulkIdResponseDto, BulkIdsDto } from 'src/dtos/asset-ids.response.dto';
@@ -422,9 +428,13 @@ export class PersonService extends BaseService {
     }
 
     // "All" takes every face off its person and deletes the people left
-    // empty, names included, for every user.
-    if (force && !(await this.databaseRepository.canResetVectors('face_search'))) {
-      this.logger.error(`Facial Recognition "All" is ${VECTOR_RESET_REFUSED}`);
+    // empty, names included, for every user. "Missing" (no owner, not the
+    // nightly run) queues every unassigned face of every user, ahead of new
+    // uploads' faces. One user's run and the nightly one stay allowed.
+    const everyUser = !ownerId && !nightly;
+    if ((force || everyUser) && !(await this.databaseRepository.canResetVectors('face_search'))) {
+      const refused = force ? `"All" is ${VECTOR_RESET_REFUSED}` : `"Missing" is ${FACE_MISSING_REFUSED}`;
+      this.logger.error(`Facial Recognition ${refused}`);
       return JobStatus.Skipped;
     }
 

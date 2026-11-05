@@ -31,6 +31,8 @@
     // on a card that has only that button: they are greyed out and a click
     // shows this instead.
     lockedText?: string;
+    // "Missing" is turned off with them, on a card with several buttons.
+    missingLocked?: boolean;
     onCommand: (command: QueueCommandDto) => void;
   }
 
@@ -42,6 +44,7 @@
     refreshText,
     missingText,
     lockedText,
+    missingLocked = false,
     onCommand,
   }: Props = $props();
 
@@ -190,7 +193,11 @@
           <span class="uppercase">{refreshText}</span>
         </QueueCardButton>
       {/if}
-      <QueueCardButton color="light-gray" onClick={() => onCommand({ command: QueueCommand.Start, force: false })}>
+      <QueueCardButton
+        color="light-gray"
+        locked={missingLocked && !!lockedText}
+        onClick={() => (missingLocked ? startAll(false) : onCommand({ command: QueueCommand.Start, force: false }))}
+      >
         <Icon icon={mdiSelectionSearch} size="24" />
         <span class="uppercase">{missingText}</span>
       </QueueCardButton>

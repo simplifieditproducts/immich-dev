@@ -81,6 +81,7 @@
     "face_detection": "Face detection",
     "face_detection_description": "Detect the faces in assets using machine learning. For videos, only the thumbnail is considered. \"Refresh\" (re-)processes all assets. \"Reset\" additionally clears all current face data. \"Missing\" queues assets that haven't been processed yet. Detected faces will be queued for Facial Recognition after Face Detection is complete, grouping them into existing or new people.",
     "facial_recognition_job_description": "Group detected faces into people. This step runs after Face Detection is complete. \"Reset\" (re-)clusters all faces. \"Missing\" queues faces that don't have a person assigned.",
+    "facial_recognition_locked": "Turned off on this server: with this many faces, or while users' vectors are archived, going through every user's faces would take many hours and hold up new uploads. To recognize one user's faces, use their page in the admin panel.",
     "failed_job_command": "Command {command} failed for job: {job}",
     "force_delete_user_warning": "WARNING: This will immediately remove the user and all assets. This cannot be undone and the files cannot be recovered.",
     "full_rerun_locked": "Turned off on this server: with this many photos and videos, going through all of them again would take days to weeks and hold up new uploads.",

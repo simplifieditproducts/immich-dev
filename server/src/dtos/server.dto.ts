@@ -204,8 +204,9 @@ export class ServerFeaturesDto {
   ocr!: boolean;
   // Whether this server lets admins redo a whole vector table: Smart Search
   // and Duplicate Detection "All", a new CLIP model (smart_search); Face
-  // Detection "All"/"Refresh", Facial Recognition "All", a new face model
-  // (face_search). False on a large server, where the web UI greys them out.
+  // Detection "All"/"Refresh", Facial Recognition "All" and "Missing", a new
+  // face model (face_search). False on a large server, where the web UI greys
+  // them out.
   smartSearchResetAllowed!: boolean;
   faceResetAllowed!: boolean;
   // Whether this server lets admins go through every photo again: "All" of

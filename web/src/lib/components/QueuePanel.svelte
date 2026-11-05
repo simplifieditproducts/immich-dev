@@ -26,6 +26,8 @@
   // or while users' vectors are archived (immich-devops' vector-archive.py).
   const smartSearchLocked = featureFlags.smartSearchResetAllowed ? undefined : $t('admin.vector_reset_locked');
   const faceLocked = featureFlags.faceResetAllowed ? undefined : $t('admin.vector_reset_locked');
+  // On Facial Recognition "Missing" too: it goes through every user's faces.
+  const recognitionLocked = featureFlags.faceResetAllowed ? undefined : $t('admin.facial_recognition_locked');
   // So are the buttons that go through every photo again: "All" ("Sync" for
   // sidecars), and "Start" of the two migrations.
   const rerunLocked = featureFlags.fullRerunAllowed ? undefined : $t('admin.full_rerun_locked');
@@ -37,6 +39,7 @@
     missingText?: string;
     disabled?: boolean;
     lockedText?: string;
+    missingLocked?: boolean;
     handleCommand?: (jobId: QueueName, jobCommand: QueueCommandDto) => Promise<void>;
   };
 
@@ -74,7 +77,8 @@
       allText: $t('reset'),
       missingText: $t('missing'),
       disabled: !featureFlags.facialRecognition,
-      lockedText: faceLocked,
+      lockedText: recognitionLocked,
+      missingLocked: true,
     },
     [QueueName.Ocr]: {
       allText: $t('all'),
