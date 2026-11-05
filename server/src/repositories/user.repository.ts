@@ -6,7 +6,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { SUBSCRIBER_MIN_QUOTA_BYTES } from 'src/constants';
 import { columns } from 'src/database';
 import { DummyValue, GenerateSql } from 'src/decorators';
-import { AssetType, AssetVisibility, UserStatus } from 'src/enum';
+import { AssetStatus, AssetType, AssetVisibility, UserStatus } from 'src/enum';
 import { DB } from 'src/schema';
 import { UserTable } from 'src/schema/tables/user.table';
 import { UserMetadata, UserMetadataItem } from 'src/types';
@@ -324,7 +324,8 @@ export class UserRepository {
   }
 
   /**
-   * How many of a user's photos and videos (not deleted, not hidden) are
+   * How many of a user's photos and videos (not deleted, not hidden, fully
+   * uploaded) are
    * still without each step's result, and how many without one or more of
    * each group's steps, for GET /users/me/search-status. One read of the
    * user's assets by ownerId with their job status and search vectors: 0.25 s
@@ -375,6 +376,8 @@ export class UserRepository {
       .where('asset.ownerId', '=', asUuid(id))
       .where('asset.deletedAt', 'is', null)
       .where('asset.visibility', '!=', sql.lit(AssetVisibility.Hidden))
+      // An upload still in progress has no job to wait for yet.
+      .where('asset.status', '!=', sql.lit(AssetStatus.Partial))
       .executeTakeFirstOrThrow();
     return {
       assets: Number(row.assets),

@@ -486,6 +486,7 @@ where
   "asset"."ownerId" = $1::uuid
   and "asset"."deletedAt" is null
   and "asset"."visibility" != 'hidden'
+  and "asset"."status" != 'partial'
 
 -- UserRepository.updateUsage
 update "user"

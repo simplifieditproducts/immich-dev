@@ -1,6 +1,6 @@
 import { Kysely } from 'kysely';
 import { DateTime } from 'luxon';
-import { ImmichEnvironment, JobName, JobStatus } from 'src/enum';
+import { AssetStatus, ImmichEnvironment, JobName, JobStatus } from 'src/enum';
 import { ConfigRepository } from 'src/repositories/config.repository';
 import { CryptoRepository } from 'src/repositories/crypto.repository';
 import { EventRepository } from 'src/repositories/event.repository';
@@ -33,6 +33,20 @@ beforeAll(async () => {
 });
 
 describe(UserService.name, () => {
+  describe('getSearchProgress', () => {
+    it('should leave out uploads still in progress', async () => {
+      const { ctx } = setup();
+      const { user } = await ctx.newUser();
+      await ctx.newAsset({ ownerId: user.id });
+      await ctx.newAsset({ ownerId: user.id, status: AssetStatus.Partial });
+
+      const progress = await ctx.get(UserRepository).getSearchProgress(user.id);
+
+      expect(progress.assets).toBe(1);
+      expect(progress.required).toEqual({ assets: 1, smartSearch: 1, metadataExtraction: 1, thumbnailGeneration: 1 });
+    });
+  });
+
   describe('create', () => {
     it('should create a user', async () => {
       const { sut, ctx } = setup();
