@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { FACE_MISSING_REFUSED, FULL_RERUN_REFUSED, VECTOR_RESET_REFUSED } from 'src/constants';
 import { DatabaseExtension, JobName, JobStatus, QueueName } from 'src/enum';
 import { DatabaseRepository } from 'src/repositories/database.repository';
+import { JobRepository } from 'src/repositories/job.repository';
 import { DuplicateService } from 'src/services/duplicate.service';
 import { OcrService } from 'src/services/ocr.service';
 import { PersonService } from 'src/services/person.service';
@@ -255,6 +256,34 @@ describe('vector reset guard', () => {
       expect(sut.personRepository.getAllFaces).toHaveBeenCalledWith(
         expect.objectContaining({ ownerIds: ['u1'], recognizable: true }),
       );
+    });
+
+    it('Facial Recognition for one user does not wait for the other queues', async () => {
+      const sut = setup(PersonService, false);
+      (sut as any).systemMetadataRepository = { set: vitest.fn() };
+      sut.personRepository.getAllFaces = vitest.fn().mockReturnValue((async function* () {})());
+      sut.jobRepository.queueAll = vitest.fn();
+      await sut.handleQueueRecognizeFaces({ ownerId: 'u1' });
+      expect(sut.jobRepository.waitForQueueCompletion).not.toHaveBeenCalled();
+    });
+
+    it('Facial Recognition for the nightly run still waits for the other queues', async () => {
+      const sut = setup(PersonService, false);
+      (sut as any).systemMetadataRepository = { set: vitest.fn() };
+      sut.personRepository.getUsersWithNewPersonsInLastWeek = vitest.fn().mockResolvedValue(['u1']);
+      sut.personRepository.getAllFaces = vitest.fn().mockReturnValue((async function* () {})());
+      sut.jobRepository.queueAll = vitest.fn();
+      await sut.handleQueueRecognizeFaces({ force: false, nightly: true });
+      expect(sut.jobRepository.waitForQueueCompletion).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['one user', { ownerId: 'u1' }, 'FacialRecognitionQueueAll/u1'],
+      ['another user', { ownerId: 'u2' }, 'FacialRecognitionQueueAll/u2'],
+      ['every user', { force: false }, 'FacialRecognitionQueueAll'],
+    ])('Facial Recognition queue-all job id for %s', (_, data, jobId) => {
+      const repository = Object.create(JobRepository.prototype) as any;
+      expect(repository.getJobOptions({ name: JobName.FacialRecognitionQueueAll, data })).toEqual({ jobId });
     });
 
     it('Face Detection "All" vacuums without face_search', async () => {

@@ -235,7 +235,12 @@ export class JobRepository {
         return { priority: 1 };
       }
       case JobName.FacialRecognitionQueueAll: {
-        return { jobId: JobName.FacialRecognitionQueueAll };
+        // One per user: with a single id, a run for one user would drop
+        // another's while it waits or runs, and the caller sees it queued.
+        const { ownerId } = item.data;
+        return {
+          jobId: ownerId ? `${JobName.FacialRecognitionQueueAll}/${ownerId}` : JobName.FacialRecognitionQueueAll,
+        };
       }
       case JobName.FacialRecognition:
       case JobName.AssetDetectDuplicates: {

@@ -438,7 +438,12 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }
 
-    await this.jobRepository.waitForQueueCompletion(QueueName.ThumbnailGeneration, QueueName.FaceDetection);
+    // One user's run doesn't wait: faces still being detected get their own
+    // jobs, and these queues are rarely idle on a busy server, so waiting runs
+    // would keep this queue's slots from new uploads' faces.
+    if (!ownerId) {
+      await this.jobRepository.waitForQueueCompletion(QueueName.ThumbnailGeneration, QueueName.FaceDetection);
+    }
 
     if (force) {
       await this.personRepository.unassignFaces({ sourceType: SourceType.MachineLearning });
