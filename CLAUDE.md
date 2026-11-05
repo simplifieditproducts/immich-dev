@@ -41,6 +41,12 @@ recomputes them all takes many hours, so check each upstream merge for:
   change conflicts; keep our value when resolving it. The default can't be
   pinned in the settings instead, since a value equal to the default isn't
   saved.
+- **The `leftJoin('smart_search', ...)` in `SearchRepository.searchSmart`**:
+  upstream's is an `innerJoin`. Keep ours (the line carries a `// fork:`
+  comment). With a left join the planner can't take the order from
+  `clip_index`, so it reads the user's own photos and sorts them. With an inner
+  join it can scan the index for all users and drop other owners' rows, and a
+  small user gets too few results, with no error.
 - **Migrations that touch `smart_search`, `face_search`, `clip_index` or
   `face_index`**: nothing checks migrations, and they run on every server.
 - **Migrations dated before ours** (`1793048400000`, `1793580000000`):

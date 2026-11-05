@@ -311,6 +311,7 @@ export class SearchRepository {
       const ocrQuery = ocrRanking && sql`f_unaccent(${tokenizeForSearch(ocrRanking.query).join(' ')})`;
       const items = await searchAssetBuilder(trx, options)
         .selectAll('asset')
+        // fork: a left join on purpose (upstream's is inner), which keeps this off clip_index (CLAUDE.md).
         .leftJoin('smart_search', 'asset.id', 'smart_search.assetId')
         .$if(!!ocrRanking && !ocrRanking.limit, (qb) =>
           qb
