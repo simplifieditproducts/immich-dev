@@ -15,7 +15,7 @@ from immich_ml.models.base import InferenceModel
 from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
 from immich_ml.sessions.ort import OrtSession
 
-from .schemas import TextDetectionOutput
+from .schemas import OCR_CUDNN_CONV_ALGO_SEARCH, TextDetectionOutput
 
 
 class TextDetector(InferenceModel):
@@ -60,7 +60,7 @@ class TextDetector(InferenceModel):
 
     def _load(self) -> ModelSession:
         # TODO: support other runtime sessions
-        return OrtSession(self.model_path)
+        return OrtSession(self.model_path, cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH)
 
     # partly adapted from RapidOCR
     def _predict(self, inputs: Image.Image) -> TextDetectionOutput:

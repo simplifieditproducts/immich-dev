@@ -5,6 +5,10 @@ import numpy.typing as npt
 from rapidocr.utils.typings import EngineType, LangRec
 from typing_extensions import TypedDict
 
+# Text crops come in many widths, and with ONNX Runtime's default (EXHAUSTIVE) each new shape benchmarks
+# every convolution, which takes seconds and GBs of GPU memory. The choice only affects speed, not the output.
+OCR_CUDNN_CONV_ALGO_SEARCH = "HEURISTIC"
+
 
 class TextDetectionOutput(TypedDict):
     boxes: npt.NDArray[np.float32]

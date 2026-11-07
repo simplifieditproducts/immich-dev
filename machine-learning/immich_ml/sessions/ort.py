@@ -22,8 +22,10 @@ class OrtSession:
         providers: list[str] | None = None,
         provider_options: list[dict[str, Any]] | None = None,
         sess_options: ort.SessionOptions | None = None,
+        cudnn_conv_algo_search: str | None = None,
     ):
         self.model_path = Path(model_path)
+        self.cudnn_conv_algo_search = cudnn_conv_algo_search
         self.providers = providers if providers is not None else self._providers_default
         self.provider_options = provider_options if provider_options is not None else self._provider_options_default
         self.sess_options = sess_options if sess_options is not None else self._sess_options_default
@@ -90,7 +92,11 @@ class OrtSession:
             match provider:
                 case "CPUExecutionProvider":
                     options = {"arena_extend_strategy": "kSameAsRequested"}
-                case "CUDAExecutionProvider" | "ROCMExecutionProvider":
+                case "CUDAExecutionProvider":
+                    options = {"arena_extend_strategy": "kSameAsRequested", "device_id": settings.device_id}
+                    if self.cudnn_conv_algo_search is not None:
+                        options["cudnn_conv_algo_search"] = self.cudnn_conv_algo_search
+                case "ROCMExecutionProvider":
                     options = {"arena_extend_strategy": "kSameAsRequested", "device_id": settings.device_id}
                 case "OpenVINOExecutionProvider":
                     openvino_dir = self.model_path.parent / "openvino"

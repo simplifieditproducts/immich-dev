@@ -26,6 +26,8 @@ from immich_ml.models.clip.textual import MClipTextualEncoder, OpenClipTextualEn
 from immich_ml.models.clip.visual import OpenClipVisualEncoder
 from immich_ml.models.facial_recognition.detection import FaceDetector
 from immich_ml.models.facial_recognition.recognition import FaceRecognizer
+from immich_ml.models.ocr.detection import TextDetector
+from immich_ml.models.ocr.recognition import TextRecognizer
 from immich_ml.schemas import ModelFormat, ModelPrecision, ModelTask, ModelType
 from immich_ml.sessions.ann import AnnSession
 from immich_ml.sessions.ort import OrtSession
@@ -286,6 +288,29 @@ class TestOrtSession:
         os.environ["MACHINE_LEARNING_DEVICE_ID"] = "1"
 
         session = OrtSession("ViT-B-32__openai", providers=["CUDAExecutionProvider"])
+
+        assert session.provider_options == [{"arena_extend_strategy": "kSameAsRequested", "device_id": "1"}]
+
+    def test_sets_cudnn_conv_algo_search_for_cuda(self) -> None:
+        os.environ["MACHINE_LEARNING_DEVICE_ID"] = "1"
+
+        session = OrtSession(
+            "ViT-B-32__openai",
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            cudnn_conv_algo_search="HEURISTIC",
+        )
+
+        assert session.provider_options == [
+            {"arena_extend_strategy": "kSameAsRequested", "device_id": "1", "cudnn_conv_algo_search": "HEURISTIC"},
+            {"arena_extend_strategy": "kSameAsRequested"},
+        ]
+
+    def test_ignores_cudnn_conv_algo_search_for_rocm(self) -> None:
+        os.environ["MACHINE_LEARNING_DEVICE_ID"] = "1"
+
+        session = OrtSession(
+            "ViT-B-32__openai", providers=["ROCMExecutionProvider"], cudnn_conv_algo_search="HEURISTIC"
+        )
 
         assert session.provider_options == [{"arena_extend_strategy": "kSameAsRequested", "device_id": "1"}]
 
@@ -828,6 +853,25 @@ class TestFaceRecognition:
         update_dims.assert_not_called()
         onnx.load.assert_not_called()
         onnx.save.assert_not_called()
+
+
+class TestOcrSession:
+    def test_detection_uses_heuristic_conv_algo_search(self, mocker: MockerFixture) -> None:
+        session = mocker.patch("immich_ml.models.ocr.detection.OrtSession")
+        detector = TextDetector("PP-OCRv5_mobile", cache_dir="test_cache")
+
+        detector._load()
+
+        session.assert_called_once_with(detector.model_path, cudnn_conv_algo_search="HEURISTIC")
+
+    def test_recognition_uses_heuristic_conv_algo_search(self, mocker: MockerFixture) -> None:
+        session = mocker.patch("immich_ml.models.ocr.recognition.OrtSession")
+        mocker.patch("immich_ml.models.ocr.recognition.RapidTextRecognizer")
+        recognizer = TextRecognizer("PP-OCRv5_mobile", cache_dir="test_cache")
+
+        recognizer._load()
+
+        session.assert_called_once_with(recognizer.model_path, cudnn_conv_algo_search="HEURISTIC")
 
 
 @pytest.mark.asyncio

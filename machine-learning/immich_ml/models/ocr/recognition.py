@@ -17,7 +17,7 @@ from immich_ml.models.transforms import pil_to_cv2
 from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
 from immich_ml.sessions.ort import OrtSession
 
-from .schemas import OcrOptions, TextDetectionOutput, TextRecognitionOutput
+from .schemas import OCR_CUDNN_CONV_ALGO_SEARCH, OcrOptions, TextDetectionOutput, TextRecognitionOutput
 
 
 class TextRecognizer(InferenceModel):
@@ -56,7 +56,7 @@ class TextRecognizer(InferenceModel):
 
     def _load(self) -> ModelSession:
         # TODO: support other runtimes
-        session = OrtSession(self.model_path)
+        session = OrtSession(self.model_path, cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH)
         self.model = RapidTextRecognizer(
             OcrOptions(
                 session=session.session,
