@@ -45,7 +45,8 @@ export const VECTOR_RESET_REFUSED =
 // redoes nothing (PersonService.handleQueueRecognizeFaces).
 export const FACE_MISSING_REFUSED =
   'turned off on this server: it would queue every unassigned face of every user (millions of jobs, with new ' +
-  "uploads' faces waiting behind them). To recognize one user's faces, use their page in the admin panel.";
+  "uploads' faces waiting behind them). To recognize one user's faces, use Rerun Facial Recognition on their page " +
+  'in the Picture Keeper or Ultimate Backup admin panel.';
 
 // From this many photos and videos a server counts as large: see
 // DatabaseRepository.canRerunAllAssets for what that turns off.
