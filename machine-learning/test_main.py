@@ -18,7 +18,7 @@ from PIL import Image
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
-from immich_ml.config import Settings, settings
+from immich_ml.config import MaxBatchSize, Settings, settings
 from immich_ml.main import load, preload_models
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.cache import ModelCache
@@ -872,6 +872,26 @@ class TestOcrSession:
         recognizer._load()
 
         session.assert_called_once_with(recognizer.model_path, cudnn_conv_algo_search="HEURISTIC")
+
+    @pytest.mark.parametrize(
+        ("max_batch_size", "expected"),
+        [
+            (None, 6),
+            (MaxBatchSize(facial_recognition=8), 6),
+            (MaxBatchSize(text_recognition=12), 12),
+        ],
+    )
+    def test_recognition_batch_size(
+        self, max_batch_size: MaxBatchSize | None, expected: int, mocker: MockerFixture
+    ) -> None:
+        mocker.patch("immich_ml.models.ocr.recognition.OrtSession")
+        rapid = mocker.patch("immich_ml.models.ocr.recognition.RapidTextRecognizer")
+        mocker.patch.object(settings, "max_batch_size", max_batch_size)
+        recognizer = TextRecognizer("PP-OCRv5_mobile", cache_dir="test_cache")
+
+        recognizer._load()
+
+        assert rapid.call_args.args[0]["rec_batch_num"] == expected
 
 
 @pytest.mark.asyncio
