@@ -3,6 +3,7 @@ import { Insertable, Updateable } from 'kysely';
 import {
   ARCHIVED_MAX_WAITS,
   ARCHIVED_WAIT_MS,
+  FACE_RECOGNITION_USER_CONCURRENCY,
   FACE_MISSING_REFUSED,
   JOBS_ASSET_PAGINATION_SIZE,
   VECTOR_RESET_REFUSED,
@@ -553,11 +554,9 @@ export class PersonService extends BaseService {
       return JobStatus.Skipped;
     }    
 
-    // Acquire distributed lock for this user to prevent concurrent execution
-    const lockKey = `facial-recognition:${userId || face.asset.ownerId}`;
-    const lockAcquired = await this.redisRepository.tryAcquireLock(lockKey, 10);
-    if (!lockAcquired) {
-      this.logger.debug(`Could not acquire lock for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
+    const slotKey = await this.acquireFaceSlot(userId || face.asset.ownerId);
+    if (!slotKey) {
+      this.logger.debug(`No free slot for user ${userId || face.asset.ownerId}, requeueing job ${id}`);
       // Requeue the job to try again later
       await this.jobRepository.queue({ name: JobName.FacialRecognition, data: { id, deferred, userId: userId || face.asset.ownerId } });
       return JobStatus.Skipped;
@@ -591,27 +590,33 @@ export class PersonService extends BaseService {
 
       this.logger.debug(`Start facial recognition for face ${id} (user: ${userId || face.asset.ownerId})`);
 
-      let personId = matches.find((match: { personId: string | null }) => match.personId)?.personId;
-      if (!personId) {
+      const { ownerId, fileCreatedAt } = face.asset;
+      const { embedding } = face.faceSearch;
+      const findPerson = async () => {
         const matchWithPerson = await this.searchRepository.searchFaces({
-          userIds: [face.asset.ownerId],
-          embedding: face.faceSearch.embedding,
+          userIds: [ownerId],
+          embedding,
           maxDistance: machineLearning.facialRecognition.maxDistance,
           numResults: 1,
           hasPerson: true,
-          minBirthDate: face.asset.fileCreatedAt ?? undefined,
+          minBirthDate: fileCreatedAt ?? undefined,
         });
+        return matchWithPerson[0]?.personId;
+      };
 
-        if (matchWithPerson.length > 0) {
-          personId = matchWithPerson[0].personId;
-        }
-      }
+      let personId = matches.find((match: { personId: string | null }) => match.personId)?.personId;
+      personId ??= await findPerson();
 
       if (isCore && !personId) {
-        this.logger.log(`Creating new person for face ${id}`);
-        const newPerson = await this.personRepository.create({ ownerId: face.asset.ownerId, faceAssetId: face.id });
-        await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
-        personId = newPerson.id;
+        const created = await this.createPersonForFace(id, ownerId, findPerson);
+        if (!created) {
+          await this.jobRepository.queue({
+            name: JobName.FacialRecognition,
+            data: { id, deferred, userId: userId || ownerId },
+          });
+          return JobStatus.Skipped;
+        }
+        return JobStatus.Success;
       }
 
       if (personId) {
@@ -623,7 +628,41 @@ export class PersonService extends BaseService {
 
       return JobStatus.Success;
     } finally {
-      // Always release the lock
+      // Always release the slot
+      await this.redisRepository.releaseLock(slotKey);
+    }
+  }
+
+  private async acquireFaceSlot(userId: string) {
+    for (let slot = 0; slot < FACE_RECOGNITION_USER_CONCURRENCY; slot++) {
+      const slotKey = `facial-recognition:${userId}:${slot}`;
+      if (await this.redisRepository.tryAcquireLock(slotKey, 10)) {
+        return slotKey;
+      }
+    }
+  }
+
+  // The rest of a face's work runs side by side with the user's other faces, but
+  // two faces of one new person would each create it. So one job at a time looks
+  // again here, and finds the person if another job has just created it.
+  private async createPersonForFace(id: string, ownerId: string, findPerson: () => Promise<string | null | undefined>) {
+    const lockKey = `facial-recognition-person:${ownerId}`;
+    if (!(await this.redisRepository.tryAcquireLock(lockKey, 30, 5))) {
+      return false;
+    }
+
+    try {
+      let personId = await findPerson();
+      if (!personId) {
+        this.logger.log(`Creating new person for face ${id}`);
+        const newPerson = await this.personRepository.create({ ownerId, faceAssetId: id });
+        await this.jobRepository.queue({ name: JobName.PersonGenerateThumbnail, data: { id: newPerson.id } });
+        personId = newPerson.id;
+      }
+
+      await this.personRepository.reassignFaces({ faceIds: [id], newPersonId: personId });
+      return true;
+    } finally {
       await this.redisRepository.releaseLock(lockKey);
     }
   }

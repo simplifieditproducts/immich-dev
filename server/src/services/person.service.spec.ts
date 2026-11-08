@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { FACE_RECOGNITION_USER_CONCURRENCY } from 'src/constants';
 import { BulkIdErrorReason } from 'src/dtos/asset-ids.response.dto';
 import { mapFaces, mapPerson, PersonResponseDto } from 'src/dtos/person.dto';
 import { CacheControl, JobName, JobStatus, SourceType, SystemMetadataKey } from 'src/enum';
@@ -975,6 +976,125 @@ describe(PersonService.name, () => {
         data: { id: faceStub.noPerson1.id, deferred: true, userId: faceStub.noPerson1.asset.ownerId },
       });
       expect(mocks.search.searchFaces).toHaveBeenCalledTimes(1);
+      expect(mocks.person.create).not.toHaveBeenCalled();
+      expect(mocks.person.reassignFaces).not.toHaveBeenCalled();
+    });
+
+    it("should recognize a user's faces side by side up to the limit", async () => {
+      mocks.systemMetadata.get.mockResolvedValue({ machineLearning: { facialRecognition: { minFaces: 1 } } });
+      mocks.person.getFaceForFacialRecognitionJob.mockResolvedValue(faceStub.noPerson1);
+      mocks.search.searchFaces.mockResolvedValue([{ ...faceStub.primaryFace1, distance: 0 }] as FaceSearchResult[]);
+      mocks.redis.tryAcquireLock.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+      await sut.handleRecognizeFaces({ id: faceStub.noPerson1.id });
+
+      const ownerId = faceStub.noPerson1.asset.ownerId;
+      expect(mocks.redis.tryAcquireLock).toHaveBeenCalledTimes(2);
+      expect(mocks.redis.tryAcquireLock).toHaveBeenLastCalledWith(`facial-recognition:${ownerId}:1`, 10);
+      expect(mocks.redis.releaseLock).toHaveBeenCalledWith(`facial-recognition:${ownerId}:1`);
+      expect(mocks.person.reassignFaces).toHaveBeenCalledWith({
+        faceIds: [faceStub.noPerson1.id],
+        newPersonId: faceStub.primaryFace1.personId,
+      });
+    });
+
+    it("should requeue a face when all of the user's slots are taken", async () => {
+      mocks.person.getFaceForFacialRecognitionJob.mockResolvedValue(faceStub.noPerson1);
+      mocks.redis.tryAcquireLock.mockResolvedValue(false);
+
+      await expect(sut.handleRecognizeFaces({ id: faceStub.noPerson1.id })).resolves.toBe(JobStatus.Skipped);
+
+      expect(mocks.redis.tryAcquireLock).toHaveBeenCalledTimes(FACE_RECOGNITION_USER_CONCURRENCY);
+      expect(mocks.job.queue).toHaveBeenCalledWith({
+        name: JobName.FacialRecognition,
+        data: { id: faceStub.noPerson1.id, deferred: undefined, userId: faceStub.noPerson1.asset.ownerId },
+      });
+      expect(mocks.search.searchFaces).not.toHaveBeenCalled();
+    });
+
+    it('should release the slot when the search fails', async () => {
+      mocks.person.getFaceForFacialRecognitionJob.mockResolvedValue(faceStub.noPerson1);
+      mocks.search.searchFaces.mockRejectedValue(new Error('search failed'));
+
+      await expect(sut.handleRecognizeFaces({ id: faceStub.noPerson1.id })).rejects.toThrow('search failed');
+
+      expect(mocks.redis.releaseLock).toHaveBeenCalledWith(`facial-recognition:${faceStub.noPerson1.asset.ownerId}:0`);
+    });
+
+    it('should create one person for two faces of a new person recognized at once', async () => {
+      const faces = { [faceStub.noPerson1.id]: faceStub.noPerson1, [faceStub.noPerson2.id]: faceStub.noPerson2 };
+      const locks = new Set<string>();
+      let assigned: string | undefined;
+      // Both faces see no person before either goes on to create one.
+      let bothLooked: () => void;
+      const barrier = new Promise<void>((resolve) => (bothLooked = resolve));
+      let looked = 0;
+
+      mocks.systemMetadata.get.mockResolvedValue({ machineLearning: { facialRecognition: { minFaces: 1 } } });
+      mocks.person.getFaceForFacialRecognitionJob.mockImplementation((id) => Promise.resolve(faces[id]));
+      mocks.person.create.mockResolvedValue(personStub.withName);
+      mocks.person.reassignFaces.mockImplementation(({ newPersonId }) => {
+        assigned = newPersonId;
+        return Promise.resolve(1);
+      });
+      mocks.search.searchFaces.mockImplementation(async ({ hasPerson }) => {
+        if (!hasPerson) {
+          return [{ ...faceStub.noPerson1, distance: 0 }] as FaceSearchResult[];
+        }
+        if (looked < 2) {
+          if (++looked === 2) {
+            bothLooked();
+          }
+          await barrier;
+          return [];
+        }
+        return (assigned ? [{ ...faceStub.primaryFace1, personId: assigned, distance: 0 }] : []) as FaceSearchResult[];
+      });
+      mocks.redis.tryAcquireLock.mockImplementation(async (key, _ttl, maxWaitSeconds = 0) => {
+        while (locks.has(key)) {
+          if (maxWaitSeconds === 0) {
+            return false;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+        locks.add(key);
+        return true;
+      });
+      mocks.redis.releaseLock.mockImplementation((key) => {
+        locks.delete(key);
+        return Promise.resolve();
+      });
+
+      await Promise.all([
+        sut.handleRecognizeFaces({ id: faceStub.noPerson1.id }),
+        sut.handleRecognizeFaces({ id: faceStub.noPerson2.id }),
+      ]);
+
+      expect(mocks.person.create).toHaveBeenCalledTimes(1);
+      expect(mocks.person.reassignFaces).toHaveBeenCalledTimes(2);
+      expect(mocks.person.reassignFaces).toHaveBeenCalledWith({
+        faceIds: [faceStub.noPerson2.id],
+        newPersonId: personStub.withName.id,
+      });
+      expect(locks.size).toBe(0);
+    });
+
+    it('should requeue a face when another job holds on to creating a person', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({ machineLearning: { facialRecognition: { minFaces: 1 } } });
+      mocks.person.getFaceForFacialRecognitionJob.mockResolvedValue(faceStub.noPerson1);
+      mocks.search.searchFaces.mockImplementation(({ hasPerson }) =>
+        Promise.resolve((hasPerson ? [] : [{ ...faceStub.noPerson1, distance: 0 }]) as FaceSearchResult[]),
+      );
+      mocks.redis.tryAcquireLock.mockImplementation((key) =>
+        Promise.resolve(!key.startsWith('facial-recognition-person')),
+      );
+
+      await expect(sut.handleRecognizeFaces({ id: faceStub.noPerson1.id })).resolves.toBe(JobStatus.Skipped);
+
+      expect(mocks.job.queue).toHaveBeenCalledWith({
+        name: JobName.FacialRecognition,
+        data: { id: faceStub.noPerson1.id, deferred: undefined, userId: faceStub.noPerson1.asset.ownerId },
+      });
       expect(mocks.person.create).not.toHaveBeenCalled();
       expect(mocks.person.reassignFaces).not.toHaveBeenCalled();
     });

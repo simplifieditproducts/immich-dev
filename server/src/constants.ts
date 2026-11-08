@@ -63,6 +63,10 @@ export const FULL_RERUN_REFUSED =
 export const ARCHIVED_WAIT_MS = 60 * 1000;
 export const ARCHIVED_MAX_WAITS = 60;
 
+// How many of one user's faces are recognized at once, so that a user with a
+// long backlog leaves most of the queue's slots to everyone else.
+export const FACE_RECOGNITION_USER_CONCURRENCY = 6;
+
 // GET /users/me/search-status (UserService.getSearchStatus). Search counts as
 // ready while the user's photos still without a search vector, metadata or a
 // thumbnail (each counted once) are at most this share of them, or this many,
