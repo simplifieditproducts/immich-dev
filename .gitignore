@@ -28,3 +28,7 @@ vite.config.js.timestamp-*
 .pnpm-store
 .devcontainer/library
 .devcontainer/.env*
+
+# Claude Code: personal settings and local worktrees, never shared
+.claude/settings.local.json
+.claude/worktrees/
