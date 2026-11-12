@@ -73,6 +73,13 @@ RUN --mount=type=cache,id=pnpm-plugins,target=/buildcache/pnpm-store \
 
 FROM ghcr.io/immich-app/base-server-prod:202511261514@sha256:c04c1c38dd90e53455b180aedf93c3c63474c8d20ffe2c6d7a3a61a2181e6d29
 
+# The base image ships Node 22.18.0. Upstream's newer base images moved to
+# Node 24/26 along with a year of ffmpeg/libvips changes, so only the node
+# binary is replaced here, with the 22.x security release (same ABI, 127).
+# Drop this when moving to a newer base image.
+COPY --from=docker.io/library/node:22.23.5-trixie-slim@sha256:68c76cfad89921b927eae28ba21407475e29d0ce450afcdbe70c1532db042b64 /usr/local/bin/node /usr/local/bin/node
+ENV NODE_VERSION=22.23.5
+
 WORKDIR /usr/src/app
 ENV NODE_ENV=production \
   NVIDIA_DRIVER_CAPABILITIES=all \
