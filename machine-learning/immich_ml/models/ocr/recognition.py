@@ -15,7 +15,7 @@ from immich_ml.config import log, settings
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.transforms import pil_to_cv2
 from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
-from immich_ml.sessions.ort import OrtSession
+from immich_ml.sessions.ort import OrtSession, RunOptionsSession
 
 from .schemas import OCR_CUDNN_CONV_ALGO_SEARCH, OcrOptions, TextDetectionOutput, TextRecognitionOutput
 
@@ -56,7 +56,11 @@ class TextRecognizer(InferenceModel):
 
     def _load(self) -> ModelSession:
         # TODO: support other runtimes
-        session = OrtSession(self.model_path, cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH)
+        session = OrtSession(
+            self.model_path,
+            cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH,
+            arena_shrinkage=settings.ocr_arena_shrinkage,
+        )
         self.model = RapidTextRecognizer(
             OcrOptions(
                 session=session.session,
@@ -65,6 +69,9 @@ class TextRecognizer(InferenceModel):
                 lang_type=self.language,
             )
         )
+        if session.run_options is not None:
+            # rapidocr runs the session itself, and only takes a real InferenceSession when it is created
+            self.model.session.session = RunOptionsSession(session.session, session.run_options)
         return session
 
     def _predict(self, img: Image.Image, texts: TextDetectionOutput) -> TextRecognitionOutput:

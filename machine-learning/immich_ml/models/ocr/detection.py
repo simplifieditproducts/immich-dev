@@ -10,7 +10,7 @@ from rapidocr.utils.download_file import DownloadFile, DownloadFileInput
 from rapidocr.utils.typings import EngineType, LangDet, OCRVersion, TaskType
 from rapidocr.utils.typings import ModelType as RapidModelType
 
-from immich_ml.config import log
+from immich_ml.config import log, settings
 from immich_ml.models.base import InferenceModel
 from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
 from immich_ml.sessions.ort import OrtSession
@@ -60,7 +60,11 @@ class TextDetector(InferenceModel):
 
     def _load(self) -> ModelSession:
         # TODO: support other runtime sessions
-        return OrtSession(self.model_path, cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH)
+        return OrtSession(
+            self.model_path,
+            cudnn_conv_algo_search=OCR_CUDNN_CONV_ALGO_SEARCH,
+            arena_shrinkage=settings.ocr_arena_shrinkage,
+        )
 
     # partly adapted from RapidOCR
     def _predict(self, inputs: Image.Image) -> TextDetectionOutput:

@@ -71,6 +71,10 @@ class Settings(BaseSettings):
     model_inter_op_threads: int = 0
     model_intra_op_threads: int = 0
     model_arena: bool = True
+    # OCR's GPU arena gives its free blocks back after each run. Its inputs come in hundreds of shapes, and
+    # without this the arena only grows (6 GB and still growing on a T4 at 6 calls at once), at about 25%
+    # of OCR's speed. Off by default.
+    ocr_arena_shrinkage: bool = False
     ann: bool = True
     ann_fp16_turbo: bool = False
     ann_tuning_level: int = 2

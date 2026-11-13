@@ -30,7 +30,7 @@ from immich_ml.models.ocr.detection import TextDetector
 from immich_ml.models.ocr.recognition import TextRecognizer
 from immich_ml.schemas import ModelFormat, ModelPrecision, ModelTask, ModelType
 from immich_ml.sessions.ann import AnnSession
-from immich_ml.sessions.ort import OrtSession
+from immich_ml.sessions.ort import OrtSession, RunOptionsSession
 from immich_ml.sessions.rknn import RknnSession, run_inference
 
 
@@ -304,6 +304,46 @@ class TestOrtSession:
             {"arena_extend_strategy": "kSameAsRequested", "device_id": "1", "cudnn_conv_algo_search": "HEURISTIC"},
             {"arena_extend_strategy": "kSameAsRequested"},
         ]
+
+    def test_no_run_options_by_default(self, ort_session: mock.Mock) -> None:
+        session = OrtSession("ViT-B-32__openai", providers=self.CUDA_EP)
+        feed = {"x": np.zeros(1, dtype=np.float32)}
+
+        session.run(None, feed)
+
+        assert session.run_options is None
+        ort_session.return_value.run.assert_called_once_with(None, feed, None)
+
+    def test_arena_shrinkage_on_cuda(self, ort_session: mock.Mock) -> None:
+        os.environ["MACHINE_LEARNING_DEVICE_ID"] = "1"
+        ort_session.return_value.get_providers.return_value = self.CUDA_EP
+        feed = {"x": np.zeros(1, dtype=np.float32)}
+
+        session = OrtSession("ViT-B-32__openai", providers=self.CUDA_EP, arena_shrinkage=True)
+        session.run(None, feed)
+
+        assert session.run_options is not None
+        assert session.run_options.get_run_config_entry("memory.enable_memory_arena_shrinkage") == "gpu:1"
+        ort_session.return_value.run.assert_called_once_with(None, feed, session.run_options)
+
+    def test_arena_shrinkage_skipped_without_cuda(self, ort_session: mock.Mock) -> None:
+        ort_session.return_value.get_providers.return_value = self.CPU_EP
+
+        session = OrtSession("ViT-B-32__openai", providers=self.CUDA_EP, arena_shrinkage=True)
+
+        assert session.run_options is None
+
+    def test_run_options_session_adds_run_options(self) -> None:
+        inner = mock.Mock()
+        run_options = ort.RunOptions()
+        wrapped = RunOptionsSession(inner, run_options)
+        feed = {"x": np.zeros(1, dtype=np.float32)}
+
+        wrapped.run(["y"], feed)
+        wrapped.get_outputs()
+
+        inner.run.assert_called_once_with(["y"], feed, run_options)
+        inner.get_outputs.assert_called_once_with()
 
     def test_ignores_cudnn_conv_algo_search_for_rocm(self) -> None:
         os.environ["MACHINE_LEARNING_DEVICE_ID"] = "1"
@@ -862,16 +902,44 @@ class TestOcrSession:
 
         detector._load()
 
-        session.assert_called_once_with(detector.model_path, cudnn_conv_algo_search="HEURISTIC")
+        session.assert_called_once_with(detector.model_path, cudnn_conv_algo_search="HEURISTIC", arena_shrinkage=False)
+
+    def test_detection_arena_shrinkage_setting(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(settings, "ocr_arena_shrinkage", True)
+        session = mocker.patch("immich_ml.models.ocr.detection.OrtSession")
+        detector = TextDetector("PP-OCRv5_mobile", cache_dir="test_cache")
+
+        detector._load()
+
+        session.assert_called_once_with(detector.model_path, cudnn_conv_algo_search="HEURISTIC", arena_shrinkage=True)
 
     def test_recognition_uses_heuristic_conv_algo_search(self, mocker: MockerFixture) -> None:
         session = mocker.patch("immich_ml.models.ocr.recognition.OrtSession")
-        mocker.patch("immich_ml.models.ocr.recognition.RapidTextRecognizer")
+        session.return_value.run_options = None
+        rapid = mocker.patch("immich_ml.models.ocr.recognition.RapidTextRecognizer")
         recognizer = TextRecognizer("PP-OCRv5_mobile", cache_dir="test_cache")
 
         recognizer._load()
 
-        session.assert_called_once_with(recognizer.model_path, cudnn_conv_algo_search="HEURISTIC")
+        session.assert_called_once_with(
+            recognizer.model_path, cudnn_conv_algo_search="HEURISTIC", arena_shrinkage=False
+        )
+        assert not isinstance(rapid.return_value.session.session, RunOptionsSession)
+
+    def test_recognition_arena_shrinkage_reaches_rapidocr(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(settings, "ocr_arena_shrinkage", True)
+        session = mocker.patch("immich_ml.models.ocr.recognition.OrtSession")
+        run_options = ort.RunOptions()
+        session.return_value.run_options = run_options
+        rapid = mocker.patch("immich_ml.models.ocr.recognition.RapidTextRecognizer")
+        recognizer = TextRecognizer("PP-OCRv5_mobile", cache_dir="test_cache")
+        feed = {"x": np.zeros(1, dtype=np.float32)}
+
+        recognizer._load()
+        rapid.return_value.session.session.run(None, feed)
+
+        session.assert_called_once_with(recognizer.model_path, cudnn_conv_algo_search="HEURISTIC", arena_shrinkage=True)
+        session.return_value.session.run.assert_called_once_with(None, feed, run_options)
 
 
 @pytest.mark.asyncio

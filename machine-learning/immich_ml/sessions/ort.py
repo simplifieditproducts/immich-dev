@@ -23,6 +23,7 @@ class OrtSession:
         provider_options: list[dict[str, Any]] | None = None,
         sess_options: ort.SessionOptions | None = None,
         cudnn_conv_algo_search: str | None = None,
+        arena_shrinkage: bool = False,
     ):
         self.model_path = Path(model_path)
         self.cudnn_conv_algo_search = cudnn_conv_algo_search
@@ -35,6 +36,7 @@ class OrtSession:
             provider_options=self.provider_options,
             sess_options=self.sess_options,
         )
+        self.run_options = self._arena_shrinkage_run_options() if arena_shrinkage else None
 
     def get_inputs(self) -> list[SessionNode]:
         inputs: list[SessionNode] = self.session.get_inputs()
@@ -50,8 +52,25 @@ class OrtSession:
         input_feed: dict[str, NDArray[np.float32]] | dict[str, NDArray[np.int32]],
         run_options: Any = None,
     ) -> list[NDArray[np.float32]]:
+        if run_options is None:
+            run_options = self.run_options
         outputs: list[NDArray[np.float32]] = self.session.run(output_names, input_feed, run_options)
         return outputs
+
+    def _arena_shrinkage_run_options(self) -> ort.RunOptions | None:
+        # Only for the CUDA arena: naming a device that has no arena makes every run fail, as it would on a
+        # session that fell back to the CPU.
+        if "CUDAExecutionProvider" not in self.session.get_providers():
+            log.info(f"Arena shrinkage needs the CUDA provider; '{self._model_label}' runs without it")
+            return None
+        run_options = ort.RunOptions()
+        run_options.add_run_config_entry("memory.enable_memory_arena_shrinkage", f"gpu:{settings.device_id}")
+        log.info(f"Arena shrinkage on for '{self._model_label}'")
+        return run_options
+
+    @property
+    def _model_label(self) -> str:
+        return f"{self.model_path.parent.parent.name}/{self.model_path.parent.name}"
 
     @property
     def providers(self) -> list[str]:
@@ -151,3 +170,19 @@ class OrtSession:
             sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
 
         return sess_options
+
+
+class RunOptionsSession:
+    """An ONNX Runtime session whose runs get the given run options, for code that runs the session itself."""
+
+    def __init__(self, session: ort.InferenceSession, run_options: ort.RunOptions) -> None:
+        self._session = session
+        self._run_options = run_options
+
+    def run(self, output_names: Any, input_feed: Any, run_options: Any = None) -> Any:
+        return self._session.run(
+            output_names, input_feed, run_options if run_options is not None else self._run_options
+        )
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._session, name)
