@@ -423,6 +423,49 @@ describe(PersonService.name, () => {
     });
   });
 
+  describe('createFace', () => {
+    const dto = {
+      assetId: 'asset-1',
+      personId: 'person-1',
+      imageHeight: 500,
+      imageWidth: 400,
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 110,
+    };
+
+    it('should reject creating a face on an asset the user does not own', async () => {
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set());
+      mocks.access.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
+
+      await expect(sut.createFace(authStub.user1, dto)).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mocks.person.createAssetFace).not.toHaveBeenCalled();
+    });
+
+    it('should reject creating a face on an asset the user can only read through a partner', async () => {
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set());
+      mocks.access.asset.checkPartnerAccess.mockResolvedValue(new Set(['asset-1']));
+      mocks.access.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
+
+      await expect(sut.createFace(authStub.user1, dto)).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mocks.person.createAssetFace).not.toHaveBeenCalled();
+    });
+
+    it('should create a face on an asset the user owns', async () => {
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1']));
+      mocks.access.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
+
+      await expect(sut.createFace(authStub.user1, dto)).resolves.toBeUndefined();
+
+      expect(mocks.person.createAssetFace).toHaveBeenCalledWith(
+        expect.objectContaining({ assetId: 'asset-1', personId: 'person-1' }),
+      );
+    });
+  });
+
   describe('createPerson', () => {
     it('should create a new person', async () => {
       mocks.person.create.mockResolvedValue(personStub.primaryPerson);
