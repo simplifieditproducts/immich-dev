@@ -100,6 +100,26 @@ describe(SharedLinkService.name, () => {
       );
     });
 
+    it('should not allow assetIds on an album shared link', async () => {
+      mocks.access.album.checkOwnerAccess.mockResolvedValue(new Set(['album-1']));
+
+      await expect(
+        sut.create(authStub.admin, { type: SharedLinkType.Album, albumId: 'album-1', assetIds: ['asset-1'] }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mocks.sharedLink.create).not.toHaveBeenCalled();
+    });
+
+    it('should not allow an albumId on an individual shared link', async () => {
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1']));
+
+      await expect(
+        sut.create(authStub.admin, { type: SharedLinkType.Individual, albumId: 'album-1', assetIds: ['asset-1'] }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mocks.sharedLink.create).not.toHaveBeenCalled();
+    });
+
     it('should not allow non-owners to create album shared links', async () => {
       await expect(
         sut.create(authStub.admin, { type: SharedLinkType.Album, assetIds: [], albumId: 'album-1' }),

@@ -50,6 +50,10 @@ export class SharedLinkService extends BaseService {
         if (!dto.albumId) {
           throw new BadRequestException('Invalid albumId');
         }
+        // Only the album is checked below, so assets must not ride along.
+        if (dto.assetIds && dto.assetIds.length > 0) {
+          throw new BadRequestException(`assetIds can only be used with type ${SharedLinkType.Individual}`);
+        }
         await this.requireAccess({ auth, permission: Permission.AlbumShare, ids: [dto.albumId] });
         break;
       }
@@ -57,6 +61,10 @@ export class SharedLinkService extends BaseService {
       case SharedLinkType.Individual: {
         if (!dto.assetIds || dto.assetIds.length === 0) {
           throw new BadRequestException('Invalid assetIds');
+        }
+        // Only the assets are checked below, so an album must not ride along.
+        if (dto.albumId) {
+          throw new BadRequestException(`albumId can only be used with type ${SharedLinkType.Album}`);
         }
 
         await this.requireAccess({ auth, permission: Permission.AssetShare, ids: dto.assetIds });
