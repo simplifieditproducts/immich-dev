@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { NextFunction, Request, Response } from 'express';
+import { escape } from 'lodash';
 import { readFileSync } from 'node:fs';
-import sanitizeHtml from 'sanitize-html';
 import { ONE_HOUR } from 'src/constants';
 import { ConfigRepository } from 'src/repositories/config.repository';
 import { LoggingRepository } from 'src/repositories/logging.repository';
@@ -13,7 +13,7 @@ import { OpenGraphTags } from 'src/utils/misc';
 
 export const render = (index: string, meta: OpenGraphTags) => {
   const [title, description, imageUrl] = [meta.title, meta.description, meta.imageUrl].map((item) =>
-    item ? sanitizeHtml(item, { allowedTags: [] }) : '',
+    item ? escape(item) : '',
   );
 
   const tags = `
