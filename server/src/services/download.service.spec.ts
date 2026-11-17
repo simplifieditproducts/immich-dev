@@ -124,6 +124,55 @@ describe(DownloadService.name, () => {
       expect(archiveMock.addFile).toHaveBeenNthCalledWith(2, '/data/library/IMG_123.jpg', 'IMG_123+1.jpg');
     });
 
+    it.each([
+      { input: '../../../../tmp/pwn.jpg', expected: '........tmppwn.jpg' },
+      { input: String.raw`C:\temp\abs3.jpg`, expected: 'Ctempabs3.jpg' },
+      { input: 'a/../../b.jpg', expected: 'a....b.jpg' },
+      { input: String.raw`..\..\win1.jpg`, expected: '....win1.jpg' },
+      { input: '/etc/passwd', expected: 'etcpasswd' },
+      { input: '..', expected: 'unnamed' },
+      { input: '', expected: 'unnamed' },
+    ])('should sanitize unsafe originalFileName "$input" to "$expected"', async ({ input, expected }) => {
+      const archiveMock = {
+        addFile: vitest.fn(),
+        finalize: vitest.fn(),
+        stream: new Readable(),
+      };
+
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1']));
+      mocks.asset.getByIds.mockResolvedValue([{ ...assetStub.noResizePath, id: 'asset-1', originalFileName: input }]);
+      mocks.storage.createZipStream.mockReturnValue(archiveMock);
+
+      await expect(sut.downloadArchive(authStub.admin, { assetIds: ['asset-1'] })).resolves.toEqual({
+        stream: archiveMock.stream,
+      });
+
+      expect(archiveMock.addFile).toHaveBeenCalledWith('/data/library/IMG_123.jpg', expected);
+    });
+
+    it('should dedupe sanitized duplicate unsafe filenames', async () => {
+      const archiveMock = {
+        addFile: vitest.fn(),
+        finalize: vitest.fn(),
+        stream: new Readable(),
+      };
+
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1', 'asset-2']));
+      mocks.asset.getByIds.mockResolvedValue([
+        { ...assetStub.noResizePath, id: 'asset-1', originalFileName: '../../../tmp/pwn.jpg' },
+        { ...assetStub.noResizePath, id: 'asset-2', originalFileName: '../../../tmp/pwn.jpg' },
+      ]);
+      mocks.storage.createZipStream.mockReturnValue(archiveMock);
+
+      await expect(sut.downloadArchive(authStub.admin, { assetIds: ['asset-1', 'asset-2'] })).resolves.toEqual({
+        stream: archiveMock.stream,
+      });
+
+      expect(archiveMock.addFile).toHaveBeenCalledTimes(2);
+      expect(archiveMock.addFile).toHaveBeenNthCalledWith(1, '/data/library/IMG_123.jpg', '......tmppwn.jpg');
+      expect(archiveMock.addFile).toHaveBeenNthCalledWith(2, '/data/library/IMG_123.jpg', '......tmppwn+1.jpg');
+    });
+
     it('should be deterministic', async () => {
       const archiveMock = {
         addFile: vitest.fn(),
