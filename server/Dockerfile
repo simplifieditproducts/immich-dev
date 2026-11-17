@@ -80,6 +80,17 @@ FROM ghcr.io/immich-app/base-server-prod:202511261514@sha256:c04c1c38dd90e53455b
 COPY --from=docker.io/library/node:22.23.5-trixie-slim@sha256:68c76cfad89921b927eae28ba21407475e29d0ce450afcdbe70c1532db042b64 /usr/local/bin/node /usr/local/bin/node
 ENV NODE_VERSION=22.23.5
 
+# The base image's libbrotli1 (1.1.0-2+b7) predates Debian's security update,
+# and every Brotli user in the image links it. It comes from trixie-security,
+# never from the testing suite the base image's apt sources also list, and the
+# build fails if it is older than 1.1.0-2+deb13u1. Only debian.sources is read,
+# so the PostgreSQL repository can't fail the build. Drop this together with
+# the node lines above.
+RUN apt-get update -o Dir::Etc::SourceParts=- -o Dir::Etc::SourceList=/etc/apt/sources.list.d/debian.sources && \
+  apt-get install -y --no-install-recommends -t trixie-security libbrotli1 && \
+  dpkg --compare-versions "$(dpkg-query -W -f '${Version}' libbrotli1)" ge 1.1.0-2+deb13u1 && \
+  rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/app
 ENV NODE_ENV=production \
   NVIDIA_DRIVER_CAPABILITIES=all \
