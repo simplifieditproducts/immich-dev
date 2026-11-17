@@ -24,6 +24,7 @@ import {
 import { ArgOf } from 'src/repositories/event.repository';
 import { BaseService } from 'src/services/base.service';
 import { JobItem, JobOf } from 'src/types';
+import { onBeforeLink } from 'src/utils/asset.util';
 import { isAssetChecksumConstraint } from 'src/utils/database';
 import { mimeTypes } from 'src/utils/mime-types';
 import { withRetry } from 'src/utils/misc';
@@ -283,6 +284,14 @@ export class AssetUploadService extends BaseService {
     }
 
     this.validateQuota(auth, uploadLength);
+
+    // Same check as a regular upload (AssetMediaService.uploadAsset): the video must be the user's own.
+    if (assetData.livePhotoVideoId) {
+      await onBeforeLink(
+        { asset: this.assetRepository, event: this.eventRepository },
+        { userId: auth.user.id, livePhotoVideoId: assetData.livePhotoVideoId },
+      );
+    }
 
     try {
       await this.assetRepository.createWithMetadata(
