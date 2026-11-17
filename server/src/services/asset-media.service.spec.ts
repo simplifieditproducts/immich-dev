@@ -215,6 +215,17 @@ describe(AssetMediaService.name, () => {
       expect(mocks.asset.getUploadAssetIdByChecksum).toHaveBeenCalledWith(authStub.admin.user.id, file1);
     });
 
+    it('should reject a shared link without upload permission', async () => {
+      const auth = {
+        ...authStub.adminSharedLink,
+        sharedLink: { ...authStub.adminSharedLink.sharedLink, allowUpload: false },
+      };
+      await expect(sut.getUploadAssetIdByChecksum(auth, file1.toString('hex'))).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(mocks.asset.getUploadAssetIdByChecksum).not.toHaveBeenCalled();
+    });
+
     it('should find an existing asset', async () => {
       mocks.asset.getUploadAssetIdByChecksum.mockResolvedValue(uploadedAsset('asset-id'));
       await expect(sut.getUploadAssetIdByChecksum(authStub.admin, file1.toString('hex'))).resolves.toEqual({
