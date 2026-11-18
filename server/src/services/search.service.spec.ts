@@ -284,6 +284,9 @@ describe(SearchService.name, () => {
 
         expect(ocrRankingOfSearch()).toBeUndefined();
         expect(mocks.search.searchSmart).toHaveBeenCalled();
+        expect(mocks.logger.error).toHaveBeenCalledWith(
+          'Error extracting filters from query (model test-model): Error: timeout',
+        );
       });
 
       it('should not call the model or rank text matches when extraction is off for the search', async () => {

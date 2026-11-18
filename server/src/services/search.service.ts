@@ -267,12 +267,10 @@ export class SearchService extends BaseService {
         Object.fromEntries(Object.entries({ ...dto, ocrRanking }).filter(([_, v]) => v !== undefined))
       );
     } catch (error) {
-      this.logger.error("Error extracting filters from query:", {
-        query: dto.query,
-        modelName: filterExtraction.modelName,
-        prompt,
-        error,
-      });
+      // The details go into the message: a second argument is taken as the log context
+      // and printed as "[object Object]", which lost the error itself.
+      const reason = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      this.logger.error(`Error extracting filters from query (model ${filterExtraction.modelName}): ${reason}`);
     }
 
     return { dto, ocrRanking };
