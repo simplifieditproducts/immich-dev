@@ -9,10 +9,14 @@ import { newTestService, ServiceMocks } from 'test/utils';
 import { beforeEach, vitest } from 'vitest';
 
 const parseResponse = vitest.hoisted(() => vitest.fn());
+const openAiOptions = vitest.hoisted(() => vitest.fn());
 
 vitest.mock('openai', () => ({
   default: class {
     responses = { parse: parseResponse };
+    constructor(options: unknown) {
+      openAiOptions(options);
+    }
   },
 }));
 
@@ -287,6 +291,14 @@ describe(SearchService.name, () => {
         expect(mocks.logger.error).toHaveBeenCalledWith(
           'Error extracting filters from query (model test-model): Error: timeout',
         );
+      });
+
+      it('should give each model call 5 seconds and one retry', async () => {
+        parseResponse.mockResolvedValue({ output_parsed: { ...answer, textIntent: 'none', ocrQuery: '' } });
+
+        await sut.searchSmart(authStub.user1, { query: 'dog' });
+
+        expect(openAiOptions).toHaveBeenLastCalledWith(expect.objectContaining({ timeout: 5000, maxRetries: 1 }));
       });
 
       it('should not call the model or rank text matches when extraction is off for the search', async () => {

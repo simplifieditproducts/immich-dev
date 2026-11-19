@@ -181,8 +181,12 @@ export class SearchService extends BaseService {
     this.logger.debug(`Filter extraction prompt: ${prompt}`);
 
     // use GPT to extract filters from the query.
+    // A call usually takes about 2.3 s. With 3 s per attempt and the SDK's 2 retries,
+    // 14-20% of the calls timed out and were sent again, and a failure took 10.5 s.
+    // 5 s and one retry lets the slower calls finish with the same 10.5 s worst case.
     const openai = new OpenAI({
-      timeout: 3000, // timeout in 3 seconds
+      timeout: 5000,
+      maxRetries: 1,
     });
     try {
       let data: Record<string, any> | null;
